@@ -1,0 +1,81 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0c0c0d">
+  <title>Shelf Scanner — Sign In</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+    <div class="auth-card">
+      <div class="auth-logo"><i data-feather="camera"></i></div>
+      <h1>Shelf Scanner</h1>
+
+      <div class="tabs">
+        <button id="tab-login" class="tab active" data-tab="login">Sign In</button>
+        <button id="tab-register" class="tab" data-tab="register">Create Account</button>
+      </div>
+
+      <form id="login-form" class="auth-form active" autocomplete="off">
+        <div class="quick-login">
+          <label class="ql-label">Quick Login (testing)</label>
+          <div class="ql-options">
+            <label class="ql-option"><input type="radio" name="ql-role" value="admin" checked> Admin</label>
+            <label class="ql-option"><input type="radio" name="ql-role" value="manager"> Store Manager</label>
+          </div>
+        </div>
+        <div class="form-group">
+          <label for="login-email">Email</label>
+          <input type="email" id="login-email" placeholder="you@store.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="login-password">Password</label>
+          <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+        </div>
+        <button type="submit" class="btn primary btn-block">Sign In</button>
+        <div id="login-error" class="error-msg"></div>
+      </form>
+
+      <form id="register-form" class="auth-form" autocomplete="off">
+        <p class="register-intro">Create a store and get your scanner URL instantly. Free forever.</p>
+        <div class="form-group">
+          <label for="reg-name">Your Name</label>
+          <input type="text" id="reg-name" placeholder="John Doe" required autocomplete="name">
+        </div>
+        <div class="form-group">
+          <label for="reg-email">Email</label>
+          <input type="email" id="reg-email" placeholder="you@store.com" required autocomplete="email">
+        </div>
+        <div class="form-group">
+          <label for="reg-store">Store Name</label>
+          <input type="text" id="reg-store" placeholder="My Store" required>
+        </div>
+        <div class="form-group">
+          <label for="reg-slug">Store URL</label>
+          <div class="slug-row"><span class="slug-prefix">shelfscan.app/</span><input type="text" id="reg-slug" placeholder="my-store" required></div>
+        </div>
+        <div class="form-group">
+          <label for="reg-password">Password</label>
+          <input type="password" id="reg-password" placeholder="Choose a password" required autocomplete="new-password">
+        </div>
+        <button type="submit" class="btn primary btn-block">Create Store</button>
+        <div id="register-error" class="error-msg"></div>
+        <div id="register-success" class="success-msg"></div>
+      </form>
+
+      <div class="auth-footer">
+        <a href="/">← Back to home</a>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>

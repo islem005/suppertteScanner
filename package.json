@@ -1,0 +1,30 @@
+{
+  "name": "supperttescanner",
+  "version": "1.0.0",
+  "description": "Fast barcode scanner for shelf inventory",
+  "private": true,
+  "scripts": {
+    "dev": "vite --host",
+    "dev:backend": "npm run dev --prefix worker",
+    "dev:all": "concurrently -n fe,api -c cyan,yellow \"npm run dev\" \"npm run dev:backend\"",
+    "start": "node start.mjs",
+    "seed": "npm run seed --prefix worker",
+    "build": "vite build",
+    "preview": "vite preview --host",
+    "test": "vitest run",
+    "test:watch": "vitest --reporter=verbose",
+    "test:ui": "vitest --ui",
+    "test:coverage": "vitest run --coverage"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "devDependencies": {
+    "@vitejs/plugin-basic-ssl": "^2.3.0",
+    "@vitest/ui": "^4.1.7",
+    "concurrently": "^9.2.1",
+    "jsdom": "^29.1.1",
+    "vite": "^8.0.14",
+    "vitest": "^4.1.7"
+  }
+}

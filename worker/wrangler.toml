@@ -1,0 +1,12 @@
+name = "scanner-api"
+main = "src/index.js"
+compatibility_date = "2025-12-01"
+
+[vars]
+SUPABASE_URL = ""
+SUPABASE_ANON_KEY = ""
+JWT_SECRET = ""
+
+[[r2_buckets]]
+binding = "CATALOGS"
+bucket_name = "store-catalogs"

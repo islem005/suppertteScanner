@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <meta name="theme-color" content="#0c0c0d">
+  <title>Shelf Scanner - Admin</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="../css/tokens.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <div id="app">
+
+    <div id="view-dash" class="view active">
+      <div id="sidebar-backdrop" class="hidden"></div>
+      <aside id="sidebar">
+        <div id="sidebar-brand">
+          <span id="sidebar-logo"><i data-feather="settings"></i></span>
+          <span id="sidebar-title">Admin Panel</span>
+          <button id="btn-sidebar-close" class="icon-btn sidebar-close-btn" aria-label="Close menu"><i data-feather="x"></i></button>
+        </div>
+        <nav id="sidebar-nav"></nav>
+        <div id="sidebar-user">
+          <span id="sidebar-username"></span>
+          <button id="btn-logout" class="btn small">Sign Out</button>
+        </div>
+      </aside>
+
+      <div id="mobile-header">
+        <button id="btn-toggle-sidebar" class="icon-btn" aria-label="Toggle menu"><i data-feather="menu"></i></button>
+        <span id="mobile-title">Admin</span>
+        <div style="width:40px"></div>
+      </div>
+
+      <main id="main-content">
+
+        <section id="view-overview" class="dash-view">
+          <header class="view-header"><h2>Overview</h2><span id="ov-date" class="meta"></span></header>
+          <div id="ov-cards" class="stats-row"></div>
+          <div id="ov-store-table" class="table-wrap"></div>
+        </section>
+
+        <section id="view-stores" class="dash-view">
+          <header class="view-header"><h2>Stores</h2><button id="btn-add-store" class="btn small">+ New Store</button></header>
+          <div id="store-table" class="table-wrap"></div>
+        </section>
+
+        <section id="view-store-detail" class="dash-view" style="display:none">
+          <header class="view-header">
+            <button id="btn-back-stores" class="btn small" style="margin-right:8px">← Back</button>
+            <h2 id="sd-title">Store</h2>
+            <a id="sd-public-link" href="#" target="_blank" class="btn small" style="margin-left:auto">Public Link ↗</a>
+          </header>
+
+          <div id="sd-stats" class="stats-row"></div>
+
+          <div id="sd-mapping-card" class="card" style="margin-top:16px;padding:16px;background:#1a1a2e;border-radius:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h3 style="margin:0;font-size:16px">Data Mapping</h3>
+              <span id="sd-mapping-badge" class="tag">Loading...</span>
+            </div>
+            <div id="sd-mapping-body">
+              <div class="empty-state">Loading...</div>
+            </div>
+            <div id="sd-mapping-actions" style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+              <button id="btn-sd-edit-map" class="btn small hidden">Edit Mapping</button>
+              <button id="btn-sd-test-map" class="btn small hidden">Test Mapping</button>
+              <button id="btn-sd-remove-map" class="btn small danger hidden">Remove Mapping</button>
+              <button id="btn-sd-save-map-only" class="btn small hidden">Save Mapping Only</button>
+            </div>
+          </div>
+
+          <div id="sd-pending-card" class="card" style="margin-top:16px;padding:16px;background:#1a1a2e;border-radius:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h3 style="margin:0;font-size:16px">Pending Imports</h3>
+            </div>
+            <div id="sd-pending-list"></div>
+          </div>
+
+          <div id="sd-history-card" class="card" style="margin-top:16px;padding:16px;background:#1a1a2e;border-radius:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h3 style="margin:0;font-size:16px">Import History</h3>
+            </div>
+            <div id="sd-history-list"></div>
+          </div>
+        </section>
+
+        <section id="view-users" class="dash-view">
+          <header class="view-header"><h2>Users</h2><button id="btn-add-user" class="btn small">+ New User</button></header>
+          <div id="user-table" class="table-wrap"></div>
+        </section>
+
+        <section id="view-branding" class="dash-view">
+          <header class="view-header"><h2>Branding</h2></header>
+          <div id="brand-stores-table" class="table-wrap"></div>
+          <div id="brand-editor" class="brand-editor hidden">
+            <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+              <button id="brand-editor-back" class="btn small">← Back</button>
+              <h3 id="brand-editor-title" style="margin:0;font-size:var(--text-lg)"></h3>
+            </div>
+            <div class="dash-view-inner">
+              <div class="branding-column">
+                <form id="branding-form" class="branding-form">
+                  <div class="form-row">
+                    <label>Display Name</label>
+                    <input type="text" id="brand-name" placeholder="Store display name">
+                  </div>
+                  <div class="form-row">
+                    <label>Logo</label>
+                    <div class="logo-picker">
+                      <input type="file" id="brand-logo-input" accept="image/png,image/jpeg,image/webp">
+                      <input type="hidden" id="brand-logo">
+                      <img id="brand-logo-preview" class="logo-preview hidden">
+                      <button id="brand-logo-remove" class="btn small hidden" type="button">Remove</button>
+                    </div>
+                  </div>
+                  <div class="form-row">
+                    <label>Primary Color</label>
+                    <div class="color-row"><input type="color" id="brand-primary" value="#6366f1"><span id="brand-primary-val">#6366f1</span></div>
+                  </div>
+                  <div class="form-row">
+                    <label>Accent Color</label>
+                    <div class="color-row"><input type="color" id="brand-accent" value="#10b981"><span id="brand-accent-val">#10b981</span></div>
+                  </div>
+                  <div class="form-row">
+                    <label>Contact Email</label>
+                    <input type="email" id="brand-email" placeholder="store@example.com">
+                  </div>
+                  <div class="form-row">
+                    <label>Contact Phone</label>
+                    <input type="tel" id="brand-phone" placeholder="+1 555-0123">
+                  </div>
+                <div class="form-row">
+                  <label>Footer Text</label>
+                  <input type="text" id="brand-footer" placeholder="© 2026 My Store">
+                </div>
+                <div class="form-row">
+                  <label>Instagram URL</label>
+                  <input type="url" id="brand-instagram" placeholder="https://instagram.com/...">
+                </div>
+                <div class="form-row">
+                  <label>TikTok URL</label>
+                  <input type="url" id="brand-tiktok" placeholder="https://tiktok.com/@...">
+                </div>
+                <div class="form-row">
+                  <label>Website URL</label>
+                  <input type="url" id="brand-website" placeholder="https://...">
+                </div>
+                <button type="submit" class="btn primary">Save Branding</button>
+                  <div id="brand-msg" class="success-msg"></div>
+                </form>
+              </div>
+              <div class="branding-column brand-preview">
+                <div class="phone-mockup" id="brand-mockup">
+                  <div class="phone-notch"></div>
+                  <div class="phone-screen">
+                    <div class="phone-topbar">
+                      <span class="phone-title" id="preview-title">Shelf Scanner</span>
+                    </div>
+                    <div class="phone-scan-area">
+                      <div class="phone-scan-frame">
+                        <div class="phone-corner phone-corner-tl"></div>
+                        <div class="phone-corner phone-corner-tr"></div>
+                        <div class="phone-corner phone-corner-bl"></div>
+                        <div class="phone-corner phone-corner-br"></div>
+                        <div class="phone-scan-line"></div>
+                      </div>
+                    </div>
+                    <div class="phone-result-overlay" id="preview-result">
+                      <div class="phone-result-name" id="preview-result-name">Organic Honey</div>
+                      <div class="phone-result-price" id="preview-result-price">$9.99</div>
+                    </div>
+                  <div class="phone-profile">
+                    <div class="phone-profile-avatar"><img id="preview-logo" src="" alt=""></div>
+                    <div class="phone-profile-name" id="preview-profile-name">Your Store</div>
+                    <div class="phone-profile-links">
+                      <a id="preview-instagram" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg></a>
+                      <a id="preview-tiktok" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M9 12a4 4 0 1 0 4 4V4a5 5 0 0 0 5 5"/></svg></a>
+                      <a id="preview-website" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></a>
+                      <a id="preview-email" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></a>
+                      <a id="preview-phone" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></a>
+                    </div>
+                  </div>
+                  <div class="phone-bottom-controls">
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                    <span class="phone-counter">03</span>
+                    <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+                  </div>
+                  </div>
+                </div>
+                <div class="preview-label">Live Preview</div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-activity" class="dash-view">
+          <header class="view-header"><h2>Recent Activity</h2></header>
+          <div id="activity-list" class="table-wrap"></div>
+        </section>
+
+        <section id="view-profile" class="dash-view">
+          <header class="view-header"><h2>My Profile</h2></header>
+          <div class="profile-card">
+            <div class="form-row"><label>Email</label><span id="prof-email"></span></div>
+            <div class="form-row"><label>Name</label><span id="prof-name"></span></div>
+            <div class="form-row"><label>Role</label><span id="prof-role" class="tag"></span></div>
+            <div class="form-row"><label>Store</label><span id="prof-store"></span></div>
+          </div>
+        </section>
+
+      </main>
+    </div>
+
+    <div id="modal-overlay" class="hidden" onclick="closeModal(event)">
+      <div id="modal-box">
+        <div id="modal-body"></div>
+        <div class="modal-actions"><button class="btn small" onclick="closeModal()">Cancel</button><button id="modal-confirm" class="btn primary">Confirm</button></div>
+      </div>
+    </div>
+
+  </div>
+
+  <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
+  <script src="../js/shared.js"></script>
+  <script src="js/api.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
