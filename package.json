@@ -5,11 +5,13 @@
   "private": true,
   "scripts": {
     "dev": "vite --host",
-    "dev:backend": "npm run dev --prefix worker",
+    "dev:backend": "cd api && npx wrangler dev --port 3002",
+    "dev:supa": "cd api && npx wrangler dev --port 3002 --remote",
     "dev:all": "concurrently -n fe,api -c cyan,yellow \"npm run dev\" \"npm run dev:backend\"",
     "start": "node start.mjs",
-    "seed": "npm run seed --prefix worker",
-    "build": "vite build",
+    "seed": "node api/scripts/seed.mjs",
+    "seed:force": "node api/scripts/seed.mjs --force",
+    "build": "vite build && node copy-assets.mjs",
     "preview": "vite preview --host",
     "test": "vitest run",
     "test:watch": "vitest --reporter=verbose",
@@ -20,11 +22,15 @@
   "author": "",
   "license": "ISC",
   "devDependencies": {
+    "@morphllm/opencode-morph-plugin": "^2.0.9",
     "@vitejs/plugin-basic-ssl": "^2.3.0",
     "@vitest/ui": "^4.1.7",
     "concurrently": "^9.2.1",
     "jsdom": "^29.1.1",
     "vite": "^8.0.14",
     "vitest": "^4.1.7"
+  },
+  "dependencies": {
+    "swiper": "^12.2.0"
   }
 }
