@@ -3,12 +3,14 @@
   let user = null, stores = []
 
   const navItems = [
-    { id: 'overview',  icon: 'bar-chart-2', label: 'Overview' },
-    { id: 'stores',    icon: 'home', label: 'Stores' },
-    { id: 'users',     icon: 'users', label: 'Users' },
-    { id: 'branding',  icon: 'droplet', label: 'Branding' },
-    { id: 'activity',  icon: 'clock', label: 'Activity' },
-    { id: 'profile',   icon: 'user', label: 'Profile' },
+    { id: 'overview',    icon: 'bar-chart-2', label: 'Overview' },
+    { id: 'stores',      icon: 'home', label: 'Stores' },
+    { id: 'users',       icon: 'users', label: 'Users' },
+    { id: 'promotions',  icon: 'gift', label: 'Promotions' },
+    { id: 'discounts',   icon: 'tag', label: 'Discounts' },
+    { id: 'branding',    icon: 'droplet', label: 'Branding' },
+    { id: 'activity',    icon: 'clock', label: 'Activity' },
+    { id: 'profile',     icon: 'user', label: 'Profile' },
   ]
 
   const $ = (id)     => { const e = document.getElementById(id); if (!e) console.warn('Missing #'+id); return e }
@@ -26,7 +28,55 @@
     }
     return false
   }
-  function logout() { localStorage.removeItem('token'); localStorage.removeItem('user'); user = null; window.location.href = '/auth/' }
+  function logout() { localStorage.removeItem('token'); localStorage.removeItem('user'); user = null; showLoginView() }
+
+  function showLoginView() {
+    showView('view-login')
+    document.getElementById('view-dash').classList.remove('active')
+    document.getElementById('view-dash').style.display = 'none'
+    const loginView = document.getElementById('view-login')
+    loginView.style.display = 'flex'
+    loginView.classList.add('active')
+    if (typeof feather !== 'undefined') feather.replace()
+  }
+
+  // ─── Admin Login Form ───
+  const adminLoginForm = document.getElementById('admin-login-form')
+  if (adminLoginForm) {
+    adminLoginForm.addEventListener('submit', async (e) => {
+      e.preventDefault()
+      const btn = adminLoginForm.querySelector('button[type="submit"]')
+      btn.disabled = true; btn.textContent = 'Signing in...'
+      const errorEl = document.getElementById('admin-login-error')
+      errorEl.textContent = ''
+
+      try {
+        const res = await fetch('/api/auth/login', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            email: document.getElementById('admin-email').value,
+            password: document.getElementById('admin-password').value
+          })
+        })
+        let data = {}
+        try { data = await res.json() } catch { data = {} }
+        if (!res.ok) throw new Error(data.error || 'Login failed')
+
+        if (data.user.role !== 'admin') {
+          throw new Error('This login is for admin accounts only. Managers use the /auth/ page.')
+        }
+
+        saveAuth(data.user, data.token)
+        API.getStores().then(s => { stores = s }).catch(() => {})
+        routeDash()
+        showToast('Welcome back, ' + (data.user.display_name || 'Admin'))
+      } catch (err) {
+        errorEl.textContent = err.message
+        btn.disabled = false; btn.textContent = 'Sign In'
+      }
+    })
+  }
 
   function showView(id) { document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === id)) }
   function showDashView(id) {
@@ -36,9 +86,19 @@
     else if (id === 'stores') loadStores()
     else if (id === 'users') loadUsers()
     else if (id === 'branding') loadBranding()
+    else if (id === 'promotions') loadPromotions()
+    else if (id === 'discounts') loadDiscounts()
     else if (id === 'activity') loadActivity()
     else if (id === 'profile') loadProfile()
   }
+  function navigateTo(id) {
+    if (location.hash !== '#' + id) location.hash = id
+    showDashView(id)
+  }
+  window.addEventListener('hashchange', () => {
+    const id = location.hash.replace('#', '') || 'overview'
+    showDashView(id)
+  })
 
   function buildNav(items) {
     const nav = $('sidebar-nav'); nav.innerHTML = ''
@@ -46,7 +106,7 @@
       const btn = document.createElement('button')
       btn.className = 'nav-item'; btn.dataset.view = item.id
       btn.innerHTML = `<i data-feather="${item.icon}"></i> ${item.label}`
-      btn.onclick = () => showDashView(item.id)
+      btn.onclick = () => navigateTo(item.id)
       nav.appendChild(btn)
     })
     if (typeof feather !== 'undefined') feather.replace()
@@ -54,9 +114,14 @@
 
   function routeDash() {
     showView('view-dash')
+    // Clear inline styles set by showLoginView so CSS .active class takes over
+    document.getElementById('view-dash').style.display = ''
+    document.getElementById('view-login').style.display = ''
     buildNav(navItems)
     $('sidebar-username').textContent = user.display_name || user.email
-    showDashView('overview')
+    const initial = location.hash.replace('#', '') || 'overview'
+    if (navItems.some(i => i.id === initial)) showDashView(initial)
+    else showDashView('overview')
   }
 
   $('btn-logout').addEventListener('click', logout)
@@ -92,7 +157,8 @@
     showModal('New Store', `
       <div class="form">
         <input id="mod-store-name" placeholder="Store name" required>
-        <input id="mod-store-slug" placeholder="Slug (e.g., store-nyc)" required>
+        <input id="mod-store-slug" placeholder="Slug (e.g., store-nyc)" required oninput="document.getElementById('store-url-preview').textContent='ivond.com/'+this.value.replace(/\\s+/g,'-').toLowerCase()">
+        <div id="store-url-preview" style="font-size:var(--text-sm);color:var(--text-secondary);padding:var(--space-1) var(--space-4) 0"></div>
       </div>
     `, async () => {
       const name = $('mod-store-name').value, slug = $('mod-store-slug').value
@@ -123,7 +189,7 @@
   $('btn-back-stores').onclick = () => {
     $('view-store-detail').style.display = 'none'
     $('view-store-detail').classList.remove('active')
-    showDashView('stores')
+    navigateTo('stores')
   }
 
   async function loadStoreDetail() {
@@ -306,7 +372,7 @@
           </div>
           <div class="form-row">
             <label>Name column</label>
-            <select class="mapping-select" id="map-nm">${colOpts.replace(new RegExp(escReg(currentMap.barcode), 'g'), 'PLACEHOLDER').replace(`selected>`, `>`).replace('PLACEHOLDER', esc(currentMap.barcode))}</select>
+            <select class="mapping-select" id="map-nm">${colOpts.replace(new RegExp(escReg(currentMap.barcode), 'g'), 'PLACEHOLDER').replace(`selected>`, `>`).replace('PLACEHOLDER', esc(currentMap.barcode))}</select>  <!-- TEST: 'PLACEHOLDER' is a sentinel string for RegExp replacement -->
           </div>
           <div class="form-row">
             <label>Price column</label>
@@ -591,16 +657,19 @@
       $('brand-instagram').value = b.instagram_url || ''
       $('brand-tiktok').value = b.tiktok_url || ''
       $('brand-website').value = b.website_url || ''
+      $('brand-facebook').value = b.facebook_url || ''
+      $('brand-twitter').value = b.twitter_url || ''
+      $('brand-youtube').value = b.youtube_url || ''
     } catch {}
     updateBrandPreview()
   }
 
-  function updateBrandPreview() {
+  function updateBrandPreview() {                                   // TEST: preview phone mockup with live branding
     const name = $('brand-name').value || 'Your Store'
     const logo = $('brand-logo').value
     const primary = $('brand-primary').value || '#6366f1'
     const accent = $('brand-accent').value || '#10b981'
-    const mockup = $('brand-mockup')
+    const mockup = $('brand-mockup')                                 // TEST: CSS-only phone mockup element
     if (!mockup) return
 
     const titleEl = $('preview-title')
@@ -623,6 +692,9 @@
     setSocial('preview-instagram', $('brand-instagram').value)
     setSocial('preview-tiktok', $('brand-tiktok').value)
     setSocial('preview-website', $('brand-website').value)
+    setSocial('preview-facebook', $('brand-facebook').value)
+    setSocial('preview-twitter', $('brand-twitter').value)
+    setSocial('preview-youtube', $('brand-youtube').value)
     setSocial('preview-email', $('brand-email').value ? 'mailto:' + $('brand-email').value : '')
     setSocial('preview-phone', $('brand-phone').value ? 'tel:' + $('brand-phone').value : '')
 
@@ -638,6 +710,9 @@
   $('brand-instagram').oninput = updateBrandPreview
   $('brand-tiktok').oninput = updateBrandPreview
   $('brand-website').oninput = updateBrandPreview
+  $('brand-facebook').oninput = updateBrandPreview
+  $('brand-twitter').oninput = updateBrandPreview
+  $('brand-youtube').oninput = updateBrandPreview
 
   $('branding-form').addEventListener('submit', async e => {
     e.preventDefault()
@@ -654,7 +729,10 @@
         footer_text: $('brand-footer').value,
         instagram_url: $('brand-instagram').value,
         tiktok_url: $('brand-tiktok').value,
-        website_url: $('brand-website').value
+        website_url: $('brand-website').value,
+        facebook_url: $('brand-facebook').value,
+        twitter_url: $('brand-twitter').value,
+        youtube_url: $('brand-youtube').value
       })
       $('brand-msg').textContent = 'Branding saved!'
       setTimeout(() => $('brand-msg').textContent = '', 2000)
@@ -674,6 +752,568 @@
       }
       $('activity-list').innerHTML = html + '</tbody></table></div>'
     } catch { $('activity-list').innerHTML = '<div class="empty-state">Could not load activity.</div>' }
+  }
+
+  // ══════════════════════════════════════════════
+  //  PROMOTIONS (Banner + Offers)
+  // ══════════════════════════════════════════════
+
+  let _promoStoreId = null
+
+  async function loadPromotions() {
+    _promoStoreId = null
+    $('promo-banner-editor').classList.add('hidden')
+    try {
+      stores = await API.getStores()
+    } catch { stores = [] }
+
+    if (stores.length === 0) {
+      $('promo-stores-table').innerHTML = '<div class="empty-state">No stores yet.</div>'
+      return
+    }
+    let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Banners</th><th>Offers</th><th></th></tr></thead><tbody>'
+    for (const s of stores) {
+      let bannerCount = 0
+      let offerCount = 0
+      try {
+        const banners = await API.getBanner(s.id)
+        bannerCount = Array.isArray(banners) ? banners.length : 0
+        const offers = await API.getOffers(s.id)
+        offerCount = offers.length
+      } catch { /* ignore */ }
+      html += `<tr>
+        <td><strong>${esc(s.name)}</strong></td>
+        <td class="meta">/${esc(s.slug)}</td>
+        <td>${bannerCount}</td>
+        <td>${offerCount}</td>
+        <td class="actions-cell"><button class="btn small" onclick="openPromoEditor('${s.id}')">Manage</button></td>
+      </tr>`
+    }
+    $('promo-stores-table').innerHTML = html + '</tbody></table>'
+  }
+
+  $('btn-promo-refresh').onclick = loadPromotions
+
+  window.openPromoEditor = async (storeId) => {
+    _promoStoreId = storeId
+    const store = stores.find(s => s.id === storeId)
+    $('promo-banner-title').textContent = store ? esc(store.name) + ' — Promotions' : 'Promotions'
+    $('promo-stores-table').style.display = 'none'
+    $('promo-banner-editor').classList.remove('hidden')
+    loadBannerForm(storeId)
+    loadPromoOffersList(storeId)
+  }
+
+  $('promo-banner-back').onclick = () => {
+    _promoStoreId = null
+    $('promo-banner-editor').classList.add('hidden')
+    $('promo-stores-table').style.display = ''
+    loadPromotions()
+  }
+
+  // ─── Banners List + Editor ───
+  async function loadBannerForm(storeId) {
+    const wrap = $('promo-banner-form-wrap')
+    try {
+      let banners
+      try { banners = await API.getBanner(storeId) } catch { banners = [] }
+      if (!Array.isArray(banners)) banners = []
+
+      let html = `
+        <div class="card" style="padding:var(--space-4);background:var(--bg-surface)">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)">
+            <h4 style="margin:0;font-size:var(--text-base)">Banners</h4>
+            <button id="btn-new-banner" class="btn small">+ New Banner</button>
+          </div>`
+
+      if (banners.length === 0) {
+        html += '<div class="empty-state">No banners yet. Click "+ New Banner" to add one.</div>'
+      } else {
+        html += '<div class="table-wrap"><table><thead><tr><th style="width:60px">Image</th><th>Title</th><th style="width:60px">Active</th><th style="width:120px"></th></tr></thead><tbody>'
+        for (const b of banners) {
+          html += `<tr>
+            <td>${b.image_data ? '<img src="' + esc(b.image_data) + '" style="width:48px;height:18px;object-fit:cover;border-radius:var(--radius-sm);display:block">' : '<span class="meta">—</span>'}</td>
+            <td>${esc(b.title || '')}</td>
+            <td>${b.active ? '<span style="color:var(--color-success)">✓</span>' : '—'}</td>
+            <td class="actions-cell" style="white-space:nowrap">
+              <button class="btn small" data-banner-id="${b.id}" data-banner-title="${esc(b.title || '')}" data-banner-image="${esc(b.image_data || '')}" data-banner-active="${b.active ? '1' : '0'}" onclick="editBanner(this)">Edit</button>
+              <button class="btn small danger" onclick="deleteBanner('${b.id}')">Delete</button>
+            </td>
+          </tr>`
+        }
+        html += '</tbody></table></div>'
+      }
+      html += '<span id="promo-banner-msg" class="success-msg"></span></div>'
+      wrap.innerHTML = html
+
+      $('btn-new-banner').onclick = () => openBannerModal(storeId, null)
+    } catch { wrap.innerHTML = '<div class="empty-state">Could not load banners.</div>' }
+  }
+
+  window.editBanner = function(btn) {
+    const id = btn.getAttribute('data-banner-id')
+    const storeId = _promoStoreId
+    const banner = { id, title: btn.getAttribute('data-banner-title'), image_data: btn.getAttribute('data-banner-image'), active: btn.getAttribute('data-banner-active') === '1' }
+    openBannerModal(storeId, banner)
+  }
+
+  window.deleteBanner = async (id) => {
+    showModal('Delete banner?', 'Are you sure you want to delete this banner?', async () => {
+      try {
+        await API.deletePromotion(id)
+        closeModal()
+        showToast('Banner deleted')
+        loadBannerForm(_promoStoreId)
+      } catch (err) { showToast('Error: ' + err.message) }
+    }, true)
+  }
+
+  function openBannerModal(storeId, banner) {
+    const isNew = !banner
+    const title = isNew ? 'New Banner' : 'Edit Banner'
+    const body = `
+      <div class="form-row">
+        <label>Title (fallback if no image)</label>
+        <input type="text" id="banner-modal-title" class="form-input" value="${isNew ? '' : esc(banner.title || '')}" placeholder="e.g. Check out our weekly deals!">
+      </div>
+      <div class="form-row">
+        <label>Banner Image (GIF supported)</label>
+        <div class="logo-picker">
+          <input type="file" id="banner-modal-image-input" accept="image/png,image/jpeg,image/webp,image/gif">
+          <input type="hidden" id="banner-modal-image" value="${isNew ? '' : esc(banner.image_data || '')}">
+          <img id="banner-modal-image-preview" class="logo-preview ${isNew || !banner.image_data ? 'hidden' : ''}" src="${isNew ? '' : esc(banner.image_data || '')}">
+          <button id="banner-modal-image-remove" class="btn small ${isNew || !banner.image_data ? 'hidden' : ''}" type="button">Remove</button>
+        </div>
+      </div>
+      <div class="form-row" style="display:flex;gap:var(--space-3);align-items:center">
+        <label style="margin:0;white-space:nowrap">Active</label>
+        <input type="checkbox" id="banner-modal-active" ${isNew || banner.active !== false ? 'checked' : ''}>
+      </div>`
+
+    showModal(title, body, async () => {
+      const _title = $('banner-modal-title').value || null
+      const _image = $('banner-modal-image').value || null
+      const _active = $('banner-modal-active').checked
+      const data = { store_id: storeId, type: 'banner', title: _title, image_data: _image, active: _active }
+      try {
+        if (isNew) await API.createPromotion(data)
+        else await API.updatePromotion(banner.id, data)
+        closeModal()
+        showToast(isNew ? 'Banner created!' : 'Banner saved!')
+        loadBannerForm(storeId)
+      } catch (err) { showToast('Error: ' + err.message) }
+    }, false)
+
+    // Wire up image crop
+    const imgInput = $('banner-modal-image-input')
+    const imgHidden = $('banner-modal-image')
+    const imgPreview = $('banner-modal-image-preview')
+    const imgRemove = $('banner-modal-image-remove')
+    imgInput.addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return
+      const reader = new FileReader()
+      reader.onload = async ev => {
+        try {
+          const cropped = await window.cropImage(ev.target.result, 800/300, 800, 300)
+          imgHidden.value = cropped
+          imgPreview.src = cropped
+          imgPreview.classList.remove('hidden')
+          imgRemove.classList.remove('hidden')
+        } catch (e) { if (e.message !== 'cancelled') console.warn('Crop failed:', e) }
+      }
+      reader.readAsDataURL(file)
+    })
+    imgRemove.addEventListener('click', () => {
+      imgHidden.value = ''
+      imgInput.value = ''
+      imgPreview.classList.add('hidden')
+      imgRemove.classList.add('hidden')
+    })
+  }
+
+  // ─── Offers List ───
+  async function loadPromoOffersList(storeId) {
+    const list = $('promo-offers-list')
+    try {
+      const promos = await API.getStorePromotions(storeId)
+      const offers = promos.filter(p => p.type === 'offer')
+      if (offers.length === 0) {
+        list.innerHTML = '<div class="empty-state">No offers for this store.</div>'
+        return
+      }
+      let html = '<table><thead><tr><th>Image</th><th>Title</th><th>Trigger</th><th>Active</th><th></th></tr></thead><tbody>'
+      for (const o of offers) {
+        const trigger = o.trigger_type ? o.trigger_type + ': ' + esc(o.trigger_value) : '<span class="tag success">Default</span>'
+        const thumb = o.image_data
+          ? `<img src="${esc(o.image_data)}" class="offer-thumb" alt="">`
+          : '<span class="offer-thumb offer-thumb-empty"></span>'
+        html += `<tr>
+          <td>${thumb}</td>
+          <td><strong>${esc(o.title || 'Untitled')}</strong></td>
+          <td class="meta">${esc(trigger)}</td>
+          <td>${o.active ? '<span style="color:#00c875">✓</span>' : '<span style="color:#ffc107">○</span>'}</td>
+          <td class="actions-cell" style="display:flex;gap:4px">
+            <button class="btn small" onclick="adminEditOffer('${o.id}')">Edit</button>
+            <button class="btn small danger" onclick="adminDeleteOffer('${o.id}')">Delete</button>
+          </td>
+        </tr>`
+      }
+      list.innerHTML = html + '</tbody></table>'
+    } catch { list.innerHTML = '<div class="empty-state">Could not load offers.</div>' }
+  }
+
+  $('btn-promo-add-offer').onclick = () => {
+    if (!_promoStoreId) return
+    adminOpenOfferModal(null, _promoStoreId)
+  }
+
+  function adminOpenOfferModal(existing, storeId) {
+    const isEdit = !!existing
+    const sid = storeId || existing.store_id
+    const title = existing ? existing.title || '' : ''
+    const active = existing ? !!existing.active : true
+    const triggerType = existing ? existing.trigger_type || '' : ''
+    const triggerValue = existing ? existing.trigger_value || '' : ''
+    const imageData = existing ? existing.image_data || '' : ''
+
+    showModal(isEdit ? 'Edit Offer' : 'New Offer', `
+      <div class="form">
+        <div class="form-row">
+          <label>Title</label>
+          <input id="mod-offer-title" class="form-input" value="${esc(title)}" placeholder="e.g. Weekend Special">
+        </div>
+        <div class="form-row">
+          <label>Image</label>
+          <div class="logo-picker">
+            <input type="file" id="mod-offer-image-input" accept="image/png,image/jpeg,image/webp,gif">
+            <input type="hidden" id="mod-offer-image" value="${esc(imageData)}">
+            <img id="mod-offer-image-preview" class="logo-preview ${imageData ? '' : 'hidden'}" src="${esc(imageData)}">
+            <button id="mod-offer-image-remove" class="btn small ${imageData ? '' : 'hidden'}" type="button">Remove</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Trigger Type</label>
+          <select id="mod-offer-trigger-type" class="form-input">
+            <option value="">— None (always show) —</option>
+            <option value="category" ${triggerType === 'category' ? 'selected' : ''}>Category</option>
+            <option value="product" ${triggerType === 'product' ? 'selected' : ''}>Product</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>Trigger Value</label>
+          <input id="mod-offer-trigger-value" class="form-input" value="${esc(triggerValue)}" placeholder="e.g. Beverages or barcode">
+        </div>
+        <div class="form-row">
+          <label>Active</label>
+          <input type="checkbox" id="mod-offer-active" ${active ? 'checked' : ''}>
+        </div>
+      </div>
+    `, async () => {
+      const data = {
+        store_id: sid,
+        type: 'offer',
+        title: $('mod-offer-title').value,
+        image_data: $('mod-offer-image').value || null,
+        trigger_type: $('mod-offer-trigger-type').value || null,
+        trigger_value: $('mod-offer-trigger-value').value || null,
+        active: $('mod-offer-active').checked
+      }
+      try {
+        if (isEdit) await API.updatePromotion(existing.id, data)
+        else await API.createPromotion(data)
+        closeModal()
+        loadPromoOffersList(sid)
+        showToast('Offer saved!')
+      } catch (err) { showToast('Error: ' + err.message) }
+    })
+    $('modal-confirm').textContent = 'Save Offer'
+
+    const imgInput = $('mod-offer-image-input')
+    const imgHidden = $('mod-offer-image')
+    const imgPreview = $('mod-offer-image-preview')
+    const imgRemove = $('mod-offer-image-remove')
+
+    imgInput.addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return
+      const reader = new FileReader()
+      reader.onload = async ev => {
+        try {
+          const cropped = await window.cropImage(ev.target.result, 400/200, 400, 200)
+          imgHidden.value = cropped
+          imgPreview.src = cropped
+          imgPreview.classList.remove('hidden')
+          imgRemove.classList.remove('hidden')
+        } catch (e) { if (e.message !== 'cancelled') console.warn('Crop failed:', e) }
+      }
+      reader.readAsDataURL(file)
+    })
+    imgRemove.addEventListener('click', () => {
+      imgHidden.value = ''
+      imgInput.value = ''
+      imgPreview.classList.add('hidden')
+      imgRemove.classList.add('hidden')
+    })
+  }
+
+  window.adminEditOffer = async (id) => {
+    try {
+      const promo = await API.getPromotion(id)
+      adminOpenOfferModal(promo, null)
+    } catch (err) { showToast('Error: ' + err.message) }
+  }
+
+  window.adminDeleteOffer = async (id) => {
+    showModal('Delete Offer', 'Delete this offer?', async () => {
+      await API.deletePromotion(id)
+      closeModal()
+      if (_promoStoreId) loadPromoOffersList(_promoStoreId)
+    }, true)
+  }
+
+  // ─── Discount Items ───
+  let _discStoreId = null
+
+  async function loadDiscounts() {
+    _discStoreId = null
+    $('disc-editor').classList.add('hidden')
+    try { stores = await API.getStores() } catch { stores = [] }
+    if (stores.length === 0) { $('disc-stores-table').innerHTML = '<div class="empty-state">No stores yet.</div>'; return }
+    let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Items</th><th></th></tr></thead><tbody>'
+    for (const s of stores) {
+      let items = []
+      try { items = await API.getDiscounts(s.id) } catch {}
+      html += `<tr>
+        <td><strong>${esc(s.name)}</strong></td>
+        <td class="meta">/${esc(s.slug)}</td>
+        <td>${items.length}</td>
+        <td class="actions-cell"><button class="btn small" onclick="openDiscountEditor('${s.id}')">Manage</button></td>
+      </tr>`
+    }
+    $('disc-stores-table').innerHTML = html + '</tbody></table>'
+  }
+
+  window.openDiscountEditor = async (storeId) => {
+    _discStoreId = storeId
+    const store = stores.find(s => s.id === storeId)
+    $('disc-editor-title').textContent = store ? esc(store.name) + ' — Discounts' : 'Discounts'
+    $('disc-stores-table').style.display = 'none'
+    $('disc-editor').classList.remove('hidden')
+    await loadDiscountItemsList(storeId)
+  }
+
+  $('disc-editor-back').onclick = () => {
+    _discStoreId = null
+    $('disc-editor').classList.add('hidden')
+    $('disc-stores-table').style.display = ''
+    loadDiscounts()
+  }
+
+  async function loadDiscountItemsList(storeId) {
+    const list = $('disc-list')
+    try {
+      const items = await API.getDiscounts(storeId)
+      if (items.length === 0) { list.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="empty-state">No discount items yet.</div><button id="btn-disc-add-first" class="btn small">+ New Discount</button></div>'; wireDiscAddFirst(); return }
+      let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div></div><button id="btn-disc-add-top" class="btn small">+ New Discount</button></div>'
+      html += '<div class="table-wrap"><table><thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Featured</th><th>Active</th><th></th></tr></thead><tbody>'
+      for (const d of items) {
+        const thumb = d.image_data ? `<img src="${esc(d.image_data)}" class="offer-thumb" alt="">` : '<span class="offer-thumb offer-thumb-empty"></span>'
+        const priceHtml = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-xs)">${parseFloat(d.original_price).toFixed(2)}</span> <strong style="color:var(--color-success)">${parseFloat(d.new_price).toFixed(2)}</strong>`
+        html += `<tr>
+          <td>${thumb}</td>
+          <td><strong>${esc(d.name)}</strong>${d.barcode ? '<br><span class="meta" style="font-size:11px">' + esc(d.barcode) + '</span>' : ''}</td>
+          <td class="meta">${esc(d.category || '—')}</td>
+          <td style="white-space:nowrap">${priceHtml}${d.discount_percent ? ' <span class="tag danger" style="font-size:10px">-' + d.discount_percent + '%</span>' : ''}</td>
+          <td>${d.featured ? '<span style="color:var(--color-warning)">★</span>' : '—'}</td>
+          <td>${d.active ? '<span style="color:var(--color-success)">✓</span>' : '<span style="color:var(--text-disabled)">○</span>'}</td>
+          <td class="actions-cell" style="display:flex;gap:4px">
+            <button class="btn small" onclick="adminEditDiscount('${d.id}')">Edit</button>
+            <button class="btn small danger" onclick="adminDeleteDiscount('${d.id}')">Delete</button>
+          </td>
+        </tr>`
+      }
+      list.innerHTML = html + '</tbody></table></div>'
+      $('btn-disc-add-top').onclick = () => adminOpenDiscountModal(null, storeId)
+    } catch { list.innerHTML = '<div class="empty-state">Could not load discounts.</div>' }
+  }
+
+  function wireDiscAddFirst() {
+    const btn = $('btn-disc-add-first')
+    if (btn) btn.onclick = () => adminOpenDiscountModal(null, _discStoreId)
+  }
+
+  window.adminOpenDiscountModal = (existing, storeId) => {
+    const isEdit = !!existing
+    const sid = storeId || (existing ? existing.store_id : _discStoreId)
+    const name = existing ? existing.name || '' : ''
+    const barcode = existing ? existing.barcode || '' : ''
+    const category = existing ? existing.category || '' : ''
+    const imageData = existing ? existing.image_data || '' : ''
+    const origPrice = existing ? existing.original_price || '' : ''
+    const newPrice = existing ? existing.new_price || '' : ''
+    const discPercent = existing ? existing.discount_percent || '' : ''
+    const featured = existing ? !!existing.featured : false
+    const active = existing ? !!existing.active : true
+    const discType = existing && existing.discount_percent ? 'percent' : 'fixed'
+
+    showModal(isEdit ? 'Edit Discount' : 'New Discount', `
+      <div class="form">
+        <div class="form-row">
+          <label>Barcode (optional, for scan matching)</label>
+          <input id="mod-disc-barcode" class="form-input" value="${esc(barcode)}" placeholder="e.g. 5901234123457">
+        </div>
+        <div class="form-row">
+          <label>Product Name</label>
+          <input id="mod-disc-name" class="form-input" value="${esc(name)}" placeholder="e.g. Organic Honey">
+        </div>
+        <div class="form-row">
+          <label>Product Photo</label>
+          <div class="logo-picker">
+            <input type="file" id="mod-disc-image-input" accept="image/png,image/jpeg,image/webp" capture="environment">
+            <input type="hidden" id="mod-disc-image" value="${esc(imageData)}">
+            <img id="mod-disc-image-preview" class="logo-preview ${imageData ? '' : 'hidden'}" src="${esc(imageData)}">
+            <button id="mod-disc-image-remove" class="btn small ${imageData ? '' : 'hidden'}" type="button">Remove</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>Category (for scan matching)</label>
+          <input id="mod-disc-category" class="form-input" value="${esc(category)}" placeholder="e.g. Beverages">
+        </div>
+        <div class="form-row">
+          <label>Original Price (DA)</label>
+          <input id="mod-disc-orig-price" type="number" step="0.01" min="0" class="form-input" value="${esc(origPrice)}" placeholder="e.g. 12.99">
+        </div>
+        <div class="form-row">
+          <label>Discount Type</label>
+          <select id="mod-disc-type" class="form-input">
+            <option value="percent" ${discType === 'percent' ? 'selected' : ''}>Percentage off</option>
+            <option value="fixed" ${discType === 'fixed' ? 'selected' : ''}>Fixed price</option>
+          </select>
+        </div>
+        <div class="form-row" id="mod-disc-percent-row" style="${discType === 'fixed' ? 'display:none' : ''}">
+          <label>Discount (%)</label>
+          <input id="mod-disc-percent" type="number" step="1" min="0" max="100" class="form-input" value="${esc(discPercent)}" placeholder="e.g. 20">
+        </div>
+        <div class="form-row" id="mod-disc-price-row" style="${discType !== 'fixed' ? 'display:none' : ''}">
+          <label>New Price (DA)</label>
+          <input id="mod-disc-new-price" type="number" step="0.01" min="0" class="form-input" value="${esc(newPrice)}" placeholder="e.g. 9.99">
+        </div>
+        <div class="form-row" style="display:flex;gap:var(--space-4);align-items:center">
+          <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;margin:0">
+            <input type="checkbox" id="mod-disc-featured" ${featured ? 'checked' : ''}> Featured (always show)
+          </label>
+          <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;margin:0">
+            <input type="checkbox" id="mod-disc-active" ${active ? 'checked' : ''}> Active
+          </label>
+        </div>
+        <div id="mod-disc-preview" style="margin-top:8px;padding:8px;background:var(--bg-inset);border-radius:var(--radius-md);text-align:center;font-size:var(--text-sm);display:none">
+          <span id="mod-disc-preview-text"></span>
+        </div>
+      </div>
+    `, async () => {
+      const origPriceVal = parseFloat($('mod-disc-orig-price').value)
+      const discTypeVal = $('mod-disc-type').value
+      let newPriceVal, discPercentVal
+      if (discTypeVal === 'percent') {
+        discPercentVal = parseFloat($('mod-disc-percent').value)
+        newPriceVal = discPercentVal ? parseFloat((origPriceVal * (1 - discPercentVal / 100)).toFixed(2)) : origPriceVal
+      } else {
+        newPriceVal = parseFloat($('mod-disc-new-price').value)
+        discPercentVal = newPriceVal && origPriceVal > 0 ? Math.round((1 - newPriceVal / origPriceVal) * 100) : null
+      }
+      const data = {
+        store_id: sid,
+        barcode: $('mod-disc-barcode').value || null,
+        name: $('mod-disc-name').value,
+        image_data: $('mod-disc-image').value || null,
+        category: $('mod-disc-category').value || null,
+        original_price: origPriceVal,
+        new_price: newPriceVal || origPriceVal,
+        discount_percent: discPercentVal,
+        featured: $('mod-disc-featured').checked,
+        active: $('mod-disc-active').checked
+      }
+      try {
+        if (isEdit) await API.updateDiscount(existing.id, data)
+        else await API.createDiscount(data)
+        closeModal()
+        await loadDiscountItemsList(sid)
+        showToast('Discount saved!')
+      } catch (err) { showToast('Error: ' + err.message); console.error('Discount save error:', err) }
+    })
+    $('modal-confirm').textContent = 'Save Discount'
+
+    // Image picker with camera capture
+    const imgInput = $('mod-disc-image-input')
+    const imgHidden = $('mod-disc-image')
+    const imgPreview = $('mod-disc-image-preview')
+    const imgRemove = $('mod-disc-image-remove')
+    imgInput.addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return
+      const reader = new FileReader()
+      reader.onload = async ev => {
+        try {
+          const cropped = await window.cropImage(ev.target.result, 3/4, 300, 400)
+          imgHidden.value = cropped
+          imgPreview.src = cropped
+          imgPreview.classList.remove('hidden')
+          imgRemove.classList.remove('hidden')
+        } catch (e) { if (e.message !== 'cancelled') console.warn('Crop failed:', e) }
+      }
+      reader.readAsDataURL(file)
+    })
+    imgRemove.addEventListener('click', () => {
+      imgHidden.value = ''; imgInput.value = ''; imgPreview.classList.add('hidden'); imgRemove.classList.add('hidden')
+    })
+
+    // Price preview calculator
+    const origPriceInput = $('mod-disc-orig-price')
+    const discTypeSelect = $('mod-disc-type')
+    const percentRow = $('mod-disc-percent-row')
+    const priceRow = $('mod-disc-price-row')
+    const percentInput = $('mod-disc-percent')
+    const newPriceInput = $('mod-disc-new-price')
+    const preview = $('mod-disc-preview')
+    const previewText = $('mod-disc-preview-text')
+
+    function updatePreview() {
+      const orig = parseFloat(origPriceInput.value)
+      if (!orig || orig <= 0) { preview.style.display = 'none'; return }
+      let np, dp
+      if (discTypeSelect.value === 'percent') {
+        dp = parseFloat(percentInput.value)
+        np = dp ? parseFloat((orig * (1 - dp / 100)).toFixed(2)) : orig
+      } else {
+        np = parseFloat(newPriceInput.value)
+        dp = np && orig > 0 ? Math.round((1 - np / orig) * 100) : null
+      }
+      if (np && np < orig) {
+        preview.style.display = 'block'
+        previewText.innerHTML = `<span style="text-decoration:line-through;color:var(--text-tertiary)">${orig.toFixed(2)} DA</span> <strong style="color:var(--color-success);font-size:var(--text-lg)">${np.toFixed(2)} DA</strong>${dp ? ' <span class="tag danger" style="font-size:11px">-' + dp + '%</span>' : ''}`
+      } else { preview.style.display = 'none' }
+    }
+
+    discTypeSelect.addEventListener('change', () => {
+      percentRow.style.display = discTypeSelect.value === 'percent' ? '' : 'none'
+      priceRow.style.display = discTypeSelect.value === 'fixed' ? '' : 'none'
+      updatePreview()
+    })
+    origPriceInput.addEventListener('input', updatePreview)
+    percentInput.addEventListener('input', updatePreview)
+    newPriceInput.addEventListener('input', updatePreview)
+    if (origPrice) setTimeout(updatePreview, 100)
+  }
+
+  window.adminEditDiscount = async (id) => {
+    try { const item = await API.getDiscount(id); adminOpenDiscountModal(item, null) }
+    catch (err) { showToast('Error: ' + err.message) }
+  }
+
+  window.adminDeleteDiscount = async (id) => {
+    showModal('Delete Discount', 'Delete this discount item?', async () => {
+      await API.deleteDiscount(id)
+      closeModal()
+      if (_discStoreId) await loadDiscountItemsList(_discStoreId)
+    }, true)
   }
 
   function loadProfile() {
@@ -729,17 +1369,43 @@
   $('btn-sidebar-close').addEventListener('click', closeSidebar)
   backdrop.addEventListener('click', closeSidebar)
 
-  const origShowDash = showDashView
-  showDashView = function(id) {
-    origShowDash(id)
+  const origNavigate = navigateTo
+  navigateTo = function(id) {
+    origNavigate(id)
     if (window.innerWidth <= 768) closeSidebar()
   }
 
-  if (loadAuth()) {
-    if (user.role !== 'admin') { logout(); return }
-    API.getStores().then(s => { stores = s }).catch(() => {})
-    routeDash()
-  } else {
-    window.location.href = '/auth/'
-  }
+  // ─── Bootstrap: try CF Access auto-auth first, fall back to login ──
+  ;(async function init() {
+    if (!loadAuth()) {
+      try {
+        // If behind Cloudflare Access, exchange the identity header for a JWT
+        const meta = document.querySelector('meta[name="cf-access"]')
+        if (meta) {
+          const res = await fetch('/api/auth/cf-access', { method: 'POST' })
+          if (res.ok) {
+            const data = await res.json()
+            if (data.token && data.user?.role === 'admin') {
+              saveAuth(data.user, data.token)
+            }
+          }
+        }
+      } catch { /* CF Access not available, fall through */ }
+    }
+
+    if (loadAuth()) {
+      if (user.role !== 'admin') {
+        // Non-admin token found — clear and show admin login
+        localStorage.removeItem('token')
+        localStorage.removeItem('user')
+        user = null
+        showLoginView()
+        return
+      }
+      API.getStores().then(s => { stores = s }).catch(() => {})
+      routeDash()
+    } else {
+      showLoginView()
+    }
+  })()
 })()

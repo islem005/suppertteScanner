@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0c0c0d">
+  <meta name="cf-access" content="true">
   <title>Shelf Scanner - Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -14,7 +15,33 @@
 <body>
   <div id="app">
 
-    <div id="view-dash" class="view active">
+    <!-- Admin Login View (shown when no valid admin session) -->
+    <div id="view-login" class="view">
+      <div class="login-card">
+        <div class="login-logo"><i data-feather="shield"></i></div>
+        <h1>Admin Panel</h1>
+        <p class="subtitle">Sign in with your admin account</p>
+
+        <form id="admin-login-form" autocomplete="off">
+          <div class="form-row">
+            <label for="admin-email">Email</label>
+            <input type="email" id="admin-email" class="form-input" placeholder="admin@store.com" required autocomplete="email">
+          </div>
+          <div class="form-row">
+            <label for="admin-password">Password</label>
+            <input type="password" id="admin-password" class="form-input" placeholder="Password" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn primary btn-block" style="margin-top:var(--space-4)">Sign In</button>
+          <div id="admin-login-error" class="error-msg" style="margin-top:var(--space-2)"></div>
+        </form>
+
+        <div class="auth-footer" style="margin-top:var(--space-6);text-align:center">
+          <a href="/auth/" style="font-size:var(--text-sm);color:var(--text-secondary)">Manager login →</a>
+        </div>
+      </div>
+    </div>
+
+    <div id="view-dash" class="view">
       <div id="sidebar-backdrop" class="hidden"></div>
       <aside id="sidebar">
         <div id="sidebar-brand">
@@ -106,7 +133,7 @@
                 <form id="branding-form" class="branding-form">
                   <div class="form-row">
                     <label>Display Name</label>
-                    <input type="text" id="brand-name" placeholder="Store display name">
+                    <input type="text" id="brand-name" placeholder="Store display name"><!-- TODO: replace placeholder with actual store data -->
                   </div>
                   <div class="form-row">
                     <label>Logo</label>
@@ -127,27 +154,39 @@
                   </div>
                   <div class="form-row">
                     <label>Contact Email</label>
-                    <input type="email" id="brand-email" placeholder="store@example.com">
+                    <input type="email" id="brand-email" placeholder="store@example.com"><!-- TODO: replace placeholder with actual store data -->
                   </div>
                   <div class="form-row">
                     <label>Contact Phone</label>
-                    <input type="tel" id="brand-phone" placeholder="+1 555-0123">
+                    <input type="tel" id="brand-phone" placeholder="+1 555-0123"><!-- TODO: replace placeholder with actual store data -->
                   </div>
                 <div class="form-row">
                   <label>Footer Text</label>
-                  <input type="text" id="brand-footer" placeholder="© 2026 My Store">
+                  <input type="text" id="brand-footer" placeholder="© 2026 My Store"><!-- TODO: replace placeholder with actual store data -->
                 </div>
                 <div class="form-row">
                   <label>Instagram URL</label>
-                  <input type="url" id="brand-instagram" placeholder="https://instagram.com/...">
+                  <input type="url" id="brand-instagram" placeholder="https://instagram.com/..."><!-- TODO: replace placeholder with actual store data -->
                 </div>
                 <div class="form-row">
                   <label>TikTok URL</label>
-                  <input type="url" id="brand-tiktok" placeholder="https://tiktok.com/@...">
+                  <input type="url" id="brand-tiktok" placeholder="https://tiktok.com/@..."><!-- TODO: replace placeholder with actual store data -->
                 </div>
                 <div class="form-row">
                   <label>Website URL</label>
-                  <input type="url" id="brand-website" placeholder="https://...">
+                  <input type="url" id="brand-website" placeholder="https://..."><!-- TODO: replace placeholder with actual store data -->
+                </div>
+                <div class="form-row">
+                  <label>Facebook URL</label>
+                  <input type="url" id="brand-facebook" placeholder="https://facebook.com/..."><!-- TODO: replace placeholder with actual store data -->
+                </div>
+                <div class="form-row">
+                  <label>Twitter / X URL</label>
+                  <input type="url" id="brand-twitter" placeholder="https://twitter.com/..."><!-- TODO: replace placeholder with actual store data -->
+                </div>
+                <div class="form-row">
+                  <label>YouTube URL</label>
+                  <input type="url" id="brand-youtube" placeholder="https://youtube.com/@..."><!-- TODO: replace placeholder with actual store data -->
                 </div>
                 <button type="submit" class="btn primary">Save Branding</button>
                   <div id="brand-msg" class="success-msg"></div>
@@ -182,6 +221,9 @@
                       <a id="preview-website" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg></a>
                       <a id="preview-email" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg></a>
                       <a id="preview-phone" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z"/></svg></a>
+                      <a id="preview-facebook" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"/></svg></a>
+                      <a id="preview-twitter" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M4 4l11.733 16h4.267l-11.733 -16zM4 20l6.768 -6.768M17.232 4.768l-3.675 3.675"/></svg></a>
+                      <a id="preview-youtube" class="phone-profile-link hidden"><svg xmlns="http://www.w3.org/2000/svg" width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M22.54 6.42a2.78 2.78 0 0 0-1.94-2C18.88 4 12 4 12 4s-6.88 0-8.6.46a2.78 2.78 0 0 0-1.94 2A29 29 0 0 0 1 12a29 29 0 0 0 .46 5.58 2.78 2.78 0 0 0 1.94 2c1.72.46 8.6.46 8.6.46s6.88 0 8.6-.46a2.78 2.78 0 0 0 1.94-2A29 29 0 0 0 23 12a29 29 0 0 0-.46-5.58z"/><polygon points="9.75 15.02 15.5 12 9.75 8.98 9.75 15.02"/></svg></a>
                     </div>
                   </div>
                   <div class="phone-bottom-controls">
@@ -194,6 +236,37 @@
                 <div class="preview-label">Live Preview</div>
               </div>
             </div>
+          </div>
+        </section>
+
+        <section id="view-promotions" class="dash-view">
+          <header class="view-header"><h2>Promotions</h2><button id="btn-promo-refresh" class="btn small" style="margin-left:auto">Refresh</button></header>
+          <div id="promo-stores-table" class="table-wrap"></div>
+          <div id="promo-banner-editor" class="promo-editor hidden">
+            <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+              <button id="promo-banner-back" class="btn small">← Back</button>
+              <h3 id="promo-banner-title" style="margin:0;font-size:var(--text-lg)"></h3>
+            </div>
+            <div id="promo-banner-form-wrap"></div>
+            <div id="promo-offers-section" style="margin-top:var(--space-6)">
+              <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)">
+                <h3 style="margin:0;font-size:16px">Scan Offers</h3>
+                <button id="btn-promo-add-offer" class="btn small">+ New Offer</button>
+              </div>
+              <div id="promo-offers-list" class="table-wrap"></div>
+            </div>
+          </div>
+        </section>
+
+        <section id="view-discounts" class="dash-view">
+          <header class="view-header"><h2>Discount Items</h2></header>
+          <div id="disc-stores-table" class="table-wrap"></div>
+          <div id="disc-editor" class="hidden">
+            <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
+              <button id="disc-editor-back" class="btn small">← Back</button>
+              <h3 id="disc-editor-title" style="margin:0;font-size:var(--text-lg)"></h3>
+            </div>
+            <div id="disc-list"></div>
           </div>
         </section>
 
@@ -218,7 +291,7 @@
     <div id="modal-overlay" class="hidden" onclick="closeModal(event)">
       <div id="modal-box">
         <div id="modal-body"></div>
-        <div class="modal-actions"><button class="btn small" onclick="closeModal()">Cancel</button><button id="modal-confirm" class="btn primary">Confirm</button></div>
+        <div class="modal-actions"><button class="btn small" onclick="closeModal()">Cancel</button><button id="modal-confirm" class="btn primary" type="button">Confirm</button></div>
       </div>
     </div>
 
