@@ -13,6 +13,12 @@ export async function onRequest(context) {
   const url = new URL(request.url)
   const host = url.hostname
 
+  // ── www subdomain: redirect to apex domain
+  //     www.ivond.com is not a configured custom domain on Pages
+  if (host === 'www.ivond.com') {
+    return Response.redirect('https://ivond.com' + url.pathname + url.search, 301)
+  }
+
   // ── API routes: let them pass through to static assets
   //     (excluded from Pages by _routes.json, so they hit the Worker route)
   if (url.pathname.startsWith('/api/')) {
