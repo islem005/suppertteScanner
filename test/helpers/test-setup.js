@@ -1,3 +1,4 @@
+// TEST/MOCK: localStorage mock for unit tests
 export function mockLocalStorage() {
   const store = {}
   vi.stubGlobal('localStorage', {
@@ -8,6 +9,7 @@ export function mockLocalStorage() {
   })
 }
 
+// TEST/MOCK: fetch mock for unit tests
 export function mockFetch(data) {
   vi.stubGlobal('fetch', vi.fn(() =>
     Promise.resolve({ ok: true, json: () => Promise.resolve(data) })

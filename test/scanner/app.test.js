@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+// TEST: scanner app unit tests
 import { describe, it, expect, beforeEach } from 'vitest'
 
 describe('Scanner App', () => {

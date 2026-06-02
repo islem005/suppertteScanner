@@ -1,6 +1,7 @@
 # Sample Product Data
 
 Example files in multiple formats and languages for testing the import system.
+These files are for development/testing only — not used in production.
 
 ## Formats
 

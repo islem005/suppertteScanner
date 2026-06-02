@@ -1,0 +1,16 @@
+# ─── Production Security Headers ──────────────────────────────────────────
+# These are applied by Cloudflare Pages to all static responses.
+# ──────────────────────────────────────────────────────────────────────────
+
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
+# Scanner apps need camera permissions
+/scanner.html
+  Permissions-Policy: camera=(self)
+
+# Allow navigation to subdomains
+/*
+  Link: <https://ivond.com> rel="canonical"

@@ -1,19 +1,21 @@
+# Dev config — connects to shelf-scanner-db-dev on Cloudflare (default)
+# Run: wrangler dev --remote
+# For production: wrangler deploy --config wrangler.prod.toml
 name = "scanner-api"
 main = "src/index.js"
 compatibility_date = "2025-12-01"
 compatibility_flags = ["nodejs_compat"]
 
 [vars]
-SUPABASE_URL = "https://wlutqwabjuevlrvvrqjf.supabase.co"
-SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6IndsdXRxd2FianVldmxydnZycWpmIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODAwNzEwMDAsImV4cCI6MjA5NTY0NzAwMH0.UNwQxsGpxQrRrJ7baipFx1DA5PJv-5Ib1jZDj-PZO5M"
-# Set via wrangler secret put JWT_SECRET
-# JWT_SECRET = ""
+BETTER_AUTH_URL = "http://localhost:3002"
+# Set via wrangler secret put BETTER_AUTH_SECRET
+# BETTER_AUTH_SECRET = ""
 
 [[r2_buckets]]
 binding = "CATALOGS"
 bucket_name = "store-catalogs"
 
 [[d1_databases]]
-binding = "ADMIN_DB"
-database_name = "admin-auth"
-database_id = "74e5cbce-56ee-4c85-b492-9baa3e8a0097"
+binding = "DB"
+database_name = "shelf-scanner-db-dev"
+database_id = "be60b33e-892f-4dde-8b54-f097e53f552e"

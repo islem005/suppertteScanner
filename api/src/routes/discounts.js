@@ -1,0 +1,54 @@
+// ─── Discount Item Routes ────────────────────────────────────────────
+// Discounted/sale items for stores.
+// ────────────────────────────────────────────────────────────────────────
+
+import { Hono } from 'hono'
+import { queryAll, queryOne, execute, uuid } from '../db.js'
+import { authenticate } from '../middleware.js'
+
+const router = new Hono()
+
+router.get('/:storeId', async (c) => {
+  const data = await queryAll(c.env.DB,
+    'SELECT * FROM discount_item WHERE store_id = ? AND active = 1 ORDER BY priority',
+    [c.req.param('storeId')]
+  )
+  return c.json(data)
+})
+
+router.get('/featured/:storeId', async (c) => {
+  const data = await queryAll(c.env.DB,
+    'SELECT * FROM discount_item WHERE store_id = ? AND active = 1 AND featured = 1 ORDER BY priority',
+    [c.req.param('storeId')]
+  )
+  return c.json(data)
+})
+
+router.post('/', authenticate, async (c) => {
+  const body = await c.req.json()
+
+  if (!body.store_id || !body.name) {
+    return c.json({ error: 'store_id and name required' }, 400)
+  }
+
+  const id = uuid()
+  await execute(c.env.DB,
+    `INSERT INTO discount_item (id, store_id, barcode, name, image_data, category,
+     original_price, new_price, discount_percent, featured, active, priority)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    [id, body.store_id, body.barcode || null, body.name, body.image_data || null,
+     body.category || null, body.original_price || 0, body.new_price || 0,
+     body.discount_percent || null, body.featured || 0,
+     body.active !== undefined ? body.active : 1, body.priority || 0]
+  )
+
+  const data = await queryOne(c.env.DB, 'SELECT * FROM discount_item WHERE id = ?', [id])
+  return c.json(data)
+})
+
+router.delete('/:id', authenticate, async (c) => {
+  await execute(c.env.DB, 'DELETE FROM discount_item WHERE id = ?', [c.req.param('id')])
+  return c.json({ ok: true })
+})
+
+export { router as discountsRouter }

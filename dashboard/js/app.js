@@ -5,6 +5,8 @@
   const navItems = [
     { id: 'overview',  icon: 'bar-chart-2', labelKey: 'navOverview' },
     { id: 'products',  icon: 'package', labelKey: 'navProducts' },
+    { id: 'offers',    icon: 'gift', labelKey: 'navOffers' },
+    { id: 'discounts', icon: 'tag', labelKey: 'navDiscounts' },
     { id: 'branding',  icon: 'droplet', labelKey: 'navBranding' },
     { id: 'activity',  icon: 'clock', labelKey: 'navActivity' },
     { id: 'profile',   icon: 'user', labelKey: 'navProfile' },
@@ -13,20 +15,32 @@
   const $ = (id)     => { const e = document.getElementById(id); if (!e) console.warn('Missing #'+id); return e }
   const qs = (s, p)  => (p||document).querySelector(s)
 
-  // ─── Storage ───
-  function saveAuth(u, t) { user = u; localStorage.setItem('token', t); localStorage.setItem('user', JSON.stringify(u)) }
-  function loadAuth() {
-    const t = localStorage.getItem('token'), r = localStorage.getItem('user')
-    if (t && r) {
-      try {
-        const payload = JSON.parse(atob(t.split('.')[1]))
-        if (payload.exp * 1000 < Date.now()) { localStorage.removeItem('token'); localStorage.removeItem('user'); return false }
-      } catch { return false }
-      user = JSON.parse(r); return true
-    }
+  // ─── Auth (cookie-based via Better Auth) ───
+  function saveUser(u) { user = u; localStorage.setItem('user', JSON.stringify(u)) }
+  function loadUser() {
+    const r = localStorage.getItem('user')
+    if (r) { try { user = JSON.parse(r); return true } catch {} }
     return false
   }
-  function logout() { localStorage.removeItem('token'); localStorage.removeItem('user'); user = null; window.location.href = '/auth/' }
+  async function checkSession() {
+    // Verify session is still valid
+    try {
+      const res = await fetch('/api/auth/user', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.user) { user = data.user; localStorage.setItem('user', JSON.stringify(data.user)); return true }
+      }
+    } catch {}
+    localStorage.removeItem('user')
+    user = null
+    return false
+  }
+  function logout() {
+    fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {})
+    localStorage.removeItem('user')
+    user = null
+    window.location.href = '/auth/'
+  }
 
   // ─── View routing ───
   function showView(id) { document.querySelectorAll('.view').forEach(v => v.classList.toggle('active', v.id === id)) }
@@ -35,10 +49,20 @@
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === id))
     if (id === 'overview') loadManagerOverview()
     else if (id === 'products') loadManagerProducts()
+    else if (id === 'offers') loadOffers()
+    else if (id === 'discounts') loadDiscounts()
     else if (id === 'branding') loadBranding()
     else if (id === 'activity') loadActivity()
     else if (id === 'profile') loadProfile()
   }
+  function navigateTo(id) {
+    if (location.hash !== '#' + id) location.hash = id
+    showDashView(id)
+  }
+  window.addEventListener('hashchange', () => {
+    const id = location.hash.replace('#', '') || 'overview'
+    showDashView(id)
+  })
 
   function buildNav(items) {
     const nav = $('sidebar-nav'); nav.innerHTML = ''
@@ -46,7 +70,7 @@
       const btn = document.createElement('button')
       btn.className = 'nav-item'; btn.dataset.view = item.id
       btn.innerHTML = `<i data-feather="${item.icon}"></i> ${item.labelKey ? I18N.t(item.labelKey) : item.label}`
-      btn.onclick = () => showDashView(item.id)
+      btn.onclick = () => navigateTo(item.id)
       nav.appendChild(btn)
     })
     navItems.length = 0; navItems.push(...items)
@@ -58,7 +82,9 @@
     buildNav(navItems)
     $('sidebar-username').textContent = user.display_name || user.email
     I18N.applyHtml()
-    showDashView('overview')
+    const initial = location.hash.replace('#', '') || 'overview'
+    if (navItems.some(i => i.id === initial)) showDashView(initial)
+    else showDashView('overview')
   }
 
   $('btn-logout').addEventListener('click', logout)
@@ -91,16 +117,19 @@
       $('brand-instagram').value = b.instagram_url || ''
       $('brand-tiktok').value = b.tiktok_url || ''
       $('brand-website').value = b.website_url || ''
+      $('brand-facebook').value = b.facebook_url || ''
+      $('brand-twitter').value = b.twitter_url || ''
+      $('brand-youtube').value = b.youtube_url || ''
     } catch { /* defaults */ }
     updateBrandPreview()
   }
 
-  function updateBrandPreview() {
+  function updateBrandPreview() {                                   // TEST: preview phone mockup with live branding
     const name = $('brand-name').value || 'Your Store'
     const logo = $('brand-logo').value
     const primary = $('brand-primary').value || '#6366f1'
     const accent = $('brand-accent').value || '#10b981'
-    const mockup = $('brand-mockup')
+    const mockup = $('brand-mockup')                                 // TEST: CSS-only phone mockup element
     if (!mockup) return
 
     const titleEl = $('preview-title')
@@ -124,6 +153,9 @@
     setSocial('preview-instagram', $('brand-instagram').value)
     setSocial('preview-tiktok', $('brand-tiktok').value)
     setSocial('preview-website', $('brand-website').value)
+    setSocial('preview-facebook', $('brand-facebook').value)
+    setSocial('preview-twitter', $('brand-twitter').value)
+    setSocial('preview-youtube', $('brand-youtube').value)
     setSocial('preview-email', $('brand-email').value ? 'mailto:' + $('brand-email').value : '')
     setSocial('preview-phone', $('brand-phone').value ? 'tel:' + $('brand-phone').value : '')
 
@@ -179,6 +211,9 @@
   $('brand-instagram').oninput = updateBrandPreview
   $('brand-tiktok').oninput = updateBrandPreview
   $('brand-website').oninput = updateBrandPreview
+  $('brand-facebook').oninput = updateBrandPreview
+  $('brand-twitter').oninput = updateBrandPreview
+  $('brand-youtube').oninput = updateBrandPreview
 
   $('branding-form').addEventListener('submit', async e => {
     e.preventDefault()
@@ -195,7 +230,10 @@
         footer_text: $('brand-footer').value,
         instagram_url: $('brand-instagram').value,
         tiktok_url: $('brand-tiktok').value,
-        website_url: $('brand-website').value
+        website_url: $('brand-website').value,
+        facebook_url: $('brand-facebook').value,
+        twitter_url: $('brand-twitter').value,
+        youtube_url: $('brand-youtube').value
       })
       $('brand-msg').textContent = 'Branding saved!'
       setTimeout(() => $('brand-msg').textContent = '', 2000)
@@ -363,6 +401,343 @@
   }
 
   // ══════════════════════════════════════════════
+  //  OFFERS (Scan Promotions)
+  // ══════════════════════════════════════════════
+
+  async function loadOffers() {
+    if (!user.store_id) { $('offers-list').innerHTML = '<div class="empty-state">No store assigned.</div>'; return }
+    try {
+      const promos = await API.getStorePromotions(user.store_id)
+      const offers = promos.filter(p => p.type === 'offer')
+      if (offers.length === 0) {
+        $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('noOffers') + '</div>'; return
+      }
+      let html = '<table><thead><tr><th>Image</th><th>Title</th><th>Trigger</th><th>Active</th><th></th></tr></thead><tbody>'
+      for (const o of offers) {
+        const trigger = o.trigger_type ? o.trigger_type + ': ' + esc(o.trigger_value) : '<span class="tag success">Default</span>'
+        const thumb = o.image_data
+          ? `<img src="${esc(o.image_data)}" class="offer-thumb" alt="">`
+          : '<span class="offer-thumb offer-thumb-empty"></span>'
+        html += `<tr>
+          <td>${thumb}</td>
+          <td><strong>${esc(o.title || 'Untitled')}</strong></td>
+          <td class="meta">${esc(trigger)}</td>
+          <td>${o.active ? '<span style="color:#00c875">✓</span>' : '<span style="color:#ffc107">○</span>'}</td>
+          <td class="actions-cell" style="display:flex;gap:4px">
+            <button class="btn small" onclick="editOffer('${o.id}')">Edit</button>
+            <button class="btn small danger" onclick="deleteOffer('${o.id}')">${I18N.t('delete')}</button>
+          </td>
+        </tr>`
+      }
+      $('offers-list').innerHTML = html + '</tbody></table>'
+    } catch { $('offers-list').innerHTML = '<div class="empty-state">Could not load offers.</div>' }
+  }
+
+  $('btn-add-offer').onclick = () => openOfferModal(null)
+
+  function openOfferModal(existing) {
+    const isEdit = !!existing
+    const title = existing ? existing.title || '' : ''
+    const active = existing ? !!existing.active : true
+    const triggerType = existing ? existing.trigger_type || '' : ''
+    const triggerValue = existing ? existing.trigger_value || '' : ''
+    const imageData = existing ? existing.image_data || '' : ''
+
+    showModal(isEdit ? I18N.t('editOffer') : I18N.t('newOffer'), `
+      <div class="form">
+        <div class="form-row">
+          <label>${I18N.t('offerTitle')}</label>
+          <input id="mod-offer-title" class="form-input" value="${esc(title)}" placeholder="e.g. Weekend Special">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('offerImage')}</label>
+          <div class="logo-picker">
+            <input type="file" id="mod-offer-image-input" accept="image/png,image/jpeg,image/webp,gif">
+            <input type="hidden" id="mod-offer-image" value="${esc(imageData)}">
+            <img id="mod-offer-image-preview" class="logo-preview ${imageData ? '' : 'hidden'}" src="${esc(imageData)}">
+            <button id="mod-offer-image-remove" class="btn small ${imageData ? '' : 'hidden'}" type="button">${I18N.t('removeImage')}</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('triggerType')}</label>
+          <select id="mod-offer-trigger-type" class="form-input">
+            <option value="">— None (always show) —</option>
+            <option value="category" ${triggerType === 'category' ? 'selected' : ''}>${I18N.t('category')}</option>
+            <option value="product" ${triggerType === 'product' ? 'selected' : ''}>${I18N.t('product')}</option>
+          </select>
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('triggerValue')}</label>
+          <input id="mod-offer-trigger-value" class="form-input" value="${esc(triggerValue)}" placeholder="e.g. Beverages or barcode">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('offerActive')}</label>
+          <input type="checkbox" id="mod-offer-active" ${active ? 'checked' : ''}>
+        </div>
+      </div>
+    `, async () => {
+      const data = {
+        store_id: user.store_id,
+        type: 'offer',
+        title: $('mod-offer-title').value,
+        image_data: $('mod-offer-image').value || null,
+        trigger_type: $('mod-offer-trigger-type').value || null,
+        trigger_value: $('mod-offer-trigger-value').value || null,
+        active: $('mod-offer-active').checked
+      }
+      try {
+        if (isEdit) await API.updatePromotion(existing.id, data)
+        else await API.createPromotion(data)
+        closeModal(); loadOffers(); showToast(I18N.t('offerSaved'))
+      } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
+    })
+    $('modal-confirm').textContent = I18N.t('saveOffer')
+
+    // Image picker
+    const imgInput = $('mod-offer-image-input')
+    const imgHidden = $('mod-offer-image')
+    const imgPreview = $('mod-offer-image-preview')
+    const imgRemove = $('mod-offer-image-remove')
+
+    imgInput.addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return
+      const reader = new FileReader()
+      reader.onload = async ev => {
+        try {
+          const cropped = await window.cropImage(ev.target.result, 400/200, 400, 200)
+          imgHidden.value = cropped
+          imgPreview.src = cropped
+          imgPreview.classList.remove('hidden')
+          imgRemove.classList.remove('hidden')
+        } catch (e) { if (e.message !== 'cancelled') console.warn('Crop failed:', e) }
+      }
+      reader.readAsDataURL(file)
+    })
+    imgRemove.addEventListener('click', () => {
+      imgHidden.value = ''
+      imgInput.value = ''
+      imgPreview.classList.add('hidden')
+      imgRemove.classList.add('hidden')
+    })
+  }
+
+  window.editOffer = async (id) => {
+    try {
+      const promo = await API.getPromotion(id)
+      openOfferModal(promo)
+    } catch (err) { showToast('Error: ' + err.message) }
+  }
+
+  window.deleteOffer = async (id) => {
+    showModal(I18N.t('deleteOffer'), I18N.t('deleteOfferConfirm'), async () => {
+      await API.deletePromotion(id)
+      closeModal(); loadOffers()
+    }, true)
+  }
+
+  // ─── Discount Items ───
+  async function loadDiscounts() {
+    if (!user.store_id) { $('discount-list').innerHTML = '<div class="empty-state">No store assigned.</div>'; return }
+    try {
+      const items = await API.getDiscounts(user.store_id)
+      if (items.length === 0) {
+        $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noDiscounts') + '</div>'; return
+      }
+      let html = '<table><thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Featured</th><th>Active</th><th></th></tr></thead><tbody>'
+      for (const d of items) {
+        const thumb = d.image_data ? `<img src="${esc(d.image_data)}" class="offer-thumb" alt="">` : '<span class="offer-thumb offer-thumb-empty"></span>'
+        const priceHtml = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-xs)">${parseFloat(d.original_price).toFixed(2)}</span> <strong style="color:var(--color-success)">${parseFloat(d.new_price).toFixed(2)}</strong>`
+        html += `<tr>
+          <td>${thumb}</td>
+          <td><strong>${esc(d.name)}</strong>${d.barcode ? '<br><span class="meta" style="font-size:11px">' + esc(d.barcode) + '</span>' : ''}</td>
+          <td class="meta">${esc(d.category || '—')}</td>
+          <td style="white-space:nowrap">${priceHtml}${d.discount_percent ? ' <span class="tag danger" style="font-size:10px">-' + d.discount_percent + '%</span>' : ''}</td>
+          <td>${d.featured ? '<span style="color:var(--color-warning)">★</span>' : '—'}</td>
+          <td>${d.active ? '<span style="color:var(--color-success)">✓</span>' : '<span style="color:var(--text-disabled)">○</span>'}</td>
+          <td class="actions-cell" style="display:flex;gap:4px">
+            <button class="btn small" onclick="editDiscount('${d.id}')">${I18N.t('edit')}</button>
+            <button class="btn small danger" onclick="deleteDiscount('${d.id}')">${I18N.t('delete')}</button>
+          </td>
+        </tr>`
+      }
+      $('discount-list').innerHTML = html + '</tbody></table>'
+    } catch { $('discount-list').innerHTML = '<div class="empty-state">Could not load discounts.</div>' }
+  }
+
+  $('btn-add-discount').onclick = () => openDiscountModal(null)
+
+  function openDiscountModal(existing) {
+    const isEdit = !!existing
+    const name = existing ? existing.name || '' : ''
+    const barcode = existing ? existing.barcode || '' : ''
+    const category = existing ? existing.category || '' : ''
+    const imageData = existing ? existing.image_data || '' : ''
+    const origPrice = existing ? existing.original_price || '' : ''
+    const newPrice = existing ? existing.new_price || '' : ''
+    const discPercent = existing ? existing.discount_percent || '' : ''
+    const featured = existing ? !!existing.featured : false
+    const active = existing ? !!existing.active : true
+    const discType = existing && existing.discount_percent ? 'percent' : 'fixed'
+
+    showModal(isEdit ? I18N.t('editDiscount') : I18N.t('newDiscount'), `
+      <div class="form">
+        <div class="form-row">
+          <label>${I18N.t('discBarcode')}</label>
+          <input id="mod-disc-barcode" class="form-input" value="${esc(barcode)}" placeholder="e.g. 5901234123457">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('discName')}</label>
+          <input id="mod-disc-name" class="form-input" value="${esc(name)}" placeholder="e.g. Organic Honey">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('discImage')}</label>
+          <div class="logo-picker">
+            <input type="file" id="mod-disc-image-input" accept="image/png,image/jpeg,image/webp" capture="environment">
+            <input type="hidden" id="mod-disc-image" value="${esc(imageData)}">
+            <img id="mod-disc-image-preview" class="logo-preview ${imageData ? '' : 'hidden'}" src="${esc(imageData)}">
+            <button id="mod-disc-image-remove" class="btn small ${imageData ? '' : 'hidden'}" type="button">${I18N.t('removeImage')}</button>
+          </div>
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('discCategory')}</label>
+          <input id="mod-disc-category" class="form-input" value="${esc(category)}" placeholder="e.g. Beverages">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('discOrigPrice')}</label>
+          <input id="mod-disc-orig-price" type="number" step="0.01" min="0" class="form-input" value="${esc(origPrice)}" placeholder="e.g. 12.99">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('discType')}</label>
+          <select id="mod-disc-type" class="form-input">
+            <option value="percent" ${discType === 'percent' ? 'selected' : ''}>${I18N.t('discPercent')}</option>
+            <option value="fixed" ${discType === 'fixed' ? 'selected' : ''}>${I18N.t('discFixed')}</option>
+          </select>
+        </div>
+        <div class="form-row" id="mod-disc-percent-row" style="${discType === 'fixed' ? 'display:none' : ''}">
+          <label>${I18N.t('discPercentLabel')}</label>
+          <input id="mod-disc-percent" type="number" step="1" min="0" max="100" class="form-input" value="${esc(discPercent)}" placeholder="e.g. 20">
+        </div>
+        <div class="form-row" id="mod-disc-price-row" style="${discType !== 'fixed' ? 'display:none' : ''}">
+          <label>${I18N.t('discNewPrice')}</label>
+          <input id="mod-disc-new-price" type="number" step="0.01" min="0" class="form-input" value="${esc(newPrice)}" placeholder="e.g. 9.99">
+        </div>
+        <div class="form-row" style="display:flex;gap:var(--space-4);align-items:center">
+          <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;margin:0">
+            <input type="checkbox" id="mod-disc-featured" ${featured ? 'checked' : ''}> ${I18N.t('discFeatured')}
+          </label>
+          <label style="display:flex;align-items:center;gap:var(--space-2);cursor:pointer;margin:0">
+            <input type="checkbox" id="mod-disc-active" ${active ? 'checked' : ''}> ${I18N.t('discActive')}
+          </label>
+        </div>
+        <div id="mod-disc-preview" style="margin-top:8px;padding:8px;background:var(--bg-inset);border-radius:var(--radius-md);text-align:center;font-size:var(--text-sm);display:none">
+          <span id="mod-disc-preview-text"></span>
+        </div>
+      </div>
+    `, async () => {
+      const origPriceVal = parseFloat($('mod-disc-orig-price').value)
+      const discTypeVal = $('mod-disc-type').value
+      let newPriceVal, discPercentVal
+      if (discTypeVal === 'percent') {
+        discPercentVal = parseFloat($('mod-disc-percent').value)
+        newPriceVal = discPercentVal ? parseFloat((origPriceVal * (1 - discPercentVal / 100)).toFixed(2)) : origPriceVal
+      } else {
+        newPriceVal = parseFloat($('mod-disc-new-price').value)
+        discPercentVal = newPriceVal && origPriceVal > 0 ? Math.round((1 - newPriceVal / origPriceVal) * 100) : null
+      }
+      const data = {
+        store_id: user.store_id,
+        barcode: $('mod-disc-barcode').value || null,
+        name: $('mod-disc-name').value,
+        image_data: $('mod-disc-image').value || null,
+        category: $('mod-disc-category').value || null,
+        original_price: origPriceVal,
+        new_price: newPriceVal || origPriceVal,
+        discount_percent: discPercentVal,
+        featured: $('mod-disc-featured').checked,
+        active: $('mod-disc-active').checked
+      }
+      try {
+        if (isEdit) await API.updateDiscount(existing.id, data)
+        else await API.createDiscount(data)
+        closeModal(); await loadDiscounts(); showToast(I18N.t('discSaved'))
+      } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
+    })
+    $('modal-confirm').textContent = I18N.t('saveDiscount')
+
+    // Image picker with camera capture
+    const imgInput = $('mod-disc-image-input')
+    const imgHidden = $('mod-disc-image')
+    const imgPreview = $('mod-disc-image-preview')
+    const imgRemove = $('mod-disc-image-remove')
+    imgInput.addEventListener('change', async e => {
+      const file = e.target.files[0]; if (!file) return
+      const reader = new FileReader()
+      reader.onload = async ev => {
+        try {
+          const cropped = await window.cropImage(ev.target.result, 3/4, 300, 400)
+          imgHidden.value = cropped
+          imgPreview.src = cropped
+          imgPreview.classList.remove('hidden')
+          imgRemove.classList.remove('hidden')
+        } catch (e) { if (e.message !== 'cancelled') console.warn('Crop failed:', e) }
+      }
+      reader.readAsDataURL(file)
+    })
+    imgRemove.addEventListener('click', () => {
+      imgHidden.value = ''; imgInput.value = ''; imgPreview.classList.add('hidden'); imgRemove.classList.add('hidden')
+    })
+
+    // Price preview
+    const origPriceInput = $('mod-disc-orig-price')
+    const discTypeSelect = $('mod-disc-type')
+    const percentRow = $('mod-disc-percent-row')
+    const priceRow = $('mod-disc-price-row')
+    const percentInput = $('mod-disc-percent')
+    const newPriceInput = $('mod-disc-new-price')
+    const preview = $('mod-disc-preview')
+    const previewText = $('mod-disc-preview-text')
+
+    function updatePreview() {
+      const orig = parseFloat(origPriceInput.value)
+      if (!orig || orig <= 0) { preview.style.display = 'none'; return }
+      let np, dp
+      if (discTypeSelect.value === 'percent') {
+        dp = parseFloat(percentInput.value)
+        np = dp ? parseFloat((orig * (1 - dp / 100)).toFixed(2)) : orig
+      } else {
+        np = parseFloat(newPriceInput.value)
+        dp = np && orig > 0 ? Math.round((1 - np / orig) * 100) : null
+      }
+      if (np && np < orig) {
+        preview.style.display = 'block'
+        previewText.innerHTML = `<span style="text-decoration:line-through;color:var(--text-tertiary)">${orig.toFixed(2)} DA</span> <strong style="color:var(--color-success);font-size:var(--text-lg)">${np.toFixed(2)} DA</strong>${dp ? ' <span class="tag danger" style="font-size:11px">-' + dp + '%</span>' : ''}`
+      } else { preview.style.display = 'none' }
+    }
+
+    discTypeSelect.addEventListener('change', () => {
+      percentRow.style.display = discTypeSelect.value === 'percent' ? '' : 'none'
+      priceRow.style.display = discTypeSelect.value === 'fixed' ? '' : 'none'
+      updatePreview()
+    })
+    origPriceInput.addEventListener('input', updatePreview)
+    percentInput.addEventListener('input', updatePreview)
+    newPriceInput.addEventListener('input', updatePreview)
+    if (origPrice) setTimeout(updatePreview, 100)
+  }
+
+  window.editDiscount = async (id) => {
+    try { const item = await API.getDiscount(id); openDiscountModal(item) }
+    catch (err) { showToast('Error: ' + err.message) }
+  }
+
+  window.deleteDiscount = async (id) => {
+    showModal(I18N.t('deleteDiscount'), I18N.t('deleteDiscountConfirm'), async () => {
+      await API.deleteDiscount(id)
+      closeModal(); await loadDiscounts()
+    }, true)
+  }
+
+  // ══════════════════════════════════════════════
   //  MODAL
   // ══════════════════════════════════════════════
 
@@ -412,22 +787,28 @@
   backdrop.addEventListener('click', closeSidebar)
 
   // Close sidebar on nav click (mobile)
-  const origShowDash = showDashView
-  showDashView = function(id) {
-    origShowDash(id)
+  const origNavigate = navigateTo
+  navigateTo = function(id) {
+    origNavigate(id)
     if (window.innerWidth <= 768) closeSidebar()
   }
 
   // ─── Init ───
   ;(async function init() {
-    if (loadAuth()) {
-      if (user.store_id) {
-        try { await API.getStore(user.store_id) } catch { logout() }
-      }
-      if (user) {
-        API.getStores().then(s => { stores = s }).catch(() => {})
-        routeDash()
-        return
+    // Load user from localStorage
+    loadUser()
+
+    if (user) {
+      // Verify session is still valid
+      if (await checkSession()) {
+        if (user.store_id) {
+          try { await API.getStore(user.store_id) } catch { logout() }
+        }
+        if (user) {
+          API.getStores().then(s => { stores = s }).catch(() => {})
+          routeDash()
+          return
+        }
       }
     }
     window.location.href = '/auth/'

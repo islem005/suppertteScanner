@@ -3,14 +3,19 @@ import { request as httpRequest } from 'http'
 import { fileURLToPath } from 'url'
 import { dirname, resolve } from 'path'
 
+// ─── DEV LAUNCHER ──────────────────────────────────────────────────────
+// Uses wrangler dev (Workers API) with D1 — mirrors production stack.
+// Default credentials below are for local development only.
+// ──────────────────────────────────────────────────────────────────────
+
 const ROOT = dirname(fileURLToPath(import.meta.url))
-const WORKER = resolve(ROOT, 'worker')
-const API_PORT = 3001
+const API = resolve(ROOT, 'api')
+const API_PORT = 3002
 const API_URL = `http://localhost:${API_PORT}`
-const ADMIN_EMAIL = 'admin@store.com'
-const ADMIN_PASS = 'admin123'
-const STORE_NAME = 'My Store'
-const STORE_SLUG = 'my-store'
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL || 'admin@store.com'
+const ADMIN_PASS = process.env.ADMIN_PASS || 'admin123'
+const STORE_NAME = process.env.STORE_NAME || 'My Store'
+const STORE_SLUG = process.env.STORE_SLUG || 'my-store'
 
 function log(tag, msg) {
   console.log(`[${new Date().toLocaleTimeString()}] ${tag.padEnd(8)} ${msg}`)
@@ -40,9 +45,9 @@ function httpGet(url, timeout = 2000) {
   })
 }
 
-async function waitForAPI(url, retries = 30) {
+async function waitForAPI(url, retries = 60) {
   for (let i = 0; i < retries; i++) {
-    try { await httpGet(url); return true } catch { await sleep(500) }
+    try { await httpGet(url); return true } catch { await sleep(1000) }
   }
   return false
 }
@@ -53,7 +58,7 @@ function fetchJSON(url, method, body) {
     const req = httpRequest({
       hostname: u.hostname, port: u.port, path: u.pathname,
       method: method || 'GET',
-      headers: { 'Content-Type': 'application/json' }, timeout: 5000
+      headers: { 'Content-Type': 'application/json' }, timeout: 10000
     }, res => { let d = ''; res.on('data', c => d += c); res.on('end', () => { try { resolve(JSON.parse(d)) } catch { resolve(d) } }) })
     req.on('error', reject)
     req.on('timeout', () => { req.destroy(); reject('timeout') })
@@ -63,14 +68,14 @@ function fetchJSON(url, method, body) {
 }
 
 async function main() {
-  console.log('\n  ╔══════════════════════════════════════╗')
-  console.log('  ║      Shelf Scanner - Quick Start      ║')
-  console.log('  ╚══════════════════════════════════════╝\n')
+  console.log('\n  ╔══════════════════════════════════════════╗')
+  console.log('  ║   Shelf Scanner — Wrangler Dev + D1     ║')
+  console.log('  ╚══════════════════════════════════════════╝\n')
 
-  log('STEP 1', 'Installing frontend dependencies...')
-  run(ROOT, 'npm.cmd install')
-  log('STEP 1', 'Installing backend dependencies...')
-  run(WORKER, 'npm.cmd install')
+  log('STEP 1', 'Installing dependencies...')
+  run(ROOT, 'bun install')
+  log('STEP 1', 'Installing API dependencies...')
+  run(API, 'bun install')
 
   log('STEP 2', 'Freeing port ' + API_PORT + '...')
   const ns = spawnSync('netstat.exe', ['-ano'], { encoding: 'utf8', stdio: 'pipe' })
@@ -81,42 +86,25 @@ async function main() {
     }
   }
 
-  log('STEP 3', 'Starting API server...')
-  const backend = spawn('node.exe', ['src/index.js'], {
-    cwd: WORKER, stdio: ['ignore', 'pipe', 'pipe'],
+  log('STEP 3', 'Starting Workers API via wrangler dev...')
+  const backend = spawn('npx.cmd', ['wrangler', 'dev', '--port', String(API_PORT), '--remote'], {
+    cwd: API, stdio: ['ignore', 'pipe', 'pipe'],
     env: { ...process.env, PORT: String(API_PORT) }
   })
   backend.stdout.on('data', d => process.stdout.write(`  [api] ${d}`))
   backend.stderr.on('data', d => process.stderr.write(`  [api] ${d}`))
   backend.on('exit', c => log('API', `exited (${c})`))
 
+  log('STEP 3', 'Waiting for API to come online...')
   if (!await waitForAPI(`${API_URL}/api/health`)) {
     log('ERROR', 'API failed to start'); process.exit(1)
   }
   log('STEP 3', 'API ready')
 
-  log('STEP 4', `Setup: ${ADMIN_EMAIL} / ${STORE_NAME}...`)
-  try {
-    await fetchJSON(`${API_URL}/api/setup`, 'POST', {
-      email: ADMIN_EMAIL, password: ADMIN_PASS,
-      displayName: 'Admin', storeName: STORE_NAME, storeSlug: STORE_SLUG
-    })
-    log('STEP 4', 'Done')
-  } catch { log('STEP 4', 'Already configured') }
-
-  log('STEP 4b', 'Seeding product catalog...')
-  const seed = spawnSync('node.exe', ['src/seed.mjs', STORE_SLUG], { cwd: WORKER, stdio: 'pipe' })
-  if (seed.status === 0) {
-    const out = (seed.stdout || '').toString().trim()
-    if (out) log('STEP 4b', out.split('\n').pop())
-  } else {
-    log('STEP 4b', `Skip: ${(seed.stderr || '').toString().slice(0, 80)}`)
-  }
-
-  log('STEP 5', 'Starting frontend...')
+  log('STEP 4', 'Starting frontend...')
   let networkURL = null
   const frontend = spawn('powershell.exe', [
-    '-NoLogo', '-NonInteractive', '-Command', 'npm.cmd run dev'
+    '-NoLogo', '-NonInteractive', '-Command', 'bun run dev'
   ], { cwd: ROOT, stdio: ['ignore', 'pipe', 'pipe'] })
   frontend.stdout.on('data', d => {
     const t = d.toString()
@@ -145,10 +133,20 @@ async function main() {
   console.log(`  ║  Sign In:   ${(authURL + ' ').padEnd(36)}║`)
   console.log(`  ║  Dashboard: ${(dashURL + ' ').padEnd(36)}║`)
   console.log(`  ║  Admin:     ${(adminURL + ' ').padEnd(36)}║`)
-  console.log(`  ║  Admin:     ${(ADMIN_EMAIL + ' ').padEnd(36)}║`)
-  console.log(`  ║  Password:  ${(ADMIN_PASS + ' ').padEnd(36)}║`)
+  console.log('  ╠══════════════════════════════════════════════╣')
+  console.log('  ║  D1 + WRANGLER DEV                           ║')
+  console.log(`  ║  API:       ${(`http://localhost:${API_PORT}` + ' ').padEnd(36)}║`)
+  console.log('  ╠══════════════════════════════════════════════╣')
+  console.log('  ║  DEV CREDENTIALS (change in production)      ║')
+  console.log(`  ║  Admin:      ${(ADMIN_EMAIL + ' ').padEnd(34)}║`)
+  console.log(`  ║  Password:   ${(ADMIN_PASS + ' ').padEnd(34)}║`)
+  const managerEmail = process.env.MANAGER_EMAIL || 'manager@store.com'
+  const managerPass = process.env.MANAGER_PASS || 'manager123'
+  console.log(`  ║  Manager:    ${(managerEmail + ' ').padEnd(34)}║`)
+  console.log(`  ║  Password:   ${(managerPass + ' ').padEnd(34)}║`)
   console.log('  ╚══════════════════════════════════════════════╝')
-  console.log('\n  Press Ctrl+C to stop both servers\n')
+  console.log('\n  WARNING: Only use default credentials for local development.')
+  console.log('  Press Ctrl+C to stop both servers\n')
 
   process.on('SIGINT', () => { log('SHUTDOWN', 'Stopping...'); backend.kill(); frontend.kill(); process.exit(0) })
 }

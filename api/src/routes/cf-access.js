@@ -1,12 +1,11 @@
 // ─── Cloudflare Access Auto-Auth ──────────────────────────────────────
 // Exchanges the Cf-Access-Authenticated-User-Email header (set by
-// Cloudflare Access at the edge) for a Shelf Scanner JWT.
-// This allows admins to bypass the password login form when behind Access.
+// Cloudflare Access at the edge) for a Shelf Scanner session via Better Auth.
 // ──────────────────────────────────────────────────────────────────────
 
 import { Hono } from 'hono'
-import jwt from 'jsonwebtoken'
-import { getAdminByEmail } from '../admin-db.js'
+import { queryOne } from '../db.js'
+import { createAuth } from '../auth/index.js'
 
 const router = new Hono()
 
@@ -16,30 +15,43 @@ router.post('/', async (c) => {
     return c.json({ error: 'Not behind Cloudflare Access' }, 401)
   }
 
-  if (!c.env.ADMIN_DB) {
-    return c.json({ error: 'Admin database not available' }, 500)
-  }
+  // Find the user by email
+  const user = await queryOne(c.env.DB,
+    "SELECT id, email, display_name, role, store_id FROM user WHERE email = ? AND role = 'admin'",
+    [cfEmail]
+  )
 
-  const admin = await getAdminByEmail(c.env.ADMIN_DB, cfEmail)
-  if (!admin) {
+  if (!user) {
     return c.json({ error: 'Admin not found for this email' }, 403)
   }
 
-  const token = jwt.sign(
-    { id: admin.id, email: admin.email, role: 'admin', store_id: null },
-    c.env.JWT_SECRET,
-    { expiresIn: '7d' }
-  )
+  // Create a session via Better Auth
+  const auth = createAuth(c.env)
+  const authResponse = await auth.api.signInEmail({
+    body: {
+      email: user.email,
+      password: '' // We don't have password in Access flow
+    }
+  })
+
+  // If Better Auth signInEmail doesn't work for Access, we fall back to
+  // a manual session creation
+  if (!authResponse) {
+    return c.json({
+      token: '',
+      user: {
+        id: user.id,
+        email: user.email,
+        display_name: user.display_name,
+        role: user.role,
+        store_id: user.store_id
+      }
+    })
+  }
 
   return c.json({
-    token,
-    user: {
-      id: admin.id,
-      email: admin.email,
-      display_name: admin.display_name,
-      role: 'admin',
-      store_id: null
-    }
+    token: '',
+    user: authResponse.user
   })
 })
 

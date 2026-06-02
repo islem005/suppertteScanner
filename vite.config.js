@@ -1,5 +1,4 @@
 import { defineConfig } from 'vite'
-import basicSsl from '@vitejs/plugin-basic-ssl'
 import { resolve, dirname } from 'path'
 import { fileURLToPath } from 'url'
 import { readFileSync } from 'fs'
@@ -31,7 +30,6 @@ function isKnownPath(url) {
 
 export default defineConfig({
   plugins: [
-    basicSsl(),
     {
       name: 'slug-router',
       configureServer(server) {
@@ -49,9 +47,13 @@ export default defineConfig({
   ],
   server: {
     host: true,
+    https: {
+      key: readFileSync(resolve(__dirname, 'certs/localhost-key.pem')),
+      cert: readFileSync(resolve(__dirname, 'certs/localhost.pem'))
+    },
     proxy: {
       '/api': {
-        target: 'http://localhost:3001',
+        target: 'http://localhost:3002',     // DEV: proxies API to wrangler dev (Workers + D1)
         changeOrigin: true
       }
     }

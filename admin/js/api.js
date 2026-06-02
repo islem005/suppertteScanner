@@ -2,12 +2,10 @@ const API = (() => {
   const BASE = localStorage.getItem('api_base') || '/api'
 
   async function req(method, path, body) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' } }
-    const token = localStorage.getItem('token')
-    if (token) opts.headers.Authorization = `Bearer ${token}`
+    const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' }
     if (body) opts.body = JSON.stringify(body)
     const res = await fetch(`${BASE}${path}`, opts)
-    if (res.status === 401) { localStorage.removeItem('token'); localStorage.removeItem('user'); location.reload() }
+    if (res.status === 401) { localStorage.removeItem('user'); window.location.href = '/admin/' }
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Request failed')
     return data
@@ -19,8 +17,8 @@ const API = (() => {
   function del(path) { return req('DELETE', path) }
 
   return {
-    login: (email, password) => post('/auth/login', { email, password }),
-    register: (fields) => post('/auth/register', fields),
+    login: (email, password) => post('/auth/sign-in/email', { email, password }),
+    register: (fields) => post('/auth/setup', fields),
     getStores: () => get('/stores'),
     createStore: (name, slug) => post('/stores', { name, slug }),
     getStore: (id) => get(`/stores/${id}`),
@@ -53,6 +51,22 @@ const API = (() => {
     getMapping: (storeId) => get(`/imports/mapping/${storeId}`),
     saveMapping: (storeId, cm, po) => post(`/imports/mapping/${storeId}`, { column_mapping: cm, parser_options: po }),
     deleteMapping: (storeId) => del(`/imports/mapping/${storeId}`),
-    del: (path) => del(path)
+    del: (path) => del(path),
+
+    // Promotions
+    getStorePromotions: (storeId) => get(`/promotions/store/${storeId}`),
+    getPromotion: (id) => get(`/promotions/${id}`),
+    createPromotion: (data) => post('/promotions', data),
+    updatePromotion: (id, data) => put(`/promotions/${id}`, data),
+    deletePromotion: (id) => del(`/promotions/${id}`),
+    getBanner: (storeId) => get(`/promotions/banner/${storeId}`),
+    getOffers: (storeId) => get(`/promotions/offers/${storeId}`),
+
+    // Discounts
+    getDiscounts: (storeId) => get(`/discounts/store/${storeId}`),
+    getDiscount: (id) => get(`/discounts/item/${id}`),
+    createDiscount: (data) => post('/discounts', data),
+    updateDiscount: (id, data) => put(`/discounts/${id}`, data),
+    deleteDiscount: (id) => del(`/discounts/${id}`)
   }
 })()

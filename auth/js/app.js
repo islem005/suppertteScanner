@@ -2,6 +2,20 @@
   if (typeof feather !== 'undefined') feather.replace()
   const $ = id => document.getElementById(id)
 
+  // ─── API health check on load ───
+  (async function checkApi() {
+    try {
+      const h = await fetch('/api/health', { method: 'GET' })
+      if (!h.ok) throw new Error('unreachable')
+    } catch {
+      const banner = document.createElement('div')
+      banner.id = 'api-warning'
+      banner.style.cssText = 'background:var(--color-danger-muted);color:var(--color-danger);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);font-size:var(--text-sm);text-align:center;margin-bottom:var(--space-4)'
+      banner.textContent = '⚠ API server unreachable — make sure the backend is running on port 3002'
+      $('login-form').parentNode.insertBefore(banner, $('login-form'))
+    }
+  })()
+
   // ─── Tab switching ───
   $('tab-login').addEventListener('click', () => { setTab('login') })
   $('tab-register').addEventListener('click', () => { setTab('register') })
@@ -17,16 +31,6 @@
     $('reg-slug').value = slug
   })
 
-  // ─── Quick Login (testing) ───
-  const CREDS = { admin: { email: 'admin@store.com', password: 'admin123' }, manager: { email: 'manager@test.com', password: 'password123' } }
-
-  function fillQuickLogin(role) {
-    const c = CREDS[role]
-    if (c) { $('login-email').value = c.email; $('login-password').value = c.password }
-  }
-  fillQuickLogin('admin')
-  document.querySelectorAll('input[name="ql-role"]').forEach(r => r.addEventListener('change', () => fillQuickLogin(r.value)))
-
   // ─── Login ───
   $('login-form').addEventListener('submit', async e => {
     e.preventDefault()
@@ -35,26 +39,31 @@
     $('login-error').textContent = ''
 
     try {
-      const res = await fetch('/api/auth/login', {
+      const res = await fetch('/api/auth/sign-in/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: $('login-email').value, password: $('login-password').value })
+        body: JSON.stringify({ email: $('login-email').value, password: $('login-password').value }),
+        credentials: 'include'
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Login failed')
+      let data = {}
+      try { data = await res.json() } catch { data = {} }
+      if (!res.ok) {
+        const statusText = data.error || data.message || `HTTP ${res.status}${res.status === 405 ? ' — server may not be running' : ''}`
+        throw new Error(statusText)
+      }
 
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
+      // Store user for UI state (token is in the cookie, managed by Better Auth)
+      localStorage.setItem('user', JSON.stringify(data.user || data))
 
-      if (data.user.role === 'admin') window.location.href = '/admin/'
-      else window.location.href = '/dashboard/'
+      // Redirect to dashboard
+      window.location.href = '/dashboard/'
     } catch (err) {
       $('login-error').textContent = err.message
       btn.disabled = false; btn.textContent = 'Sign In'
     }
   })
 
-  // ─── Register / Setup ───
+  // ─── Register via Better Auth ───
   $('register-form').addEventListener('submit', async e => {
     e.preventDefault()
     const btn = $('register-form').querySelector('button[type="submit"]')
@@ -62,27 +71,30 @@
     $('register-error').textContent = ''; $('register-success').textContent = ''
 
     try {
-      const res = await fetch('/api/setup', {
+      const res = await fetch('/api/auth/sign-up/email', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           email: $('reg-email').value,
           password: $('reg-password').value,
-          displayName: $('reg-name').value,
-          storeName: $('reg-store').value,
-          storeSlug: $('reg-slug').value
-        })
+          name: $('reg-name').value
+        }),
+        credentials: 'include'
       })
-      const data = await res.json()
-      if (!res.ok) throw new Error(data.error || 'Registration failed')
+      let data = {}
+      try { data = await res.json() } catch { data = {} }
+      if (!res.ok) throw new Error(data.error || `Registration failed (HTTP ${res.status})`)
 
-      localStorage.setItem('token', data.token)
-      localStorage.setItem('user', JSON.stringify(data.user))
-      $('register-success').textContent = 'Store created! Redirecting...'
-      setTimeout(() => { window.location.href = '/dashboard/' }, 1200)
+      // Store user for UI state
+      if (data.user) {
+        localStorage.setItem('user', JSON.stringify(data.user))
+      }
+
+      $('register-success').textContent = 'Account created! You can now sign in.'
+      setTimeout(() => { setTab('login') }, 1500)
     } catch (err) {
       $('register-error').textContent = err.message
-      btn.disabled = false; btn.textContent = 'Create Store'
+      btn.disabled = false; btn.textContent = 'Create Account'
     }
   })
 })()

@@ -16,19 +16,31 @@
   const $ = (id)     => { const e = document.getElementById(id); if (!e) console.warn('Missing #'+id); return e }
   const qs = (s, p)  => (p||document).querySelector(s)
 
-  function saveAuth(u, t) { user = u; localStorage.setItem('token', t); localStorage.setItem('user', JSON.stringify(u)) }
-  function loadAuth() {
-    const t = localStorage.getItem('token'), r = localStorage.getItem('user')
-    if (t && r) {
-      try {
-        const payload = JSON.parse(atob(t.split('.')[1]))
-        if (payload.exp * 1000 < Date.now()) { localStorage.removeItem('token'); localStorage.removeItem('user'); return false }
-      } catch { return false }
-      user = JSON.parse(r); return true
-    }
+  // ─── Auth (cookie-based via Better Auth) ───
+  function saveUser(u) { user = u; localStorage.setItem('user', JSON.stringify(u)) }
+  function loadUser() {
+    const r = localStorage.getItem('user')
+    if (r) { try { user = JSON.parse(r); return true } catch {} }
     return false
   }
-  function logout() { localStorage.removeItem('token'); localStorage.removeItem('user'); user = null; showLoginView() }
+  async function checkSession() {
+    try {
+      const res = await fetch('/api/auth/user', { credentials: 'include' })
+      if (res.ok) {
+        const data = await res.json()
+        if (data.user) { user = data.user; localStorage.setItem('user', JSON.stringify(data.user)); return true }
+      }
+    } catch {}
+    localStorage.removeItem('user')
+    user = null
+    return false
+  }
+  function logout() {
+    fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {})
+    localStorage.removeItem('user')
+    user = null
+    showLoginView()
+  }
 
   function showLoginView() {
     showView('view-login')
@@ -51,26 +63,29 @@
       errorEl.textContent = ''
 
       try {
-        const res = await fetch('/api/auth/login', {
+        const res = await fetch('/api/auth/sign-in/email', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             email: document.getElementById('admin-email').value,
             password: document.getElementById('admin-password').value
-          })
+          }),
+          credentials: 'include'
         })
         let data = {}
         try { data = await res.json() } catch { data = {} }
-        if (!res.ok) throw new Error(data.error || 'Login failed')
+        if (!res.ok) throw new Error(data.error || data.message || 'Login failed')
 
-        if (data.user.role !== 'admin') {
+        const userData = data.user || data
+
+        if (userData.role !== 'admin') {
           throw new Error('This login is for admin accounts only. Managers use the /auth/ page.')
         }
 
-        saveAuth(data.user, data.token)
+        saveUser(userData)
         API.getStores().then(s => { stores = s }).catch(() => {})
         routeDash()
-        showToast('Welcome back, ' + (data.user.display_name || 'Admin'))
+        showToast('Welcome back, ' + (userData.display_name || 'Admin'))
       } catch (err) {
         errorEl.textContent = err.message
         btn.disabled = false; btn.textContent = 'Sign In'
@@ -1375,37 +1390,25 @@
     if (window.innerWidth <= 768) closeSidebar()
   }
 
-  // ─── Bootstrap: try CF Access auto-auth first, fall back to login ──
+  // ─── Bootstrap: check session, fall back to login ──
   ;(async function init() {
-    if (!loadAuth()) {
-      try {
-        // If behind Cloudflare Access, exchange the identity header for a JWT
-        const meta = document.querySelector('meta[name="cf-access"]')
-        if (meta) {
-          const res = await fetch('/api/auth/cf-access', { method: 'POST' })
-          if (res.ok) {
-            const data = await res.json()
-            if (data.token && data.user?.role === 'admin') {
-              saveAuth(data.user, data.token)
-            }
-          }
-        }
-      } catch { /* CF Access not available, fall through */ }
-    }
+    // Load user from localStorage
+    loadUser()
 
-    if (loadAuth()) {
-      if (user.role !== 'admin') {
-        // Non-admin token found — clear and show admin login
-        localStorage.removeItem('token')
-        localStorage.removeItem('user')
-        user = null
-        showLoginView()
+    if (user) {
+      // Verify session is still valid
+      if (await checkSession()) {
+        if (user.role !== 'admin') {
+          localStorage.removeItem('user')
+          user = null
+          showLoginView()
+          return
+        }
+        API.getStores().then(s => { stores = s }).catch(() => {})
+        routeDash()
         return
       }
-      API.getStores().then(s => { stores = s }).catch(() => {})
-      routeDash()
-    } else {
-      showLoginView()
     }
+    showLoginView()
   })()
 })()

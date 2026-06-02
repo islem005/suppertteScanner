@@ -1,3 +1,4 @@
+# DEV/SEED: 50 demo products for development — used by seed.mjs and start.mjs
 barcode,name,price,category
 5901234123457,Organic Whole Milk 1L,4.99,Dairy
 5901234123464,Sourdough Bread Loaf,5.49,Bakery

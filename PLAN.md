@@ -29,100 +29,124 @@
 └────────────────────────┼─────────────────────────────┘
                          │ /api/*
                     ┌────┴────┐
-                    │  Vite   │ (dev) or nginx (prod)
+                    │  Vite   │ (dev same as prod)
                     │  proxy  │
                     └────┬────┘
                          │
 ┌────────────────────────┼─────────────────────────────┐
-│                Express API (port 3001)                 │
+│          Hono Workers API (port 3002)                  │
 │  ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌──────┐ ┌───┐ │
 │  │Auth  │ │Stores│ │Prods │ │Scans │ │Brand │ │Adm│ │
 │  └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └──┬───┘ └─┬─┘ │
 │     └────────┴────────┴────────┴────────┴───────┘    │
 │                        │                              │
 │              ┌─────────┴──────────┐                   │
-│              │  Supabase client    │                   │
-│              │  (SQLite mock or    │                   │
-│              │   real Supabase)    │                   │
+│              │  D1 Database        │                   │
+│              │  (Cloudflare D1)    │                   │
 │              └────────────────────┘                   │
 └───────────────────────────────────────────────────────┘
 ```
 
 **Runtime modes:**
-| Mode | When | DB |
-|---|---|---|
-| **Local dev** | No `SUPABASE_URL` or URL includes `localhost` | SQLite via `better-sqlite3` |
-| **Production** | `SUPABASE_URL` set to a `supabase.co` project | Supabase PostgreSQL |
+| Mode | When | DB | API Server |
+|---|---|---|---|
+| **Local dev** | Always | D1 local (`.wrangler/state`) | `wrangler dev` (workerd) |
+| **Production** | `wrangler deploy` | D1 remote (Cloudflare) | Cloudflare Workers |
 
 ---
 
 ## 3. Directory Structure
 
 ```
-E:\projects\suppertteScanner\
+D:\projects\suppertteScanner\
 │
 ├── index.html                  # Scanner app HTML
-├── scanner.html                # (planned) Scanner moved here for marketing homepage
+├── scanner.html                # Scanner PWA entry (Vite)
 ├── js/
 │   ├── app.js                  # Scanner app logic (boot, scan loop, result overlay)
 │   ├── scanner.js              # BarcodeDetector wrapper (init, start, stop, torch)
+│   ├── shared.js               # Shared UI utilities (toast, modal, escapeHtml)
 │   └── storage.js              # IndexedDB wrapper for scan history
 ├── css/
-│   └── style.css               # Scanner app styles
+│   ├── style.css               # Scanner app styles
+│   └── tokens.css              # CSS custom properties (design tokens)
 │
 ├── dashboard/
 │   ├── index.html              # Store dashboard SPA
 │   ├── css/style.css           # Dashboard styles
 │   └── js/
 │       ├── api.js              # API client
-│       └── app.js              # Dashboard logic (5 views)
+│       ├── app.js              # Dashboard logic (5 views)
+│       └── i18n.js             # Internationalization helpers
 │
 ├── admin/
 │   ├── index.html              # Admin panel SPA
 │   ├── css/style.css           # Admin styles
 │   └── js/
-│       ├── api.js              # API client
-│       └── app.js              # Admin logic (6 views)
+│       ├── api.js              # API client (admin-only methods)
+│       └── app.js              # Admin logic (6+ views)
+│
+├── auth/
+│   ├── index.html              # Shared login page
+│   ├── css/style.css           # Login styles
+│   └── js/app.js               # Login logic
 │
 ├── home/
-│   ├── index.html              # (planned) Marketing homepage
-│   ├── css/style.css           # (planned) Marketing styles
-│   └── js/app.js               # (planned) Marketing interactions
+│   ├── index.html              # Marketing homepage
+│   └── css/style.css           # Marketing styles
 │
-├── worker/                     # Backend (Express API)
+├── api/                        # Backend (Hono Workers API) — ACTIVE
 │   ├── src/
 │   │   ├── index.js            # App entry, route mounting
-│   │   ├── db.js               # DB client (SQLite mock | Supabase)
-│   │   ├── middleware.js        # JWT auth middleware
-│   │   ├── auth.js             # POST /login, POST /register
-│   │   ├── stores.js           # CRUD stores
-│   │   ├── products.js         # CRUD products + CSV upload
-│   │   ├── lookup.js           # GET barcode lookup by slug
-│   │   ├── scans.js            # POST scan event + GET stats
-│   │   ├── branding.js         # GET/PUT store branding
-│   │   ├── admin.js            # Admin-only endpoints
-│   │   ├── imports.js          # File import + mapping API
+│   │   ├── db.js               # D1 utility functions (queryAll, queryOne, execute)
+│   │   ├── middleware.js        # Auth middleware (loadSession, authenticate, adminOnly)
+│   │   ├── auth/
+│   │   │   └── index.js        # Better Auth instance config
+│   │   ├── routes/
+│   │   │   ├── auth.js         # Better Auth Hono router
+│   │   │   ├── stores.js       # CRUD stores (organizations)
+│   │   │   ├── products.js     # CRUD products + upload
+│   │   │   ├── lookup.js       # GET barcode lookup by slug
+│   │   │   ├── scans.js        # POST scan event + GET stats
+│   │   │   ├── branding.js     # GET/PUT store branding
+│   │   │   ├── admin.js        # Admin-only endpoints
+│   │   │   ├── imports.js      # File import + mapping API
+│   │   │   ├── promotions.js   # Promotions CRUD
+│   │   │   ├── discounts.js    # Discount items CRUD
+│   │   │   └── cf-access.js    # Cloudflare Access auth exchange
 │   │   ├── parser.js           # Multi-format file parser (CSV, XLSX, DB, JSON)
-│   │   └── seed.mjs            # Product seeder from CSV
-│   ├── .env                    # Local env config
-│   ├── .env.example            # Env documentation
-│   ├── wrangler.toml           # Cloudflare Workers config
+│   │   ├── admin-db.js         # Admin D1 bridge (cf-access)
+│   │   └── db/                 # (empty — reserved for future schema)
+│   ├── migrations/
+│   │   └── 001_init.sql        # Initial D1 schema (Better Auth + app tables)
+│   ├── scripts/
+│   │   └── seed-d1.mjs         # D1 seed script (creates admin/manager/store/branding)
+│   ├── .dev.vars               # Local env secrets (gitignored)
+│   ├── wrangler.toml           # Dev Cloudflare Workers config
+│   ├── wrangler.prod.toml      # Production Cloudflare Workers config
+│   ├── start-backend.bat       # Windows backend launcher
+│   ├── seed-admin.mjs          # Admin user seeder
 │   └── package.json
 │
-├── supabase/
-│   └── schema.sql              # Supabase SQL schema + RLS policies
+├── functions/
+│   └── _middleware.js          # Pages Function: admin URL rewrite
 │
 ├── assets/icons/
 │   └── icon-192.svg            # PWA icon
 │
 ├── dist/                       # Vite build output (gitignore)
 ├── node_modules/               # Frontend deps (gitignore)
+├── certs/                      # Local SSL certs (gitignore)
+├── code-lore/                  # Permanent project memory (see code-lore-index.md)
+├── project_handoffs/           # Versioned session handoffs
 │
 ├── package.json                # Root: Vite dev deps, scripts
 ├── vite.config.js              # Vite config (SSL, proxy, multi-page)
-├── start.mjs                   # Quick-start launcher
+├── start.mjs                   # Quick-start launcher (wrangler dev + Vite)
 ├── manifest.json               # Web manifest (PWA)
 ├── sw.js                       # Service Worker (cache-first)
+├── deploy-pages.mjs            # Pages deployment script
+├── copy-assets.mjs             # Asset copy for build output
 ├── sample-data/                # Multi-format sample files for testing imports
 │   ├── README.md
 │   ├── products-en.csv         # English (comma)
@@ -142,87 +166,206 @@ E:\projects\suppertteScanner\
 
 ---
 
-## 4. Database Schema
+## 4. Database Schema (D1)
 
-### `stores`
+All tables live in a single D1 database (`shelf-scanner-db-dev` local/dev, `shelf-scanner-db` planned for prod). Migration file: `api/migrations/001_init.sql`.
+
+### Better Auth Core Tables
+
+### `user`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text (UUID) | PK |
+| `name` | text | Display name |
+| `email` | text | UNIQUE |
+| `emailVerified` | integer | 0/1 |
+| `image` | text | Nullable |
+| `createdAt` | text (ISO) | |
+| `updatedAt` | text (ISO) | |
+| `role` | text | `'admin'`, `'manager'`, or `'staff'`, default `'staff'` |
+| `banned` | integer | 0/1 |
+| `banReason` | text | Nullable |
+| `banExpires` | text | Nullable |
+| `display_name` | text | Custom field |
+| `store_id` | text | Nullable, FK → organization |
+
+### `session`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text (UUID) | PK |
+| `userId` | text | FK → user |
+| `token` | text | UNIQUE |
+| `expiresAt` | text (ISO) | |
+| `ipAddress` | text | Nullable |
+| `userAgent` | text | Nullable |
+| `createdAt` | text (ISO) | |
+| `updatedAt` | text (ISO) | |
+| `activeOrganizationId` | text | Org plugin |
+| `impersonatedBy` | text | Admin plugin |
+
+### `account`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text (UUID) | PK |
+| `userId` | text | FK → user |
+| `accountId` | text | |
+| `providerId` | text | |
+| `accessToken` | text | Nullable |
+| `refreshToken` | text | Nullable |
+| `idToken` | text | Nullable |
+| `accessTokenExpiresAt` | text | Nullable |
+| `refreshTokenExpiresAt` | text | Nullable |
+| `scope` | text | Nullable |
+| `password` | text | Hashed password |
+| `createdAt` | text (ISO) | |
+| `updatedAt` | text (ISO) | |
+
+### `verification`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text (UUID) | PK |
+| `identifier` | text | |
+| `value` | text | |
+| `expiresAt` | text (ISO) | |
+| `createdAt` | text (ISO) | |
+| `updatedAt` | text (ISO) | |
+
+### Organization Plugin Tables
+
+### `organization` (replaces legacy `stores`)
 | Column | Type | Notes |
 |---|---|---|
 | `id` | text (UUID) | PK |
 | `name` | text | Store display name |
 | `slug` | text | UNIQUE, URL-friendly identifier |
-| `created_at` | text (ISO datetime) | |
+| `logo` | text | Nullable |
+| `metadata` | text | Nullable JSON |
+| `createdAt` | text (ISO) | |
+| `updatedAt` | text (ISO) | |
 
-### `store_users`
+### `member`
 | Column | Type | Notes |
 |---|---|---|
 | `id` | text (UUID) | PK |
-| `email` | text | UNIQUE |
-| `password_hash` | text | Plaintext (dev only) |
-| `display_name` | text | |
-| `store_id` | text (UUID) | FK → stores, nullable (admins have no store) |
-| `role` | text | `'admin'`, `'manager'`, or `'staff'` |
-| `created_at` | text (ISO datetime) | |
+| `organizationId` | text | FK → organization |
+| `userId` | text | FK → user |
+| `role` | text | Default `'member'` |
+| `createdAt` | text (ISO) | |
+| | | UNIQUE(organizationId, userId) |
 
-### `products`
+### `invitation`
 | Column | Type | Notes |
 |---|---|---|
 | `id` | text (UUID) | PK |
-| `store_id` | text (UUID) | FK → stores, NOT NULL |
+| `organizationId` | text | FK → organization |
+| `email` | text | |
+| `role` | text | |
+| `status` | text | `'pending'` |
+| `inviterId` | text | FK → user |
+| `expiresAt` | text (ISO) | |
+| `createdAt` | text (ISO) | |
+
+### Application Tables
+
+### `product`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text (UUID) | PK |
+| `store_id` | text | FK → organization |
 | `barcode` | text | |
 | `name` | text | |
 | `price` | real | |
 | `category` | text | Nullable |
-| `created_at` | text (ISO datetime) | |
-| `updated_at` | text (ISO datetime) | |
+| `created_at` | text (ISO) | |
+| `updated_at` | text (ISO) | |
 | | | UNIQUE(store_id, barcode) |
 
-### `scan_events`
+### `scan_event`
 | Column | Type | Notes |
 |---|---|---|
 | `id` | text (UUID) | PK |
-| `store_id` | text (UUID) | FK → stores, NOT NULL |
-| `product_id` | text (UUID) | FK → products, nullable |
+| `store_id` | text | FK → organization |
+| `product_id` | text | Nullable, FK → product |
 | `barcode` | text | |
-| `scanned_at` | text (ISO datetime) | |
+| `scanned_at` | text (ISO) | |
 
 ### `store_branding`
 | Column | Type | Notes |
 |---|---|---|
-| `store_id` | text (UUID) | PK, FK → stores |
+| `store_id` | text (UUID) | PK, FK → organization |
 | `logo_url` | text | Nullable |
-| `primary_color` | text | Default `#00c8ff` |
-| `accent_color` | text | Default `#00c875` |
+| `primary_color` | text | Default `#6366f1` |
+| `accent_color` | text | Default `#10b981` |
 | `display_name` | text | Nullable |
 | `contact_email` | text | Nullable |
 | `contact_phone` | text | Nullable |
 | `footer_text` | text | Nullable |
+| `instagram_url` | text | Social link |
+| `tiktok_url` | text | Social link |
+| `website_url` | text | Social link |
+| `facebook_url` | text | Social link |
+| `twitter_url` | text | Social link |
+| `youtube_url` | text | Social link |
 
-### `import_mappings`
+### `promotion`
 | Column | Type | Notes |
 |---|---|---|
 | `id` | text (UUID) | PK |
-| `store_id` | text (UUID) | FK → stores, UNIQUE |
+| `store_id` | text | FK → organization |
+| `type` | text | `'banner'` or `'offer'` |
+| `title` | text | Nullable |
+| `image_data` | text | Nullable (base64 data URL) |
+| `trigger_type` | text | Nullable |
+| `trigger_value` | text | Nullable |
+| `active` | integer | Default 1 |
+| `priority` | integer | Default 0 |
+| `created_at` | text (ISO) | |
+| `updated_at` | text (ISO) | |
+
+### `discount_item`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text (UUID) | PK |
+| `store_id` | text | FK → organization |
+| `barcode` | text | Nullable |
+| `name` | text | |
+| `image_data` | text | Nullable |
+| `category` | text | Nullable |
+| `original_price` | real | Default 0 |
+| `new_price` | real | Default 0 |
+| `discount_percent` | real | Nullable |
+| `featured` | integer | Default 0 |
+| `active` | integer | Default 1 |
+| `priority` | integer | Default 0 |
+| `created_at` | text (ISO) | |
+| `updated_at` | text (ISO) | |
+
+### `import_mapping`
+| Column | Type | Notes |
+|---|---|---|
+| `id` | text (UUID) | PK |
+| `store_id` | text | FK → organization, UNIQUE |
 | `column_mapping` | json | `{"barcode":"...","name":"...","price":"..."}` |
 | `parser_options` | json | Nullable: delimiter, table_name, sheet_name, header_row |
 | `is_verified` | integer | 0/1 |
-| `created_at` | text | |
-| `updated_at` | text | |
+| `created_at` | text (ISO) | |
+| `updated_at` | text (ISO) | |
 
-### `pending_imports`
+### `pending_import`
 | Column | Type | Notes |
 |---|---|---|
 | `id` | text (UUID) | PK |
-| `store_id` | text (UUID) | FK → stores |
+| `store_id` | text | FK → organization |
 | `original_filename` | text | |
 | `file_type` | text | csv, xlsx, sqlite, json |
 | `raw_content` | text | Base64-encoded file content |
 | `row_count` | integer | |
 | `detected_columns` | json | Detected column names |
 | `sample_rows` | json | First 3 rows of data |
-| `mapping_id` | text (UUID) | FK → import_mappings, nullable |
+| `mapping_id` | text | FK → import_mapping, nullable |
 | `status` | text | pending / auto-mapped / imported / rejected |
-| `created_at` | text | |
-| `imported_at` | text | |
+| `created_at` | text (ISO) | |
+| `imported_at` | text (ISO) | |
 
 ---
 
@@ -234,9 +377,11 @@ All endpoints prefixed with `/api`.
 
 | Method | Path | Auth | Body | Response |
 |---|---|---|---|---|
-| POST | `/auth/login` | — | `{ email, password }` | `{ token, user }` |
-| POST | `/auth/register` | — | `{ email, password, displayName, storeSlug?, role? }` | `{ token, user }` |
-| POST | `/setup` | — | `{ email, password, displayName, storeName?, storeSlug? }` | `{ token, user }` |
+| POST | `/auth/sign-in/email` | — | `{ email, password }` | `{ user, session }` |
+| POST | `/auth/sign-up/email` | — | `{ email, password, name }` | `{ user, session }` |
+| GET | `/auth/user` | Cookie | — | `{ user, session }` or `null` |
+| POST | `/auth/sign-out` | Cookie | — | `{ success: true }` |
+| POST | `/auth/cf-access` | — | `{ email }` | Session set, redirect |
 
 ### Stores
 
@@ -358,17 +503,13 @@ All endpoints prefixed with `/api`.
 
 ## 7. Auth & Roles
 
-**Auth mechanism:** JWT tokens, 7-day expiry. Stored in `localStorage`.
+**Auth mechanism:** Better Auth, cookie-based sessions. Session tokens stored in httpOnly cookies, validated server-side via D1 query.
 
-**Token payload:**
-```json
-{
-  "id": "user-uuid",
-  "email": "user@store.com",
-  "role": "admin|manager|staff",
-  "store_id": "uuid-or-null"
-}
-```
+**Session validation** (`api/src/middleware.js` — `loadSession`):
+1. Parse `better-auth.session_token` cookie
+2. Query `session` table in D1 for token validity + expiry
+3. Load user from `user` table (role, store_id, display_name)
+4. Attach user/session to Hono context (`c.get('user')`, `c.get('session')`)
 
 **Role permissions:**
 
@@ -399,27 +540,26 @@ npm run start
 ```
 This runs `start.mjs` which:
 1. Installs frontend & backend deps
-2. Frees port 3001
-3. Starts Express API on `http://localhost:3001`
-4. Runs setup (creates admin user + default store)
-5. Seeds 50 demo products
-6. Starts Vite dev server on `https://localhost:5173`
-7. Prints all URLs
+2. Starts Hono Workers API (via `wrangler dev`) on `http://localhost:3002`
+3. Starts Vite dev server on `https://localhost:5173`
+4. Prints all URLs
+
+> Note: Seeding is no longer automatic. Run `api/scripts/seed-d1.mjs` manually if needed.
 
 ### Manual commands
 | Command | Description |
 |---|---|
 | `npm run dev` | Vite dev server only |
-| `npm run dev:backend` | Express API only |
+| `npm run dev:backend` | `wrangler dev` on port 3002 |
 | `npm run dev:all` | Both concurrently |
 | `npm run build` | Production build to `dist/` |
-| `npm run seed` | Seed products (skip if exist) |
-| `npm run seed:force` | Force re-seed (delete + insert) |
 | `npm run preview` | Preview production build |
 
-### Default credentials
-- **Admin:** `admin@store.com` / `admin123`
+### Dev default credentials
+- **Admin:** `admin@store.com` / `admin123` (also in seed script default)
+- **Manager:** `manager@store.com` / `manager123`
 - **Store:** `my-store` (slug)
+> **Warning:** Default credentials must never be used in production. The `start.mjs` launcher accepts `ADMIN_EMAIL` and `ADMIN_PASS` env vars to override.
 
 ---
 
@@ -427,20 +567,26 @@ This runs `start.mjs` which:
 
 ### ✅ Done
 - Scanner PWA with BarcodeDetector, scan logging, results panel
-- **Slug-scoped product lookup (VERIFIED MUST):** scanner at `/{slug}` only searches products for that store. Verified at `worker/src/lookup.js:18-23` and `js/app.js:68-78`.
-- Express API: auth, stores CRUD, products CRUD, CSV upload, barcode lookup, scan stats, branding CRUD, admin endpoints
-- **Store file import system (VERIFIED):** multi-format parser (CSV, XLSX, SQLite DB, JSON), `import_mappings` + `pending_imports` tables, full import API router at `worker/src/imports.js:1-444`, parser at `worker/src/parser.js:1-120`. Verified routes: upload → preview → map → confirm → verify flow.
+- **Slug-scoped product lookup (VERIFIED MUST):** scanner at `/{slug}` only searches products for that store. Verified at `api/src/lookup.js:18-23` and `js/app.js:68-78`.
+- **Hono Workers API (ACTIVE):** auth, stores CRUD, products CRUD, CSV upload, barcode lookup, scan stats, branding CRUD, admin endpoints, promotions + discount items. Runs via `wrangler dev` locally, deploys to Cloudflare Workers.
+- **Promotions & Discounts API:** banners with CTA, offer cards with images, discount items with percentage off, triggered by barcode/product.
+- **Store file import system (VERIFIED):** multi-format parser (CSV, XLSX, SQLite DB, JSON), `import_mappings` + `pending_imports` tables, full import API router at `api/src/imports.js:1-444`, parser at `api/src/parser.js:1-120`. Verified routes: upload → preview → map → confirm → verify flow.
 - **Admin Store Detail:** drill-in from Stores table → explore button → store detail with mapping card, pending imports table, mapping editor modal with column selectors + live preview + test button.
 - **Store dashboard upload:** file picker → auto-map if mapping exists → verification preview with confirm → import. First-time uploads go to admin.
-- SQLite mock client with Supabase-compatible interface
+- **D1 database migration:** migrated from Supabase to Cloudflare D1, all 15 tables live (Better Auth core + org plugin + app tables)
+- **Better Auth auth system:** cookie-based sessions, admin + organization plugins, role-based middleware (loadSession, authenticate, adminOnly, requireStoreAccess)
+- **Seed system:** standalone `api/scripts/seed-d1.mjs` seeds store, admin/manager users, branding (logo, social links), promotions (2 banners + 3 offers), discount items (5), and 50+ products from `seed.csv`
 - Store dashboard (overview, products, branding, activity, profile)
 - Admin panel (overview, stores, users, branding, activity, profile)
-- JWT auth with 3 roles (admin, manager, staff)
+- Better Auth with 3 roles (admin, manager, staff)
 - Service Worker with cache-first strategy
 - Vite MPA build (3 entry points)
-- `start.mjs` launcher with auto-setup + seed
+- `start.mjs` launcher with Vite + wrangler dev
 - 50 demo products in `seed.csv`
-- `store_branding` table + API
+- `store_branding` table with social link columns + API
+- Cloudflare Pages deployment (shelf-scanner with custom domains)
+- Cloudflare Access integration for admin.ivond.com
+- Code-lore & handoff documentation system
 
 ### 🔄 In Progress
 _(none — all active work is committed as done)_
@@ -448,9 +594,13 @@ _(none — all active work is committed as done)_
 ### 📅 Planned
 - Sandbox mode for demo stores
 - Multi-page CSR (separate dashboard views as sub-pages)
-- Cloudflare Workers deployment with wrangler
-- Real Supabase project setup
+- Fix `wrangler.prod.toml` database ID (currently points to `admin-auth`)
+- Set `BETTER_AUTH_SECRET` in Cloudflare secrets
+- Apply D1 migrations to production database
 - R2 catalog image storage
+- Rate limiting
+- CORS hardening
+- Real password hashing (bcrypt)
 - Email notifications
 - Audit log for admin actions
 
@@ -461,10 +611,11 @@ _(none — all active work is committed as done)_
 ### Phase 1 — Foundation (current)
 - [x] Scanner app with live barcode detection
 - [x] **Slug-scoped product lookup (VERIFIED MUST)** — scanner at `/{slug}` only searches/finds products belonging to that store
-- [x] Express API with SQLite
+- [x] Hono Workers API with Supabase (replaces legacy Express + SQLite)
 - [x] Store dashboard (manager focus)
 - [x] Admin panel (platform management)
-- [x] Branding system
+- [x] Branding system (logo, social links, colors)
+- [x] Promotions & Discounts (banners, offers, discount items)
 - [x] Marketing homepage at `/`
 - [x] Scanner branding integration (logo, colors from `store_branding`)
 - [x] Slug routing via Vite middleware (`/{slug}` → `scanner.html`)
@@ -472,9 +623,14 @@ _(none — all active work is committed as done)_
 - [x] **Admin store detail** — drill-in from Stores to see mapping status, pending imports, import history, mapping editor with live preview + test
 
 ### Phase 2 — Production
-- [ ] Supabase PostgreSQL deployment
-- [ ] Cloudflare Workers deployment
-- [ ] Real password hashing (bcrypt)
+- [x] D1 database migration (from Supabase)
+- [x] Better Auth + cookie-based sessions
+- [x] Cloudflare Pages deployment
+- [x] Cloudflare Workers dev deployment (via `wrangler dev`)
+- [ ] Fix `wrangler.prod.toml` database ID
+- [ ] Set `BETTER_AUTH_SECRET` secret
+- [ ] Apply D1 migrations to remote prod database
+- [ ] Real password hashing (bcrypt — built into Better Auth)
 - [ ] Rate limiting
 - [ ] CORS hardening
 

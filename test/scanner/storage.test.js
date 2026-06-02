@@ -1,3 +1,5 @@
+// @vitest-environment jsdom
+// TEST: scanner storage unit tests
 import { describe, it, expect, beforeEach } from 'vitest'
 import { mockLocalStorage } from '../helpers/test-setup.js'
 

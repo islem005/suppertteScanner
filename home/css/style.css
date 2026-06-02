@@ -1,10 +1,14 @@
 html { scroll-behavior: smooth; }
 body {
-  background: var(--bg-base);
+  background:
+    radial-gradient(ellipse at 50% -10%, rgba(99, 102, 241, 0.06) 0%, transparent 60%),
+    radial-gradient(ellipse at 100% 80%, rgba(99, 102, 241, 0.03) 0%, transparent 50%),
+    linear-gradient(180deg, #0c0c0d 0%, #111118 50%, #0c0c0d 100%);
   color: var(--text-primary);
   font-family: var(--font-sans);
   line-height: var(--leading-normal);
   -webkit-font-smoothing: antialiased;
+  background-attachment: fixed;
 }
 .container { max-width: 1100px; margin: 0 auto; padding: 0 var(--space-5); }
 
@@ -27,13 +31,23 @@ body {
 .nav-toggle { display: none; background: none; border: none; color: var(--text-primary); cursor: pointer; margin-left: auto; width: 40px; height: 40px; display: none; align-items: center; justify-content: center; }
 
 /* Hero */
-#hero { padding: 120px 0 80px; min-height: 80vh; display: flex; align-items: center; }
+#hero { padding: 120px 0 80px; min-height: 80vh; display: flex; align-items: center; position: relative; }
+#hero::before {
+  content: '';
+  position: absolute;
+  top: 50%; left: 60%;
+  transform: translate(-50%, -50%);
+  width: 600px; height: 600px;
+  background: radial-gradient(circle, rgba(99, 102, 241, 0.08) 0%, transparent 70%);
+  pointer-events: none;
+}
 .hero-inner { display: grid; grid-template-columns: 1fr 1fr; gap: 60px; align-items: center; }
 .hero-text h1 { font-size: var(--text-3xl); font-weight: 800; line-height: var(--leading-tight); letter-spacing: var(--tracking-tight); margin-bottom: var(--space-4); }
 @media (min-width: 769px) { .hero-text h1 { font-size: 3rem; } }
 .hero-sub { font-size: var(--text-lg); color: var(--text-secondary); line-height: var(--leading-relaxed); margin-bottom: var(--space-8); max-width: 480px; }
 
 .hero-visual { display: flex; justify-content: center; }
+/* MOCKUP: CSS-only phone preview for homepage hero */
 .phone-mockup {
   width: 260px; height: 520px;
   background: var(--bg-surface); border-radius: 36px;
@@ -77,7 +91,11 @@ body {
 
 /* Sections */
 .section { padding: 100px 0; }
-.section.alt { background: var(--bg-surface); }
+.section.alt {
+  background:
+    radial-gradient(ellipse at 0% 50%, rgba(99, 102, 241, 0.04) 0%, transparent 50%),
+    var(--bg-surface);
+}
 .section-title { font-size: 2.25rem; font-weight: 800; text-align: center; margin-bottom: var(--space-4); letter-spacing: var(--tracking-tight); }
 .section-sub { text-align: center; color: var(--text-secondary); font-size: var(--text-base); margin-bottom: var(--space-10); }
 

@@ -1,0 +1,88 @@
+# ─── Shelf Scanner Deploy Pipeline ────────────────────────────────────────
+# Build → Deploy Frontend + Backend → Run Full Test Suite Against Live URL
+# ──────────────────────────────────────────────────────────────────────────
+
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  # These must be set as secrets in GitHub repo settings
+  CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+  # Test config — overridable via secrets
+  API_BASE: ${{ secrets.API_BASE || 'https://ivond.com/api' }}
+  ADMIN_EMAIL: ${{ secrets.ADMIN_EMAIL || 'admin@store.com' }}
+  ADMIN_PASS: ${{ secrets.ADMIN_PASS || 'admin123' }}
+  ORIGIN: ${{ secrets.ORIGIN || 'https://ivond.com' }}
+
+jobs:
+  deploy-and-test:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: 'npm'
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build frontend
+        run: npm run build
+
+      # ── Deploy Frontend to Cloudflare Pages ──
+      - name: Deploy frontend to Pages
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: pages deploy dist/ --project-name shelf-scanner --branch main
+
+      # ── Deploy Backend to Cloudflare Workers ──
+      - name: Install API dependencies
+        working-directory: api
+        run: npm ci
+
+      - name: Deploy backend to Workers
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          command: deploy --config wrangler.prod.toml
+          workingDirectory: api
+
+      # ── Wait for deployment to propagate ──
+      - name: Warm up — wait for health check
+        run: |
+          for i in $(seq 1 12); do
+            CODE=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.API_BASE }}/health) && \
+            if [ "$CODE" = "200" ]; then echo "API ready"; exit 0; fi
+            echo "Waiting... ($i/12)"
+            sleep 5
+          done
+          echo "API not ready after 60s"
+          exit 1
+
+      # ── Run Full Test Suite Against Live URL ──
+      - name: Run integration tests (against deployed API)
+        run: npx vitest run --reporter=verbose
+        env:
+          API_BASE: ${{ env.API_BASE }}
+          ADMIN_EMAIL: ${{ env.ADMIN_EMAIL }}
+          ADMIN_PASS: ${{ env.ADMIN_PASS }}
+          ORIGIN: ${{ env.ORIGIN }}
+
+      - name: Notify on failure
+        if: failure()
+        run: echo "::error::Deploy succeeded but tests failed. Check the logs above."
