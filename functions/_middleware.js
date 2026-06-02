@@ -13,12 +13,6 @@ export async function onRequest(context) {
   const url = new URL(request.url)
   const host = url.hostname
 
-  // ── www subdomain: redirect to apex domain
-  //     www.ivond.com is not a configured custom domain on Pages
-  if (host === 'www.ivond.com') {
-    return Response.redirect('https://ivond.com' + url.pathname + url.search, 301)
-  }
-
   // ── API routes: let them pass through to static assets
   //     (excluded from Pages by _routes.json, so they hit the Worker route)
   if (url.pathname.startsWith('/api/')) {
@@ -36,7 +30,7 @@ export async function onRequest(context) {
 
   // ── Store subdomains: serve scanner.html for every path
   //     Host is *.ivond.com, not admin.ivond.com, not ivond.com itself
-  if (host.endsWith('.ivond.com') && host !== 'ivond.com' && !host.startsWith('admin.')) {
+  if (host.endsWith('.ivond.com') && host !== 'ivond.com' && !host.startsWith('admin.') && !host.startsWith('www.')) {
     // SPA catch-all: serve scanner.html for all store subdomain paths
     const scannerUrl = new URL('/scanner.html', request.url)
     return env.ASSETS.fetch(new Request(scannerUrl, request))
