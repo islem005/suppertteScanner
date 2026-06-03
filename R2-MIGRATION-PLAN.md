@@ -19,7 +19,6 @@ D1 is a relational database — it's for structured data (products, users, scans
 | `pending_imports.raw_content` | Uploaded import files (CSV, XLSX, DB, JSON) | `{storeId}/imports/{importId}/original.{ext}` | 🔴 High |
 | `promotion.image_data` | Promotion banner/offer images | `{storeId}/promotions/{promoId}.{ext}` | 🔴 High |
 | `discount_item.image_data` | Discount item images | `{storeId}/discounts/{discountId}.{ext}` | 🔴 High |
-| `product` (new column) | Product catalog images | `{storeId}/products/{barcode}.{ext}` | 🟡 Medium |
 | `store_branding.logo_url` | Store logo (currently external URL) | `{storeId}/logo/logo.{ext}` | 🟡 Medium |
 | *(new)* Import mapping previews | Parsed preview JSON | `{storeId}/imports/{importId}/preview.json` | 🟢 Low |
 | *(new)* Export reports | Generated PDF/Excel exports | `{storeId}/exports/{filename}` | 🟢 Low |
@@ -32,8 +31,6 @@ store-catalogs/
 ├── {storeId}/
 │   ├── logo/
 │   │   └── logo-{timestamp}.{ext}
-│   ├── products/
-│   │   └── {barcode}.{ext}
 │   ├── promotions/
 │   │   └── {promoId}.{ext}
 │   ├── discounts/
@@ -57,7 +54,7 @@ POST /api/upload
   Body: multipart/form-data
     - file: the file
     - store_id: "store-001"
-    - type: "logo" | "product" | "promotion" | "discount" | "import"
+    - type: "logo" | "promotion" | "discount" | "import"
     - ref_id: optional reference ID (product barcode, promo ID, etc.)
   Returns:
     { url: "/api/files/{storeId}/{type}/{filename}", key: "..." }
@@ -69,7 +66,7 @@ POST /api/upload
 ### Serve (proxy through Worker)
 ```
 GET /api/files/{storeId}/{type}/{filename}
-  Auth: Public for product/promotion/discount images
+  Auth: Public for promotion/discount images
         Auth required for imports (admin only)
   Returns: File with correct Content-Type + Cache-Control headers
   Cache: Cache-Control public, max-age=86400 (1 day)
@@ -91,7 +88,6 @@ POST /imports/upload
 ### New columns (nullable, phased rollout)
 ```sql
 -- Phase 1: Add new URL columns
-ALTER TABLE product ADD COLUMN image_url TEXT;
 ALTER TABLE promotion ADD COLUMN image_url TEXT;
 ALTER TABLE discount_item ADD COLUMN image_url TEXT;
 
@@ -127,12 +123,7 @@ else                   → show placeholder
 - Display: use `image_url` with fallback to `image_data`
 - Scanner app shows promotion/discount images from R2
 
-### Phase 4 — Product catalog images
-- Dashboard Products view: image upload per product
-- Scanner result overlay: show product image
-- Barcode lookup response includes `image_url`
-
-### Phase 5 — Logo & polish
+### Phase 4 — Logo & polish
 - Branding page: file upload for logo
 - Export report generation to R2
 - D1 backup automation
@@ -146,14 +137,12 @@ EDIT api/src/index.js              — Mount new routes
 EDIT api/src/routes/imports.js     — Save file to R2 instead of base64
 EDIT api/src/routes/promotions.js  — Accept image_url in create/update
 EDIT api/src/routes/discounts.js   — Accept image_url in create/update
-EDIT api/src/routes/products.js    — Accept image_url in create/update
 NEW  api/migrations/002_r2.sql     — Add image_url columns
 
 EDIT admin/js/app.js               — File pickers for promo/discount/logo
 EDIT admin/js/api.js               — uploadImage() method
-EDIT dashboard/js/app.js           — File pickers + product image upload
+EDIT dashboard/js/app.js           — File pickers for promo/discount
 EDIT dashboard/js/api.js           — uploadImage() method
-EDIT js/app.js                     — Scanner: show product image in results
 ```
 
 ## Rollback Safety
