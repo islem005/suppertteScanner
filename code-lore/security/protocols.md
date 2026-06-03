@@ -19,7 +19,9 @@ Shelf Scanner uses **Better Auth** for authentication, integrated with Hono Work
 - Session token is validated server-side by `loadSession` middleware which queries D1 directly
 - No `localStorage` token storage — cookies are httpOnly by default
 
-### Local Dev Admin Credentials
+### Test Credentials
+
+These credentials are used for both local dev and deployed testing (CI/CD + manual):
 
 | User | Email | Password | Role |
 |---|---|---|---|
@@ -27,14 +29,22 @@ Shelf Scanner uses **Better Auth** for authentication, integrated with Hono Work
 | Manager | `manager@store.com` | `manager123` | manager |
 | Store slug | `my-store` | — | — |
 
-> ⚠️ Default credentials must never be used in production.
+> ⚠️ These are test credentials. In production, always override via env vars (`ADMIN_EMAIL`, `ADMIN_PASS`).
 
 ### Better Auth Configuration (`api/src/auth/index.js`)
 
 - **Database**: D1 binding (`env.DB`) — Better Auth auto-detects and creates the SQL dialect
 - **Plugins**: `admin` (role-based access with `defaultRole: 'staff'`, `adminRoles: ['admin']`), `organization` (multi-tenant stores, only admins can create orgs)
 - **User custom fields**: `display_name` (string), `role` (string, default `'staff'`, not user-settable), `store_id` (string)
-- **Trusted origins**: `http://localhost:5173`, `https://localhost:5173`, `https://admin.ivond.com`, `https://scanner.ivond.com`
+- **Cross-subdomain cookie config**: `sameSite: 'none'` + `secure: true` — required so the session cookie is sent across `ivond.com` → `{store}.ivond.com` subdomains
+- **Dynamic trusted origins**: Built per-request from a base list, plus the incoming `Origin` header if it passes `isTrustedOrigin()`:
+  - `https://ivond.com`
+  - `https://admin.ivond.com`
+  - `http://localhost:5173`, `https://localhost:5173`
+  - Any `*.ivond.com` subdomain (matched via `origin.endsWith('.ivond.com')`)
+  - Any `*.pages.dev` preview deployment
+- **`isTrustedOrigin(origin)`** function validates incoming origins against the patterns above before dynamically adding them to the trusted list
+- **`createAuth(env, requestOrigin)`** is called per-request (Workers stateless model) — the auth router passes the `Origin` header from each request
 - **Secrets**: `env.BETTER_AUTH_SECRET` — must be set via `wrangler secret put BETTER_AUTH_SECRET` in production. Falls back to `'dev-secret-change-in-prod'` locally.
 
 ## Role Enforcement

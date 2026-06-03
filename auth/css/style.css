@@ -27,43 +27,14 @@
   margin-bottom: var(--space-6);
 }
 
-.tabs {
-  display: flex;
-  gap: 2px;
-  background: var(--bg-inset);
-  border-radius: var(--radius-md);
-  padding: 3px;
+.login-header {
+  text-align: center;
   margin-bottom: var(--space-6);
 }
 
-.tab {
-  flex: 1;
-  padding: var(--space-2) var(--space-3);
-  border: none;
-  border-radius: calc(var(--radius-md) - 2px);
-  background: transparent;
-  color: var(--text-tertiary);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all var(--transition-fast);
-}
-
-.tab:hover { color: var(--text-primary); }
-.tab.active {
-  background: var(--bg-elevated);
-  color: var(--text-primary);
-  box-shadow: var(--shadow-sm);
-}
-
-.auth-form { display: none; }
-.auth-form.active { display: block; }
-
-.register-intro {
+.login-header p {
   font-size: var(--text-sm);
   color: var(--text-secondary);
-  margin-bottom: var(--space-5);
-  text-align: center;
   line-height: var(--leading-normal);
 }
 
@@ -100,50 +71,8 @@
   box-shadow: 0 0 0 3px var(--color-primary-muted);
 }
 
-.slug-row {
-  display: flex;
-  align-items: center;
-  gap: 0;
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-inset);
-  overflow: hidden;
-}
-
-.slug-row:focus-within {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-muted);
-}
-
-.slug-prefix {
-  padding: var(--space-3) 0 var(--space-3) var(--space-4);
-  font-size: var(--text-sm);
-  color: var(--text-tertiary);
-  white-space: nowrap;
-  flex-shrink: 0;
-}
-
-.slug-row input {
-  border: none !important;
-  box-shadow: none !important;
-  flex: 1;
-  padding: var(--space-3) var(--space-4) var(--space-3) var(--space-1);
-  background: transparent;
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  outline: none;
-}
-
 .error-msg {
   color: var(--color-danger);
-  font-size: var(--text-sm);
-  min-height: 20px;
-  margin-top: var(--space-2);
-  text-align: center;
-}
-
-.success-msg {
-  color: var(--color-success);
   font-size: var(--text-sm);
   min-height: 20px;
   margin-top: var(--space-2);

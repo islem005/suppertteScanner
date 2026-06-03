@@ -4,7 +4,7 @@
 
 **When an MCP server is available for a task, use it instead of a direct shell command.**
 
-MCP servers provide structured, safe access to infrastructure APIs. Prefer them over `wrangler`, `gh`, `supabase`, or any CLI that duplicates their functionality.
+MCP servers provide structured, safe access to infrastructure APIs. Prefer them over `wrangler`, `gh`, or any CLI that duplicates their functionality.
 
 ## Available MCP Servers
 
@@ -87,8 +87,8 @@ Typical git MCP tools include:
 ## When to Use Shell Instead
 
 Some tasks are better done via shell:
-- Running the app stack (use `@app-launcher`)
 - Installing npm packages (`npm install`)
+- Running git operations when MCP is unavailable
 - File operations that MCP doesn't support
 - Complex multi-step shell pipelines
 - When MCP server is unavailable or errors out

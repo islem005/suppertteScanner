@@ -1,4 +1,4 @@
-const CACHE = 'shelf-scanner-v2';
+const CACHE = 'shelf-scanner-v3';
 
 self.addEventListener('install', e => {
   self.skipWaiting();
@@ -14,6 +14,9 @@ self.addEventListener('activate', e => {
 });
 
 self.addEventListener('fetch', e => {
+  // Only cache GET requests — POST/PUT/DELETE etc. are not cacheable
+  if (e.request.method !== 'GET') return;
+
   e.respondWith(
     fetch(e.request).then(res => {
       const clone = res.clone();

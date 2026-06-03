@@ -8,6 +8,8 @@ import { authenticate } from '../middleware.js'
 
 const router = new Hono()
 
+// ── Public routes (used by scanner app) ──
+
 router.get('/:storeId', async (c) => {
   const data = await queryAll(c.env.DB,
     'SELECT * FROM discount_item WHERE store_id = ? AND active = 1 ORDER BY priority',
@@ -21,6 +23,22 @@ router.get('/featured/:storeId', async (c) => {
     'SELECT * FROM discount_item WHERE store_id = ? AND active = 1 AND featured = 1 ORDER BY priority',
     [c.req.param('storeId')]
   )
+  return c.json(data)
+})
+
+// ── Admin/dashboard: list all discounts for a store ──
+router.get('/store/:storeId', authenticate, async (c) => {
+  const data = await queryAll(c.env.DB,
+    'SELECT * FROM discount_item WHERE store_id = ? ORDER BY priority',
+    [c.req.param('storeId')]
+  )
+  return c.json(data)
+})
+
+// ── Admin/dashboard: get single discount item ──
+router.get('/item/:id', authenticate, async (c) => {
+  const data = await queryOne(c.env.DB, 'SELECT * FROM discount_item WHERE id = ?', [c.req.param('id')])
+  if (!data) return c.json({ error: 'Not found' }, 404)
   return c.json(data)
 })
 
@@ -43,6 +61,34 @@ router.post('/', authenticate, async (c) => {
   )
 
   const data = await queryOne(c.env.DB, 'SELECT * FROM discount_item WHERE id = ?', [id])
+  return c.json(data)
+})
+
+// ── Admin/dashboard: update discount item ──
+router.put('/:id', authenticate, async (c) => {
+  const body = await c.req.json()
+  const id = c.req.param('id')
+
+  const allowed = ['store_id', 'barcode', 'name', 'image_data', 'category',
+    'original_price', 'new_price', 'discount_percent', 'featured', 'active', 'priority']
+  const sets = []
+  const vals = []
+  for (const key of allowed) {
+    if (key in body) {
+      sets.push(`${key} = ?`)
+      vals.push(body[key])
+    }
+  }
+  if (sets.length === 0) return c.json({ error: 'No fields to update' }, 400)
+
+  vals.push(id)
+  await execute(c.env.DB,
+    `UPDATE discount_item SET ${sets.join(', ')} WHERE id = ?`,
+    vals
+  )
+
+  const data = await queryOne(c.env.DB, 'SELECT * FROM discount_item WHERE id = ?', [id])
+  if (!data) return c.json({ error: 'Not found' }, 404)
   return c.json(data)
 })
 

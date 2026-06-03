@@ -95,7 +95,7 @@ describe('GET /api/auth/session (get session)', () => {
   })
 })
 
-describe('GET /api/auth/user (get current user)', () => {
+describe('GET /api/auth/get-session (get current session)', () => {
   let adminCookie
 
   beforeAll(async () => {
@@ -103,14 +103,23 @@ describe('GET /api/auth/user (get current user)', () => {
     adminCookie = session.cookie
   })
 
-  it('returns user details for authenticated user', async () => {
-    const res = await fetch(`${API_BASE}/auth/user`, {
+  it('returns session + user for authenticated user', async () => {
+    const res = await fetch(`${API_BASE}/auth/get-session`, {
       headers: { Cookie: adminCookie }
     })
     expect(res.status).toBe(200)
     const data = await res.json()
-    expect(data).toHaveProperty('email', ADMIN_EMAIL)
-    expect(data).toHaveProperty('id')
+    expect(data).toHaveProperty('user')
+    expect(data.user).toHaveProperty('email', ADMIN_EMAIL)
+    expect(data.user).toHaveProperty('id')
+    expect(data).toHaveProperty('session')
+  })
+
+  it('returns 200 with null body for unauthenticated', async () => {
+    const res = await fetch(`${API_BASE}/auth/get-session`)
+    expect(res.status).toBe(200)
+    const body = await res.json()
+    expect(body).toBeNull()
   })
 })
 

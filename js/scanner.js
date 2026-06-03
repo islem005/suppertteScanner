@@ -105,5 +105,36 @@ const Scanner = (() => {
     return !!capabilities?.torch;
   }
 
-  return { init, start, stop, toggleTorch, isTorchSupported };
+  async function restart(video, callback) {
+    // Stop current camera + detection loop
+    active = false;
+    if (loopId) { clearTimeout(loopId); loopId = null; }
+    if (stream) {
+      stream.getTracks().forEach(t => t.stop());
+      stream = null;
+    }
+    lastResults = [];
+    lastResultTime = 0;
+
+    // Re-init camera
+    try {
+      stream = await navigator.mediaDevices.getUserMedia({
+        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
+        audio: false
+      });
+    } catch (e) {
+      return { ok: false, error: 'Camera access denied.' };
+    }
+
+    // Restart detection
+    active = true;
+    onDetect = callback;
+    videoEl = video;
+    videoEl.srcObject = stream;
+    videoEl.play();
+    scheduleDetect();
+    return { ok: true };
+  }
+
+  return { init, start, stop, restart, toggleTorch, isTorchSupported };
 })();

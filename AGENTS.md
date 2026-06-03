@@ -9,9 +9,13 @@ Shelf Scanner is a SaaS barcode scanning platform that lets stores publish their
 - **Dashboard** (`ivond.com/dashboard`) — Store management for managers/staff
 - **Admin Panel** (`admin.ivond.com`) — Platform administration
 
-## Where is the handoff?
+## Session Start Protocol
 
-Check `project_handoffs/latest_handoff.md` for current project status, recent changes, and next tasks.
+Every session begins with two reads in order:
+1. **Read the handoff** — `project_handoffs/latest_handoff.md` for current status & next tasks
+2. **Read code-lore** — `code-lore/code-lore-index.md` for permanent patterns & conventions
+
+Without both, you may miss context or repeat mistakes. If something isn't in lore, stop and ask.
 
 ## What is code-lore?
 
@@ -103,9 +107,9 @@ For post-deploy testing, override via: `ADMIN_EMAIL`, `ADMIN_PASS`, `API_BASE` e
 ## Preparing for the Next Thread
 
 When the user says **"Let's prepare for the next thread"** or equivalent:
-1. Follow the protocol at `code-lore/project-management/thread-handoff-protocol.md`
-2. Archive the current handoff, increment version, create fresh handoff
-3. Report any lore flags noticed during the session
+1. **Update lore before compacting** — If any patterns were flagged during the session, ask the user if they should be documented. If yes, create/update the lore file(s), update `code-lore/code-lore-index.md`, then proceed.
+2. Follow the protocol at `code-lore/project-management/thread-handoff-protocol.md`
+3. Archive the current handoff, increment version, create fresh handoff
 
 ## Key Files
 

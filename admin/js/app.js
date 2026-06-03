@@ -25,7 +25,7 @@
   }
   async function checkSession() {
     try {
-      const res = await fetch('/api/auth/user', { credentials: 'include' })
+      const res = await fetch('/api/auth/get-session', { credentials: 'include' })
       if (res.ok) {
         const data = await res.json()
         if (data.user) { user = data.user; localStorage.setItem('user', JSON.stringify(data.user)); return true }

@@ -7,6 +7,33 @@ import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 
+// ─── Auto-register store subdomain as Pages custom domain ──────────
+// Called after store creation — fires and forgets.
+async function registerStoreSubdomain(c, slug) {
+  const token = c.env.CLOUDFLARE_PAGES_TOKEN
+  const accountId = c.env.CLOUDFLARE_ACCOUNT_ID
+  if (!token || !accountId) {
+    console.warn('Missing CLOUDFLARE_PAGES_TOKEN or CLOUDFLARE_ACCOUNT_ID — skipping subdomain registration')
+    return
+  }
+  try {
+    const res = await fetch(
+      `https://api.cloudflare.com/client/v4/accounts/${accountId}/pages/projects/shelf-scanner/domains`,
+      {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name: `${slug}.ivond.com` })
+      }
+    )
+    const data = await res.json()
+    if (!data.success) {
+      console.warn('Subdomain registration returned errors:', JSON.stringify(data.errors))
+    }
+  } catch (err) {
+    console.warn('Subdomain registration failed:', err.message)
+  }
+}
+
 const router = new Hono()
 
 // Public routes (before auth middleware)
@@ -55,6 +82,9 @@ router.post('/', async (c) => {
     'INSERT INTO organization (id, name, slug) VALUES (?, ?, ?)',
     [id, name, cleanSlug]
   )
+
+  // Auto-register {slug}.ivond.com as a Pages custom domain (fire-and-forget)
+  registerStoreSubdomain(c, cleanSlug).catch(() => {})
 
   const store = await queryOne(c.env.DB,
     'SELECT * FROM organization WHERE id = ?', [id]

@@ -57,11 +57,11 @@ const API = (() => {
 
     // Promotions
     getStorePromotions: (storeId) => get(`/promotions/store/${storeId}`),
-    getPromotion: (id) => get(`/promotions/${id}`),
+    getPromotion: (id) => get(`/promotions/single/${id}`),
     createPromotion: (data) => post('/promotions', data),
     updatePromotion: (id, data) => put(`/promotions/${id}`, data),
     deletePromotion: (id) => del(`/promotions/${id}`),
-    getBanner: (storeId) => get(`/promotions/banner/${storeId}`),
+    getBanner: (storeId) => get(`/promotions/banners/${storeId}`),
 
     // Discounts
     getDiscounts: (storeId) => get(`/discounts/store/${storeId}`),

@@ -16,20 +16,7 @@
     }
   })()
 
-  // ─── Tab switching ───
-  $('tab-login').addEventListener('click', () => { setTab('login') })
-  $('tab-register').addEventListener('click', () => { setTab('register') })
-
-  function setTab(tab) {
-    document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.tab === tab))
-    document.querySelectorAll('.auth-form').forEach(f => f.classList.toggle('active', f.id === tab + '-form'))
-  }
-
-  // ─── Auto-slug from store name ───
-  $('reg-store').addEventListener('input', () => {
-    const slug = $('reg-store').value.toLowerCase().replace(/[^a-z0-9]+/g, '-').replace(/^-|-$/g, '')
-    $('reg-slug').value = slug
-  })
+  // ─── Tab switching (removed — sign-in only) ───
 
   // ─── Login ───
   $('login-form').addEventListener('submit', async e => {
@@ -63,38 +50,5 @@
     }
   })
 
-  // ─── Register via Better Auth ───
-  $('register-form').addEventListener('submit', async e => {
-    e.preventDefault()
-    const btn = $('register-form').querySelector('button[type="submit"]')
-    btn.disabled = true; btn.textContent = 'Creating...'
-    $('register-error').textContent = ''; $('register-success').textContent = ''
-
-    try {
-      const res = await fetch('/api/auth/sign-up/email', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          email: $('reg-email').value,
-          password: $('reg-password').value,
-          name: $('reg-name').value
-        }),
-        credentials: 'include'
-      })
-      let data = {}
-      try { data = await res.json() } catch { data = {} }
-      if (!res.ok) throw new Error(data.error || `Registration failed (HTTP ${res.status})`)
-
-      // Store user for UI state
-      if (data.user) {
-        localStorage.setItem('user', JSON.stringify(data.user))
-      }
-
-      $('register-success').textContent = 'Account created! You can now sign in.'
-      setTimeout(() => { setTab('login') }, 1500)
-    } catch (err) {
-      $('register-error').textContent = err.message
-      btn.disabled = false; btn.textContent = 'Create Account'
-    }
-  })
+  // ─── Register removed — admin creates users via admin panel ───
 })()

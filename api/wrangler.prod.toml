@@ -13,6 +13,7 @@ routes = [
 
 [vars]
 BETTER_AUTH_URL = "https://ivond.com"
+CLOUDFLARE_ACCOUNT_ID = "c1a9c77e51deb2655ceb8700c6723f3d"
 
 # ⚠️  Set via `wrangler secret put BETTER_AUTH_SECRET` before deploy
 # BETTER_AUTH_SECRET = ""

@@ -8,6 +8,8 @@ Shelf Scanner runs entirely on Cloudflare's free tier:
 - **D1** provides relational storage
 - **R2** stores catalog images and uploaded files
 
+**Development model: Deployed-only.** All development happens against the live deployed instance at `https://ivond.com`. There is no local dev environment — changes are pushed to GitHub, then CI/CD builds, deploys, and runs the full test suite against production. Manual deploy is also available via `npm run deploy:all`.
+
 ---
 
 ## Pages — `shelf-scanner`
@@ -55,6 +57,42 @@ wrangler secret put BETTER_AUTH_SECRET    # Required for production
 ```
 
 **Worker Route:** `ivond.com/api/*` and `*.ivond.com/api/*` → `scanner-api`
+
+### Dynamic CORS Configuration
+
+The Worker uses Hono's `cors()` middleware with a dynamic origin callback (`api/src/index.js`):
+
+```js
+origin: (origin, c) => {
+  if (!origin) return 'https://ivond.com'
+  if (origin.endsWith('.ivond.com') || origin === 'https://ivond.com') return origin
+  if (origin.startsWith('http://localhost:') || origin.startsWith('https://localhost:')) return origin
+  if (origin.endsWith('.pages.dev')) return origin
+  return 'https://ivond.com'
+}
+```
+
+This echoes back the request origin for trusted subdomains, enabling credentialed requests across `{store}.ivond.com` → `ivond.com/api/*`. `credentials: true` is set to allow cookies cross-origin.
+
+### Cross-Subdomain Cookie Config
+
+Better Auth is configured with `sameSite: 'none'` and `secure: true` on the session cookie (`api/src/auth/index.js`). This ensures the `better-auth.session_token` cookie is sent by the browser when a scanner at `my-store.ivond.com` makes API calls to `ivond.com/api/*`. Without this, the cookie would be blocked.
+
+### Security Headers
+
+Applied via `static/_headers` to all Pages responses:
+
+```
+/*
+  X-Content-Type-Options: nosniff
+  X-Frame-Options: DENY
+  Referrer-Policy: strict-origin-when-cross-origin
+
+/scanner.html
+  Permissions-Policy: camera=(self)
+```
+
+The `Permissions-Policy: camera=(self)` on `scanner.html` is required for `BarcodeDetector` API access.
 
 ---
 
@@ -105,11 +143,56 @@ npm run deploy:all
 ```
 
 ### CI/CD (on push to main)
-`.github/workflows/deploy.yml`:
-1. Build frontend (`npm run build`)
-2. Deploy to Pages (`wrangler pages deploy dist/`)
-3. Deploy to Workers (`wrangler deploy --config wrangler.prod.toml`)
-4. Run full test suite against `https://ivond.com/api`
+
+**Pipeline file:** `.github/workflows/deploy.yml`
+
+Triggers on push to `main` branch or via `workflow_dispatch`. Uses concurrency gating (cancels in-flight runs for same branch).
+
+**Environment:**
+| Env var | Source | Default |
+|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | GitHub secret (required) | — |
+| `API_BASE` | GitHub secret | `https://ivond.com/api` |
+| `ADMIN_EMAIL` | GitHub secret | `admin@store.com` |
+| `ADMIN_PASS` | GitHub secret | `admin123` |
+| `ORIGIN` | GitHub secret | `https://ivond.com` |
+
+**Steps (timeout: 15min):**
+1. **Checkout + Setup Node.js 20** with npm cache
+2. **Install dependencies** (`npm ci`)
+3. **Build frontend** (`npm run build` → `dist/`)
+4. **Deploy frontend to Pages** via `cloudflare/wrangler-action@v3`:
+   `wrangler pages deploy dist/ --project-name shelf-scanner --branch main`
+5. **Install API dependencies** (`cd api && npm ci`)
+6. **Deploy backend to Workers** via `cloudflare/wrangler-action@v3`:
+   `wrangler deploy --config wrangler.prod.toml`
+7. **Warm-up** — polls `API_BASE/health` every 5s up to 60s until 200 OK
+8. **Run full test suite** (`npx vitest run --reporter=verbose`) against live deployed URL with `API_BASE`, `ADMIN_EMAIL`, `ADMIN_PASS`, `ORIGIN` env vars
+9. **Notify on failure** — prints `::error::` annotation if tests fail post-deploy
+
+---
+
+## Auto-Subdomain Registration
+
+When a new store (organization) is created, the Worker automatically registers `{slug}.ivond.com` as a custom domain on the Pages project via the Cloudflare API.
+
+**How it works:**
+- `api/src/routes/stores.js` exports a `registerStoreSubdomain()` helper
+- Called fire-and-forget (no `await`) after `INSERT INTO organization` succeeds
+- Uses `CLOUDFLARE_PAGES_TOKEN` (Worker secret) for API auth
+- Uses `CLOUDFLARE_ACCOUNT_ID` (env var in `wrangler.prod.toml`) for endpoint URL
+- POSTs to `https://api.cloudflare.com/client/v4/accounts/{id}/pages/projects/shelf-scanner/domains`
+- Body: `{ "name": "{slug}.ivond.com" }`
+- On failure, only logs a warning — doesn't block store creation
+
+**Prerequisites:**
+1. `CLOUDFLARE_PAGES_TOKEN` secret must be set on the Worker (a Cloudflare API token with `pages:write` permission for the Pages project)
+2. `CLOUDFLARE_ACCOUNT_ID` must be set as an env var (in `wrangler.prod.toml`)
+3. Wildcard `*.ivond.com` DNS CNAME must exist pointing to `shelf-scanner.pages.dev` (set manually via Cloudflare DNS)
+4. The Pages Function (`functions/_middleware.js`) must route `*.ivond.com` → `scanner.html`
+
+**Middleware redirect fix:**
+Previously, store subdomains hit a 308 redirect loop because `env.ASSETS.fetch('/scanner.html')` returns a 308 redirect to `/scanner` (Pages strips `.html`). The fix: `fetch()` follows the redirect internally by not setting `redirect: 'manual'`, so the middleware now serves the redirected page correctly.
 
 ---
 

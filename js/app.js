@@ -49,7 +49,7 @@
   // extract the slug from the hostname.
   // Priority 2: Fall back to path-based slug (/my-store) for backward compat.
   const host = location.hostname;
-  if (host.endsWith('.ivond.com') && host !== 'ivond.com' && !host.startsWith('admin.')) {
+  if (host.endsWith('.ivond.com') && host !== 'ivond.com' && !host.startsWith('admin.') && !host.startsWith('www.')) {
     storeSlug = host.split('.')[0];
   } else {
     const path = location.pathname.replace(/\/+$/, '');
@@ -59,6 +59,7 @@
     }
   }
 
+  // ── PWA Install ───────────────────────────────────────────────
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
@@ -75,9 +76,11 @@
     if (storeSlug) {
       try {
         const res = await fetch(`${apiBase}/stores/slug/${storeSlug}`);
+        if (!res.ok) throw new Error('Store not found');
         const store = await res.json();
         storeName = store.name;
         storeId = store.id;
+        document.title = storeName; // Dynamic page title per store
 
         try {
           const br = await fetch(`${apiBase}/branding/${store.id}`);
@@ -99,7 +102,7 @@
         } catch {}
 
         try {
-          const banners = await (await fetch(`${apiBase}/promotions/banner/${store.id}`)).json();
+          const banners = await (await fetch(`${apiBase}/promotions/banners/${store.id}`)).json();
           if (Array.isArray(banners) && banners.length > 0) {
             startCarousel(banners);
             bannerFallback.classList.add('hidden');
@@ -131,8 +134,10 @@
           }
         } catch {}
 
-      } catch {
+      } catch (e) {
         showToast('Store not found');
+        camName.textContent = 'Camera ready';
+        return;
       }
     } else {
       profileName.textContent = 'Scanner';
@@ -145,6 +150,15 @@
       return;
     }
     Scanner.start(video, onBarcode);
+
+    // Tap camera to refresh if frozen
+    const camFeed = document.getElementById('camera-feed');
+    camFeed.addEventListener('click', async () => {
+      camName.textContent = 'Restarting camera…';
+      const r = await Scanner.restart(video, onBarcode);
+      camName.textContent = r.ok ? 'Camera ready' : 'Camera unavailable';
+      if (r.ok) showToast('Camera refreshed');
+    });
   }
 
   async function onBarcode(code) {
@@ -318,7 +332,7 @@
       } else if (window.matchMedia('(display-mode: standalone)').matches) {
         showToast('Already installed');
       } else {
-        showToast('Install not available');
+        showToast('Visit a few times, then install will be ready');
       }
       return;
     }
