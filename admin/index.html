@@ -115,6 +115,22 @@
           </div>
         </section>
 
+        <section id="view-registrations" class="dash-view">
+          <header class="view-header">
+            <h2>Store Registrations</h2>
+            <div style="display:flex;gap:var(--space-2)">
+              <select id="reg-filter" class="form-input" style="width:auto;padding:var(--space-1) var(--space-3);font-size:var(--text-xs)">
+                <option value="all">All</option>
+                <option value="pending" selected>Pending</option>
+                <option value="approved">Approved</option>
+                <option value="rejected">Rejected</option>
+              </select>
+              <button id="btn-refresh-reg" class="btn small"><i data-feather="refresh-cw" style="width:14px;height:14px"></i></button>
+            </div>
+          </header>
+          <div id="registration-table" class="table-wrap"></div>
+        </section>
+
         <section id="view-users" class="dash-view">
           <header class="view-header"><h2>Users</h2><button id="btn-add-user" class="btn small">+ New User</button></header>
           <div id="user-table" class="table-wrap"></div>

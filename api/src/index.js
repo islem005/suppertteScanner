@@ -14,6 +14,7 @@ import { promotionsRouter } from './routes/promotions.js'
 import { discountsRouter } from './routes/discounts.js'
 import { cfAccessRouter } from './routes/cf-access.js'
 import { manifestRouter } from './routes/manifest.js'
+import { registrationsRouter } from './routes/registrations.js'
 
 const app = new Hono()
 
@@ -65,6 +66,7 @@ app.route('/api/imports', importsRouter)
 app.route('/api/promotions', promotionsRouter)
 app.route('/api/discounts', discountsRouter)
 app.route('/api/manifest', manifestRouter)
+app.route('/api/registrations', registrationsRouter)
 
 app.get('/api/health', (c) => c.json({ ok: true }))
 

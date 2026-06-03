@@ -17,22 +17,69 @@
       <div class="auth-logo"><i data-feather="camera"></i></div>
       <h1>Shelf Scanner</h1>
 
-      <div class="login-header">
-        <p>Sign in to your store dashboard</p>
+      <div class="auth-tabs">
+        <button id="tab-login" class="auth-tab active" data-tab="login">Sign In</button>
+        <button id="tab-register" class="auth-tab" data-tab="register">Create Account</button>
       </div>
 
-      <form id="login-form" class="auth-form active" autocomplete="off">
-        <div class="form-group">
-          <label for="login-email">Email</label>
-          <input type="email" id="login-email" placeholder="you@store.com" required autocomplete="email"><!-- placeholder is example text -->
+      <!-- Login Form -->
+      <div id="form-login" class="auth-form-wrap active">
+        <div class="tab-header">
+          <p>Sign in to your store dashboard</p>
         </div>
-        <div class="form-group">
-          <label for="login-password">Password</label>
-          <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password"><!-- placeholder is example text -->
+        <form id="login-form" class="auth-form" autocomplete="off">
+          <div class="form-group">
+            <label for="login-email">Email</label>
+            <input type="email" id="login-email" placeholder="you@store.com" required autocomplete="email">
+          </div>
+          <div class="form-group">
+            <label for="login-password">Password</label>
+            <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
+          </div>
+          <button type="submit" class="btn primary btn-block">Sign In</button>
+          <div id="login-error" class="error-msg"></div>
+        </form>
+      </div>
+
+      <!-- Registration Form -->
+      <div id="form-register" class="auth-form-wrap">
+        <div class="tab-header">
+          <p>Register your store to get started</p>
         </div>
-        <button type="submit" class="btn primary btn-block">Sign In</button>
-        <div id="login-error" class="error-msg"></div>
-      </form>
+        <form id="register-form" class="auth-form" autocomplete="off">
+          <div class="form-group">
+            <label for="reg-store-name">Store Name</label>
+            <input type="text" id="reg-store-name" placeholder="e.g. Downtown Grocery" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-store-slug">Store URL</label>
+            <div class="slug-input-wrap">
+              <span class="slug-prefix">ivond.com/</span>
+              <input type="text" id="reg-store-slug" placeholder="my-store" required pattern="[a-z0-9]+(-[a-z0-9]+)*">
+            </div>
+            <div id="slug-availability" class="field-hint"></div>
+          </div>
+          <div class="form-group">
+            <label for="reg-name">Your Name</label>
+            <input type="text" id="reg-name" placeholder="e.g. John Doe" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-email">Your Email</label>
+            <input type="email" id="reg-email" placeholder="you@example.com" required>
+          </div>
+          <div class="form-group">
+            <label for="reg-phone">Phone (optional)</label>
+            <input type="tel" id="reg-phone" placeholder="+1 555-0123">
+          </div>
+          <div class="form-group">
+            <label for="reg-message">Message (optional)</label>
+            <textarea id="reg-message" placeholder="Tell us about your store..." rows="3"></textarea>
+          </div>
+          <button type="submit" class="btn primary btn-block">Submit Request</button>
+          <div id="register-success" class="success-msg hidden"></div>
+          <div id="register-error" class="error-msg"></div>
+        </form>
+      </div>
 
       <div class="auth-footer">
         <a href="/">← Back to home</a>

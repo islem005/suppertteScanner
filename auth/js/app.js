@@ -2,6 +2,27 @@
   if (typeof feather !== 'undefined') feather.replace()
   const $ = id => document.getElementById(id)
 
+  // ─── Tab Switching ───
+  const tabs = document.querySelectorAll('.auth-tab')
+  const loginWrap = $('form-login')
+  const registerWrap = $('form-register')
+
+  tabs.forEach(tab => {
+    tab.addEventListener('click', () => {
+      const target = tab.dataset.tab
+      tabs.forEach(t => t.classList.remove('active'))
+      tab.classList.add('active')
+
+      loginWrap.classList.toggle('active', target === 'login')
+      registerWrap.classList.toggle('active', target === 'register')
+
+      // Clear errors
+      $('login-error').textContent = ''
+      $('register-error').textContent = ''
+      $('register-success').classList.add('hidden')
+    })
+  })
+
   // ─── API health check on load ───
   (async function checkApi() {
     try {
@@ -11,12 +32,77 @@
       const banner = document.createElement('div')
       banner.id = 'api-warning'
       banner.style.cssText = 'background:var(--color-danger-muted);color:var(--color-danger);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);font-size:var(--text-sm);text-align:center;margin-bottom:var(--space-4)'
-      banner.textContent = '⚠ API server unreachable — make sure the backend is running on port 3002'
-      $('login-form').parentNode.insertBefore(banner, $('login-form'))
+      banner.textContent = '⚠ API server unreachable — make sure the backend is running'
+      loginWrap.insertBefore(banner, loginWrap.querySelector('form'))
     }
   })()
 
-  // ─── Tab switching (removed — sign-in only) ───
+  // ─── Slug auto-generation + availability ───
+  const storeNameInput = $('reg-store-name')
+  const slugInput = $('reg-store-slug')
+  const slugHint = $('slug-availability')
+
+  let slugCheckTimeout = null
+
+  function slugify(text) {
+    return text.toLowerCase()
+      .replace(/[^a-z0-9\s-]/g, '')
+      .replace(/\s+/g, '-')
+      .replace(/-+/g, '-')
+      .replace(/^-|-$/g, '')
+  }
+
+  storeNameInput.addEventListener('input', () => {
+    if (!slugInput.dataset.manual) {
+      slugInput.value = slugify(storeNameInput.value)
+    }
+    checkSlug()
+  })
+
+  slugInput.addEventListener('input', () => {
+    slugInput.dataset.manual = 'true'
+    checkSlug()
+  })
+
+  async function checkSlug() {
+    clearTimeout(slugCheckTimeout)
+    const slug = slugInput.value.trim()
+    if (!slug || slug.length < 2) {
+      slugHint.textContent = ''
+      slugHint.className = 'field-hint'
+      return
+    }
+
+    // Validate slug format
+    const slugRegex = /^[a-z0-9]+(-[a-z0-9]+)*$/
+    if (!slugRegex.test(slug)) {
+      slugHint.textContent = 'Only lowercase letters, numbers, and hyphens allowed'
+      slugHint.className = 'field-hint error'
+      return
+    }
+
+    slugHint.textContent = 'Checking availability...'
+    slugHint.className = 'field-hint'
+
+    slugCheckTimeout = setTimeout(async () => {
+      try {
+        const res = await fetch(`/api/stores/slug/${encodeURIComponent(slug)}`)
+        if (res.ok) {
+          slugHint.textContent = 'This URL is already taken'
+          slugHint.className = 'field-hint error'
+        } else if (res.status === 404) {
+          slugHint.textContent = '✓ Available!'
+          slugHint.className = 'field-hint success'
+        } else {
+          slugHint.textContent = 'Could not check availability'
+          slugHint.className = 'field-hint error'
+        }
+      } catch {
+        slugHint.textContent = 'Could not check availability'
+        slugHint.className = 'field-hint error'
+      }
+    }, 500)
+  }
 
   // ─── Login ───
   $('login-form').addEventListener('submit', async e => {
@@ -39,16 +125,65 @@
         throw new Error(statusText)
       }
 
-      // Store user for UI state (token is in the cookie, managed by Better Auth)
+      // Store user for UI state
       localStorage.setItem('user', JSON.stringify(data.user || data))
 
-      // Redirect to dashboard
-      window.location.href = '/dashboard/'
+      // Redirect based on role
+      const userData = data.user || data
+      if (userData.role === 'admin') {
+        window.location.href = '/admin/'
+      } else {
+        window.location.href = '/dashboard/'
+      }
     } catch (err) {
       $('login-error').textContent = err.message
       btn.disabled = false; btn.textContent = 'Sign In'
     }
   })
 
-  // ─── Register removed — admin creates users via admin panel ───
+  // ─── Registration ───
+  $('register-form').addEventListener('submit', async e => {
+    e.preventDefault()
+    const btn = $('register-form').querySelector('button[type="submit"]')
+    btn.disabled = true; btn.textContent = 'Submitting...'
+    $('register-error').textContent = ''
+    $('register-success').classList.add('hidden')
+
+    const payload = {
+      store_name: $('reg-store-name').value.trim(),
+      store_slug: $('reg-store-slug').value.trim(),
+      contact_name: $('reg-name').value.trim(),
+      contact_email: $('reg-email').value.trim(),
+      contact_phone: $('reg-phone').value.trim() || null,
+      message: $('reg-message').value.trim() || null
+    }
+
+    try {
+      const res = await fetch('/api/registrations', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      })
+      let data = {}
+      try { data = await res.json() } catch { data = {} }
+
+      if (!res.ok) {
+        throw new Error(data.error || 'Submission failed')
+      }
+
+      // Success — show success message, clear form
+      $('register-form').reset()
+      slugInput.dataset.manual = ''
+      slugHint.textContent = ''
+      slugHint.className = 'field-hint'
+
+      $('register-success').classList.remove('hidden')
+      $('register-success').textContent = 'Your request has been submitted! Our team will review it and get back to you at ' + payload.contact_email
+      btn.textContent = 'Submitted ✓'
+      btn.disabled = false
+    } catch (err) {
+      $('register-error').textContent = err.message
+      btn.disabled = false; btn.textContent = 'Submit Request'
+    }
+  })
 })()

@@ -51,6 +51,11 @@ const API = (() => {
     getMapping: (storeId) => get(`/imports/mapping/${storeId}`),
     saveMapping: (storeId, cm, po) => post(`/imports/mapping/${storeId}`, { column_mapping: cm, parser_options: po }),
     deleteMapping: (storeId) => del(`/imports/mapping/${storeId}`),
+    // Registrations
+    getRegistrations: (status) => get(`/registrations${status ? '?status=' + status : ''}`),
+    getRegistration: (id) => get(`/registrations/${id}`),
+    approveRegistration: (id, data) => post(`/registrations/${id}/approve`, data),
+    rejectRegistration: (id, data) => post(`/registrations/${id}/reject`, data),
     del: (path) => del(path),
 
     // Promotions

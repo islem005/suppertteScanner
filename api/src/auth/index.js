@@ -62,7 +62,9 @@ export function createAuth(env, requestOrigin) {
     },
 
     emailAndPassword: {
-      enabled: true
+      enabled: true,
+      minPasswordLength: 6,
+      maxPasswordLength: 128
     },
 
     user: {

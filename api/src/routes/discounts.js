@@ -1,5 +1,6 @@
 // ─── Discount Item Routes ────────────────────────────────────────────
 // Discounted/sale items for stores.
+// Follows promotions router pattern: specific routes before generic.
 // ────────────────────────────────────────────────────────────────────────
 
 import { Hono } from 'hono'
@@ -7,24 +8,6 @@ import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 
 const router = new Hono()
-
-// ── Public routes (used by scanner app) ──
-
-router.get('/:storeId', async (c) => {
-  const data = await queryAll(c.env.DB,
-    'SELECT * FROM discount_item WHERE store_id = ? AND active = 1 ORDER BY priority',
-    [c.req.param('storeId')]
-  )
-  return c.json(data)
-})
-
-router.get('/featured/:storeId', async (c) => {
-  const data = await queryAll(c.env.DB,
-    'SELECT * FROM discount_item WHERE store_id = ? AND active = 1 AND featured = 1 ORDER BY priority',
-    [c.req.param('storeId')]
-  )
-  return c.json(data)
-})
 
 // ── Admin/dashboard: list all discounts for a store ──
 router.get('/store/:storeId', authenticate, async (c) => {
@@ -42,6 +25,48 @@ router.get('/item/:id', authenticate, async (c) => {
   return c.json(data)
 })
 
+// ── Public routes (used by scanner app) ──
+
+// GET /featured/:storeId — only featured discounts
+router.get('/featured/:storeId', async (c) => {
+  const data = await queryAll(c.env.DB,
+    'SELECT * FROM discount_item WHERE store_id = ? AND active = 1 AND featured = 1 ORDER BY priority',
+    [c.req.param('storeId')]
+  )
+  return c.json(data)
+})
+
+// GET /:storeId — active discounts, with optional query filters
+//   ?featured=1     — only featured items (backward compat with scanner)
+//   ?barcode=XXX    — filter by barcode
+//   ?category=XXX   — filter by category
+// Must be defined LAST among GET routes to avoid swallowing /store/:storeId and /item/:id
+router.get('/:storeId', async (c) => {
+  const storeId = c.req.param('storeId')
+  const { featured, barcode, category } = c.req.query()
+
+  let sql = 'SELECT * FROM discount_item WHERE store_id = ? AND active = 1'
+  const params = [storeId]
+
+  if (featured === '1' || featured === 'true') {
+    sql += ' AND featured = 1'
+  }
+  if (barcode) {
+    sql += ' AND barcode = ?'
+    params.push(barcode)
+  }
+  if (category) {
+    sql += ' AND category = ?'
+    params.push(category)
+  }
+
+  sql += ' ORDER BY priority'
+
+  const data = await queryAll(c.env.DB, sql, params)
+  return c.json(data)
+})
+
+// ── Admin/dashboard: create discount item ──
 router.post('/', authenticate, async (c) => {
   const body = await c.req.json()
 

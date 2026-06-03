@@ -8,11 +8,11 @@
 
 .auth-card {
   width: 100%;
-  max-width: 400px;
+  max-width: 420px;
   background: var(--bg-surface);
   border: 1px solid var(--border-default);
   border-radius: var(--radius-xl);
-  padding: var(--space-10) var(--space-8);
+  padding: var(--space-8) var(--space-6);
   box-shadow: var(--shadow-md);
 }
 
@@ -24,15 +24,51 @@
   font-weight: 700;
   text-align: center;
   letter-spacing: var(--tracking-tight);
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
-.login-header {
+/* ─── Auth Tabs ─── */
+.auth-tabs {
+  display: flex;
+  gap: 0;
+  margin-bottom: var(--space-6);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  overflow: hidden;
+}
+
+.auth-tab {
+  flex: 1;
+  padding: var(--space-2) var(--space-3);
+  border: none;
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: var(--text-sm);
+  font-weight: 600;
+  cursor: pointer;
+  transition: background var(--transition-fast), color var(--transition-fast);
+}
+
+.auth-tab:hover {
+  color: var(--text-secondary);
+  background: var(--bg-hover);
+}
+
+.auth-tab.active {
+  background: var(--color-primary-muted);
+  color: var(--color-primary);
+}
+
+/* ─── Tab Panels ─── */
+.auth-form-wrap { display: none; }
+.auth-form-wrap.active { display: block; }
+
+.tab-header {
   text-align: center;
-  margin-bottom: var(--space-6);
+  margin-bottom: var(--space-5);
 }
 
-.login-header p {
+.tab-header p {
   font-size: var(--text-sm);
   color: var(--text-secondary);
   line-height: var(--leading-normal);
@@ -52,7 +88,8 @@
   margin-bottom: var(--space-1);
 }
 
-.form-group input {
+.form-group input,
+.form-group textarea {
   width: 100%;
   padding: var(--space-3) var(--space-4);
   border: 1px solid var(--border-default);
@@ -63,14 +100,77 @@
   outline: none;
   transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
   box-sizing: border-box;
+  font-family: var(--font-sans);
 }
 
-.form-group input::placeholder { color: var(--text-disabled); }
-.form-group input:focus {
+.form-group textarea {
+  resize: vertical;
+  min-height: 60px;
+}
+
+.form-group input::placeholder,
+.form-group textarea::placeholder { color: var(--text-disabled); }
+.form-group input:focus,
+.form-group textarea:focus {
   border-color: var(--color-primary);
   box-shadow: 0 0 0 3px var(--color-primary-muted);
 }
 
+/* ─── Slug input with prefix ─── */
+.slug-input-wrap {
+  display: flex;
+  align-items: center;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  background: var(--bg-inset);
+  overflow: hidden;
+}
+
+.slug-input-wrap:focus-within {
+  border-color: var(--color-primary);
+  box-shadow: 0 0 0 3px var(--color-primary-muted);
+}
+
+.slug-prefix {
+  padding: var(--space-3) 0 var(--space-3) var(--space-4);
+  font-size: var(--text-sm);
+  color: var(--text-tertiary);
+  white-space: nowrap;
+  font-family: var(--font-mono);
+}
+
+.slug-input-wrap input {
+  border: none !important;
+  box-shadow: none !important;
+  flex: 1;
+  padding-left: var(--space-1);
+}
+
+.slug-input-wrap input:focus {
+  box-shadow: none !important;
+}
+
+.field-hint {
+  font-size: var(--text-xs);
+  color: var(--text-tertiary);
+  margin-top: var(--space-1);
+  min-height: 16px;
+}
+
+.field-hint.success { color: var(--color-success); }
+.field-hint.error { color: var(--color-danger); }
+
+/* ─── Success message ─── */
+.success-msg {
+  color: var(--color-success);
+  font-size: var(--text-sm);
+  margin-top: var(--space-2);
+  text-align: center;
+}
+
+.success-msg.hidden { display: none; }
+
+/* ─── Error ─── */
 .error-msg {
   color: var(--color-danger);
   font-size: var(--text-sm);
@@ -98,10 +198,10 @@
 /* Mobile */
 @media (max-width: 480px) {
   .auth-card {
-    padding: var(--space-8) var(--space-5);
+    padding: var(--space-6) var(--space-4);
     box-shadow: none;
     border: none;
   }
 
-  #app { align-items: flex-start; padding-top: var(--space-10); }
+  #app { align-items: flex-start; padding-top: var(--space-8); }
 }

@@ -3,14 +3,15 @@
   let user = null, stores = []
 
   const navItems = [
-    { id: 'overview',    icon: 'bar-chart-2', label: 'Overview' },
-    { id: 'stores',      icon: 'home', label: 'Stores' },
-    { id: 'users',       icon: 'users', label: 'Users' },
-    { id: 'promotions',  icon: 'gift', label: 'Promotions' },
-    { id: 'discounts',   icon: 'tag', label: 'Discounts' },
-    { id: 'branding',    icon: 'droplet', label: 'Branding' },
-    { id: 'activity',    icon: 'clock', label: 'Activity' },
-    { id: 'profile',     icon: 'user', label: 'Profile' },
+    { id: 'overview',      icon: 'bar-chart-2', label: 'Overview' },
+    { id: 'stores',        icon: 'home', label: 'Stores' },
+    { id: 'registrations', icon: 'user-plus', label: 'Registrations' },
+    { id: 'users',         icon: 'users', label: 'Users' },
+    { id: 'promotions',    icon: 'gift', label: 'Promotions' },
+    { id: 'discounts',     icon: 'tag', label: 'Discounts' },
+    { id: 'branding',      icon: 'droplet', label: 'Branding' },
+    { id: 'activity',      icon: 'clock', label: 'Activity' },
+    { id: 'profile',       icon: 'user', label: 'Profile' },
   ]
 
   const $ = (id)     => { const e = document.getElementById(id); if (!e) console.warn('Missing #'+id); return e }
@@ -99,6 +100,7 @@
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === id))
     if (id === 'overview') loadAdminOverview()
     else if (id === 'stores') loadStores()
+    else if (id === 'registrations') loadRegistrations()
     else if (id === 'users') loadUsers()
     else if (id === 'branding') loadBranding()
     else if (id === 'promotions') loadPromotions()
@@ -158,6 +160,116 @@
     let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Products</th><th>Scans</th><th>Users</th></tr></thead><tbody>'
     for (const st of s.storeStats) html += `<tr><td><strong>${esc(st.name)}</strong></td><td><span class="meta">/${esc(st.slug)}</span></td><td>${st.products}</td><td>${st.scans}</td><td>${st.users}</td></tr>`
     $('ov-store-table').innerHTML = html + '</tbody></table>'
+  }
+
+  // ─── Registrations ───
+  async function loadRegistrations() {
+    const status = $('reg-filter').value === 'all' ? '' : $('reg-filter').value
+    try {
+      const regs = await API.getRegistrations(status)
+      const table = $('registration-table')
+      if (regs.length === 0) {
+        table.innerHTML = '<div class="empty-state">No registration requests.</div>'
+        return
+      }
+      let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Contact</th><th>Email</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>'
+      for (const r of regs) {
+        const statusClass = r.status === 'approved' ? 'tag success' : r.status === 'rejected' ? 'tag danger' : 'tag'
+        html += `<tr>
+          <td><strong>${esc(r.store_name)}</strong></td>
+          <td><span class="meta">/${esc(r.store_slug)}</span></td>
+          <td>${esc(r.contact_name)}</td>
+          <td class="meta">${esc(r.contact_email)}</td>
+          <td class="meta">${new Date(r.created_at).toLocaleDateString()}</td>
+          <td><span class="${statusClass}">${r.status}</span></td>
+          <td class="actions-cell" style="display:flex;gap:4px">
+            <button class="btn small" onclick="viewRegistration('${r.id}')">View</button>
+            ${r.status === 'pending' ? `
+              <button class="btn small" onclick="approveRegistration('${r.id}')">Approve</button>
+              <button class="btn small danger" onclick="rejectRegistration('${r.id}')">Reject</button>
+            ` : ''}
+          </td>
+        </tr>`
+      }
+      table.innerHTML = html + '</tbody></table>'
+      if (typeof feather !== 'undefined') feather.replace()
+    } catch (err) {
+      $('registration-table').innerHTML = '<div class="empty-state">Could not load registrations: ' + esc(err.message) + '</div>'
+    }
+  }
+
+  // ─── Filter change ───
+  $('reg-filter').addEventListener('change', loadRegistrations)
+  $('btn-refresh-reg').addEventListener('click', loadRegistrations)
+
+  // ─── View Registration Detail ───
+  window.viewRegistration = async (id) => {
+    try {
+      const reg = await API.getRegistration(id)
+      const statusColor = reg.status === 'approved' ? '#00c875' : reg.status === 'rejected' ? '#ff4444' : '#ffc107'
+      showModal('Registration Details', `
+        <div class="reg-detail-grid" style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-3);font-size:var(--text-sm)">
+          <div><span class="meta">Store Name</span><br><strong>${esc(reg.store_name)}</strong></div>
+          <div><span class="meta">Store URL</span><br><strong>/${esc(reg.store_slug)}</strong></div>
+          <div><span class="meta">Contact Name</span><br><strong>${esc(reg.contact_name)}</strong></div>
+          <div><span class="meta">Contact Email</span><br><strong>${esc(reg.contact_email)}</strong></div>
+          ${reg.contact_phone ? `<div><span class="meta">Phone</span><br><strong>${esc(reg.contact_phone)}</strong></div>` : ''}
+          <div><span class="meta">Status</span><br><strong style="color:${statusColor}">${reg.status}</strong></div>
+          <div><span class="meta">Submitted</span><br><strong>${new Date(reg.created_at).toLocaleString()}</strong></div>
+          ${reg.admin_notes ? `<div style="grid-column:1/-1"><span class="meta">Admin Notes</span><br><strong>${esc(reg.admin_notes)}</strong></div>` : ''}
+        </div>
+        ${reg.message ? `<div style="margin-top:var(--space-3);padding:var(--space-3);background:var(--bg-inset);border-radius:var(--radius-md);font-size:var(--text-sm)"><span class="meta">Message from applicant:</span><br>${esc(reg.message)}</div>` : ''}
+      `, null)
+      $('modal-confirm').style.display = 'none'
+    } catch (err) { showToast('Error: ' + err.message) }
+  }
+
+  // ─── Approve Registration ───
+  window.approveRegistration = async (id) => {
+    showModal('Approve Registration', `
+      <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--space-4)">
+        This will create a new store and a manager account. The applicant will receive a generated password.
+      </p>
+      <div class="form-row">
+        <label for="mod-approve-pass">Custom Password (optional — leave blank for auto-generated)</label>
+        <input type="text" id="mod-approve-pass" class="form-input" placeholder="Leave blank for auto-generated">
+      </div>
+      <div class="form-row">
+        <label for="mod-approve-notes">Admin Notes (optional)</label>
+        <textarea id="mod-approve-notes" class="form-input" rows="2" placeholder="Any notes about this approval"></textarea>
+      </div>
+    `, async () => {
+      const password = $('mod-approve-pass').value.trim() || null
+      const admin_notes = $('mod-approve-notes').value.trim() || null
+      try {
+        const result = await API.approveRegistration(id, { password, admin_notes })
+        closeModal()
+        loadRegistrations()
+        // Show success with credentials
+        showToast('Store & manager created! Password: ' + result.user.password)
+      } catch (err) { showToast('Error: ' + err.message) }
+    })
+  }
+
+  // ─── Reject Registration ───
+  window.rejectRegistration = async (id) => {
+    showModal('Reject Registration', `
+      <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--space-4)">
+        This will mark the registration as rejected. The applicant will not be able to proceed.
+      </p>
+      <div class="form-row">
+        <label for="mod-reject-notes">Reason / Notes (optional)</label>
+        <textarea id="mod-reject-notes" class="form-input" rows="2" placeholder="Why was this rejected?"></textarea>
+      </div>
+    `, async () => {
+      const admin_notes = $('mod-reject-notes').value.trim() || null
+      try {
+        await API.rejectRegistration(id, { admin_notes })
+        closeModal()
+        loadRegistrations()
+        showToast('Registration rejected.')
+      } catch (err) { showToast('Error: ' + err.message) }
+    }, true)
   }
 
   async function loadStores() {
@@ -552,9 +664,16 @@
         <select id="mod-user-role"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
       </div>
     `, async () => {
+      const email = $('mod-user-email').value
+      const password = $('mod-user-pass').value
+      const displayName = $('mod-user-name').value
+      if (!email || !password || !displayName) {
+        showToast('Email, password, and display name are required')
+        return
+      }
       await API.createUser({
-        email: $('mod-user-email').value, password: $('mod-user-pass').value,
-        displayName: $('mod-user-name').value, storeId: $('mod-user-store').value || null,
+        email, password,
+        displayName, storeId: $('mod-user-store').value || null,
         role: $('mod-user-role').value
       })
       closeModal(); loadUsers()

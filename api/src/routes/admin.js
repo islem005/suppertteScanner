@@ -59,15 +59,21 @@ router.post('/users', async (c) => {
   // Use Better Auth to create user (role is input:false, set separately)
   const auth = createAuth(c.env)
 
-  const result = await auth.api.signUpEmail({
-    body: {
-      email,
-      password,
-      name: displayName,
-      display_name: displayName,
-      store_id: storeId || null
-    }
-  })
+  let result
+  try {
+    result = await auth.api.signUpEmail({
+      body: {
+        email,
+        password,
+        name: displayName,
+        display_name: displayName,
+        store_id: storeId || null
+      }
+    })
+  } catch (err) {
+    // Better Auth may reject passwords that are too short (default min 8 chars)
+    return c.json({ error: err.message || 'Password validation failed' }, 400)
+  }
 
   // Set role directly in DB (can't set via signUpEmail due to input: false)
   if (role && role !== 'staff') {
