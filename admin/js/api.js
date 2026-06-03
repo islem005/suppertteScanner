@@ -16,6 +16,19 @@ const API = (() => {
   function put(path, body) { return req('PUT', path, body) }
   function del(path) { return req('DELETE', path) }
 
+  /**
+   * Convert a data URL to a File object suitable for multipart upload.
+   */
+  function dataUrlToFile(dataUrl, filename) {
+    const [meta, b64] = dataUrl.split(',', 2)
+    const mime = meta.match(/:(.*?);/)?.[1] || 'image/png'
+    const byteStr = atob(b64)
+    const ab = new ArrayBuffer(byteStr.length)
+    const ia = new Uint8Array(ab)
+    for (let i = 0; i < byteStr.length; i++) ia[i] = byteStr.charCodeAt(i)
+    return new File([ab], filename, { type: mime })
+  }
+
   return {
     login: (email, password) => post('/auth/sign-in/email', { email, password }),
     register: (fields) => post('/auth/setup', fields),
@@ -72,6 +85,37 @@ const API = (() => {
     getDiscount: (id) => get(`/discounts/item/${id}`),
     createDiscount: (data) => post('/discounts', data),
     updateDiscount: (id, data) => put(`/discounts/${id}`, data),
-    deleteDiscount: (id) => del(`/discounts/${id}`)
+    deleteDiscount: (id) => del(`/discounts/${id}`),
+
+    // File upload to R2
+    /**
+     * Upload a data URL (cropped image) to R2 storage.
+     * @param {string} dataUrl — cropped image as data:image/...;base64,...
+     * @param {string} storeId — store UUID
+     * @param {string} type — 'promotion', 'discount', 'banner'
+     * @param {string} [refId] — optional reference ID
+     * @returns {Promise<{url:string,key:string,filename:string,size:number,contentType:string}>}
+     */
+    uploadImage: async (dataUrl, storeId, type, refId) => {
+      const mime = dataUrl.match(/:(.*?);/)?.[1] || 'image/png'
+      const ext = mime.split('/')[1] || 'png'
+      const filename = `${type}-${Date.now()}.${ext}`
+      const file = dataUrlToFile(dataUrl, filename)
+
+      const formData = new FormData()
+      formData.append('file', file)
+      formData.append('store_id', storeId)
+      formData.append('type', type === 'banner' ? 'promotion' : type)
+      if (refId) formData.append('ref_id', refId)
+
+      const res = await fetch(`${BASE}/upload`, {
+        method: 'POST',
+        credentials: 'include',
+        body: formData
+      })
+      const data = await res.json()
+      if (!res.ok) throw new Error(data.error || 'Upload failed')
+      return data
+    }
   }
 })()

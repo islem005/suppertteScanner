@@ -1005,6 +1005,7 @@
   function openBannerModal(storeId, banner) {
     const isNew = !banner
     const title = isNew ? 'New Banner' : 'Edit Banner'
+    const existingImage = banner ? (banner.image_url || banner.image_data || '') : ''
     const body = `
       <div class="form-row">
         <label>Title (fallback if no image)</label>
@@ -1014,9 +1015,9 @@
         <label>Banner Image (GIF supported)</label>
         <div class="logo-picker">
           <input type="file" id="banner-modal-image-input" accept="image/png,image/jpeg,image/webp,image/gif">
-          <input type="hidden" id="banner-modal-image" value="${isNew ? '' : esc(banner.image_data || '')}">
-          <img id="banner-modal-image-preview" class="logo-preview ${isNew || !banner.image_data ? 'hidden' : ''}" src="${isNew ? '' : esc(banner.image_data || '')}">
-          <button id="banner-modal-image-remove" class="btn small ${isNew || !banner.image_data ? 'hidden' : ''}" type="button">Remove</button>
+          <input type="hidden" id="banner-modal-image" value="${isNew ? '' : esc(existingImage)}">
+          <img id="banner-modal-image-preview" class="logo-preview ${isNew || !existingImage ? 'hidden' : ''}" src="${isNew ? '' : esc(existingImage)}">
+          <button id="banner-modal-image-remove" class="btn small ${isNew || !existingImage ? 'hidden' : ''}" type="button">Remove</button>
         </div>
       </div>
       <div class="form-row" style="display:flex;gap:var(--space-3);align-items:center">
@@ -1026,9 +1027,17 @@
 
     showModal(title, body, async () => {
       const _title = $('banner-modal-title').value || null
-      const _image = $('banner-modal-image').value || null
+      const _image = $('banner-modal-image').value
       const _active = $('banner-modal-active').checked
-      const data = { store_id: storeId, type: 'banner', title: _title, image_data: _image, active: _active }
+      const isDataUrl = _image && _image.startsWith('data:')
+      const data = { store_id: storeId, type: 'banner', title: _title, active: _active }
+      if (isDataUrl) {
+        data.image_data = _image
+        data.image_url = null
+      } else {
+        data.image_url = _image || null
+        data.image_data = null
+      }
       try {
         if (isNew) await API.createPromotion(data)
         else await API.updatePromotion(banner.id, data)
@@ -1038,7 +1047,7 @@
       } catch (err) { showToast('Error: ' + err.message) }
     }, false)
 
-    // Wire up image crop
+    // Wire up image crop — upload to R2
     const imgInput = $('banner-modal-image-input')
     const imgHidden = $('banner-modal-image')
     const imgPreview = $('banner-modal-image-preview')
@@ -1049,11 +1058,17 @@
       reader.onload = async ev => {
         try {
           const cropped = await window.cropImage(ev.target.result, 800/300, 800, 300)
-          imgHidden.value = cropped
-          imgPreview.src = cropped
+          const result = await API.uploadImage(cropped, storeId, 'promotion')
+          imgHidden.value = result.url
+          imgPreview.src = result.url
           imgPreview.classList.remove('hidden')
           imgRemove.classList.remove('hidden')
-        } catch (e) { if (e.message !== 'cancelled') console.warn('Crop failed:', e) }
+        } catch (e) {
+          if (e.message !== 'cancelled') {
+            console.warn('Upload failed:', e)
+            showToast('Image upload failed: ' + e.message)
+          }
+        }
       }
       reader.readAsDataURL(file)
     })
