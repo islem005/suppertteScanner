@@ -76,11 +76,11 @@ router.post('/', authenticate, async (c) => {
 
   const id = uuid()
   await execute(c.env.DB,
-    `INSERT INTO discount_item (id, store_id, barcode, name, image_data, category,
+    `INSERT INTO discount_item (id, store_id, barcode, name, image_data, image_url, category,
      original_price, new_price, discount_percent, featured, active, priority)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, body.store_id, body.barcode || null, body.name, body.image_data || null,
-     body.category || null, body.original_price || 0, body.new_price || 0,
+     body.image_url || null, body.category || null, body.original_price || 0, body.new_price || 0,
      body.discount_percent || null, body.featured || 0,
      body.active !== undefined ? body.active : 1, body.priority || 0]
   )
@@ -94,7 +94,7 @@ router.put('/:id', authenticate, async (c) => {
   const body = await c.req.json()
   const id = c.req.param('id')
 
-  const allowed = ['store_id', 'barcode', 'name', 'image_data', 'category',
+  const allowed = ['store_id', 'barcode', 'name', 'image_data', 'image_url', 'category',
     'original_price', 'new_price', 'discount_percent', 'featured', 'active', 'priority']
   const sets = []
   const vals = []

@@ -54,10 +54,10 @@ router.post('/', authenticate, async (c) => {
 
   const id = uuid()
   await execute(c.env.DB,
-    `INSERT INTO promotion (id, store_id, type, title, image_data, trigger_type, trigger_value, active, priority)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+    `INSERT INTO promotion (id, store_id, type, title, image_data, image_url, trigger_type, trigger_value, active, priority)
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     [id, body.store_id, body.type, body.title || '', body.image_data || null,
-     body.trigger_type || null, body.trigger_value || null,
+     body.image_url || null, body.trigger_type || null, body.trigger_value || null,
      body.active !== undefined ? body.active : 1, body.priority || 0]
   )
 
@@ -70,7 +70,7 @@ router.put('/:id', authenticate, async (c) => {
   const body = await c.req.json()
   const id = c.req.param('id')
 
-  const allowed = ['store_id', 'type', 'title', 'image_data', 'trigger_type', 'trigger_value', 'active', 'priority']
+  const allowed = ['store_id', 'type', 'title', 'image_data', 'image_url', 'trigger_type', 'trigger_value', 'active', 'priority']
   const sets = []
   const vals = []
   for (const key of allowed) {

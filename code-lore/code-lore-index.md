@@ -18,11 +18,14 @@ Permanent project memory for Shelf Scanner. This index maps every lore file to i
 | **Patterns** | `patterns/dashboard-patterns.md` | Dashboard SPA structure, all 7 views, upload flow, API client, i18n system |
 | **Patterns** | `patterns/admin-patterns.md` | Admin panel SPA structure, all 8 views, store detail, mapping editor, role enforcement |
 | **Patterns** | `patterns/auth-flow.md` | Login page flow, session persistence, dashboard/admin auth, sign out, localStorage keys |
+| **Patterns** | `patterns/defensive-js.md` | Defensive `$` helper, Feather icons init, IIFE wrapper, null guards on top-level handlers |
 | **Patterns** | `patterns/tool-preferences.md` | MCP-first tool usage rule |
 | **Security** | `security/protocols.md` | Better Auth, middleware chain, role enforcement, Cloudflare Access |
 | **Infrastructure** | `infrastructure/cloudflare-setup.md` | Pages, Worker, D1, R2 resources, deployment flow, CI/CD, dynamic CORS, cross-subdomain auth, auto-subdomain registration, known issues |
 | **Infrastructure** | `infrastructure/pwa-setup.md` | Service Worker cache-first strategy, web manifest, PWA registration flow |
+| **Infrastructure** | `infrastructure/r2-file-storage.md` | R2 bucket, upload/serve endpoints, cache strategy, path convention, frontend upload helpers, migration, display priority |
 | **Infrastructure** | `infrastructure/build-tooling.md` | Vite MPA build config, SSL, proxy, entry points, asset copy |
+| **Infrastructure** | `infrastructure/cloudflare-mcp-setup.md` | Cloudflare API MCP server config (OpenCode global config, OAuth auth, URL, coverage) |
 | **Project Mgmt** | `project-management/thread-handoff-protocol.md` | Session end/archive workflow |
 | **Project Mgmt** | `project-management/code-lore-management.md` | How to add to lore, flag patterns |
 

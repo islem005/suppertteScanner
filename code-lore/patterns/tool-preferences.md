@@ -9,40 +9,42 @@ MCP servers provide structured, safe access to infrastructure APIs. Prefer them 
 ## Available MCP Servers
 
 | Server | What it's for | Prefer over |
-|---|---|---|
-| **cloudflare-bindings** | Workers, D1, R2, KV, DO, Queues, AI, Pages, DNS, Zones, Routing, Cron, Secrets, Bindings, Workflows | `wrangler`, `curl`, Cloudflare dashboard |
-| **cloudflare-observability** | Logs, analytics, debugging | `wrangler tail`, Cloudflare dashboard |
-| **cloudflare-docs** | Query Cloudflare documentation | Web search, docs.cloudflare.com |
+|---|---|---|---|
+| **cloudflare-api** | Everything Cloudflare (Workers, D1, R2, KV, DO, Queues, AI, Pages, DNS, Zones, Secrets, etc.) | `wrangler`, `curl`, Cloudflare dashboard |
 | **Git** | Commits, branches, status, diffs, logs | `git` CLI (for read operations) |
 
 ---
 
 ## Cloudflare MCP Server
 
-Configured in `opencode.jsonc` using `mcp-remote` to proxy Cloudflare's remote MCP servers:
+### Current Setup (Official Cloudflare API MCP)
+
+Cloudflare now provides a single official MCP endpoint that covers all Cloudflare API operations. This is configured in OpenCode's **global** config at `C:\Users\pc1\.config\opencode\opencode.jsonc`:
 
 ```jsonc
 {
-  "mcp_servers": {
-    "cloudflare-bindings": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://bindings.mcp.cloudflare.com/mcp"]
-    },
-    "cloudflare-observability": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://observability.mcp.cloudflare.com/mcp"]
-    },
-    "cloudflare-docs": {
-      "command": "npx",
-      "args": ["mcp-remote", "https://docs.mcp.cloudflare.com/mcp"]
+  "$schema": "https://opencode.ai/config.json",
+  "mcp": {
+    "cloudflare-api": {
+      "type": "remote",
+      "url": "https://mcp.cloudflare.com/mcp",
+      "enabled": true
     }
   }
 }
 ```
 
-These are **remote MCP servers** hosted by Cloudflare. On first use, they trigger an OAuth flow in the browser (via `wrangler login` session). The token is cached locally for subsequent sessions.
+This uses **OAuth-based authentication** (browser flow on first use, no manual token needed).
 
-Tools available via `cloudflare-bindings` (covers Workers, D1, KV, R2, DO, Queues, AI, Pages, DNS, Zones, Routing, Cron, Secrets, Bindings, Workflows).
+For full details on the setup, see `code-lore/infrastructure/cloudflare-mcp-setup.md`.
+
+### Legacy Setup (superseded)
+
+The older approach used `mcp-remote` to proxy three separate Cloudflare MCP servers. This has been replaced by the single official endpoint above:
+
+- `cloudflare-bindings` (Workers, D1, KV, R2, DO, Queues, AI, Pages, DNS, Zones, Routing, Cron, Secrets, Bindings, Workflows)
+- `cloudflare-observability` (Logs, analytics, debugging)
+- `cloudflare-docs` (Query Cloudflare documentation)
 
 ---
 

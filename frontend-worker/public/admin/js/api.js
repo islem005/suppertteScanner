@@ -5,7 +5,7 @@ const API = (() => {
     const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' }
     if (body) opts.body = JSON.stringify(body)
     const res = await fetch(`${BASE}${path}`, opts)
-    if (res.status === 401) { localStorage.removeItem('user'); window.location.href = '/auth/' }
+    if (res.status === 401) { localStorage.removeItem('user'); window.location.href = '/admin/' }
     const data = await res.json()
     if (!res.ok) throw new Error(data.error || 'Request failed')
     return data
@@ -18,9 +18,6 @@ const API = (() => {
 
   /**
    * Convert a data URL to a File object suitable for multipart upload.
-   * @param {string} dataUrl — e.g. "data:image/webp;base64,UklGR..."
-   * @param {string} filename — desired filename
-   * @returns {File}
    */
   function dataUrlToFile(dataUrl, filename) {
     const [meta, b64] = dataUrl.split(',', 2)
@@ -33,29 +30,18 @@ const API = (() => {
   }
 
   return {
-    // Auth
     login: (email, password) => post('/auth/sign-in/email', { email, password }),
     register: (fields) => post('/auth/setup', fields),
-
-    // Stores
     getStores: () => get('/stores'),
     createStore: (name, slug) => post('/stores', { name, slug }),
     getStore: (id) => get(`/stores/${id}`),
     getStoreBySlug: (slug) => get(`/stores/slug/${slug}`),
-
-    // Products
     getProducts: (storeId) => get(`/products?store_id=${storeId}`),
     uploadCsv: (csv, storeId) => post('/products/upload', { csv }),
     deleteProduct: (id) => del(`/products/${id}`),
-
-    // Scans
     getScanStats: (storeId) => get(`/scans/stats?store_id=${storeId}`),
-
-    // Branding
     getBranding: (storeId) => get(`/branding/${storeId}`),
     updateBranding: (storeId, data) => put(`/branding/${storeId}`, data),
-
-    // Admin only
     getAdminStats: () => get('/admin/stats'),
     getAdminUsers: () => get('/admin/users'),
     createUser: (fields) => post('/admin/users', fields),
@@ -64,12 +50,26 @@ const API = (() => {
 
     // Imports
     uploadImport: (content, filename) => post('/imports/upload', { content, filename }),
+    getPendingImports: () => get('/imports/pending'),
     getStoreImports: (storeId) => get(`/imports/store/${storeId}`),
     getImport: (id) => get(`/imports/${id}`),
     getImportPreview: (id) => get(`/imports/${id}/preview`),
     previewMappedImport: (id) => post(`/imports/${id}/preview-mapped`),
     confirmImport: (id) => post(`/imports/${id}/confirm`),
+    mapImport: (id, cm, po) => post(`/imports/${id}/map`, { column_mapping: cm, parser_options: po }),
+    remapImport: (id, cm, po) => post(`/imports/${id}/re-map`, { column_mapping: cm, parser_options: po }),
+    testImport: (id, cm) => post(`/imports/${id}/test`, { column_mapping: cm }),
+    verifyImport: (id) => post(`/imports/${id}/verify`),
+    rejectImport: (id) => post(`/imports/${id}/reject`),
     getMapping: (storeId) => get(`/imports/mapping/${storeId}`),
+    saveMapping: (storeId, cm, po) => post(`/imports/mapping/${storeId}`, { column_mapping: cm, parser_options: po }),
+    deleteMapping: (storeId) => del(`/imports/mapping/${storeId}`),
+    // Registrations
+    getRegistrations: (status) => get(`/registrations${status ? '?status=' + status : ''}`),
+    getRegistration: (id) => get(`/registrations/${id}`),
+    approveRegistration: (id, data) => post(`/registrations/${id}/approve`, data),
+    rejectRegistration: (id, data) => post(`/registrations/${id}/reject`, data),
+    del: (path) => del(path),
 
     // Promotions
     getStorePromotions: (storeId) => get(`/promotions/store/${storeId}`),
@@ -78,6 +78,7 @@ const API = (() => {
     updatePromotion: (id, data) => put(`/promotions/${id}`, data),
     deletePromotion: (id) => del(`/promotions/${id}`),
     getBanner: (storeId) => get(`/promotions/banners/${storeId}`),
+    getOffers: (storeId) => get(`/promotions/offers/${storeId}`),
 
     // Discounts
     getDiscounts: (storeId) => get(`/discounts/store/${storeId}`),
@@ -96,7 +97,6 @@ const API = (() => {
      * @returns {Promise<{url:string,key:string,filename:string,size:number,contentType:string}>}
      */
     uploadImage: async (dataUrl, storeId, type, refId) => {
-      // Derive MIME and extension from data URL
       const mime = dataUrl.match(/:(.*?);/)?.[1] || 'image/png'
       const ext = mime.split('/')[1] || 'png'
       const filename = `${type}-${Date.now()}.${ext}`

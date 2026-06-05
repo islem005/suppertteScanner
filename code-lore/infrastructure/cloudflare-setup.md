@@ -51,10 +51,8 @@ The Hono Workers API runs as `scanner-api`. Configured in two wrangler configs:
 | `CATALOGS` | `store-catalogs` | R2 Bucket |
 | `BETTER_AUTH_URL` | `https://ivond.com` | Environment variable (production) |
 
-**Secrets to set:**
-```bash
-wrangler secret put BETTER_AUTH_SECRET    # Required for production
-```
+**Secrets (set):**
+- `BETTER_AUTH_SECRET` ✅ — Set 2026-06-04 for production Worker `scanner-api`
 
 **Worker Route:** `ivond.com/api/*` and `*.ivond.com/api/*` → `scanner-api`
 
@@ -100,26 +98,24 @@ The `Permissions-Policy: camera=(self)` on `scanner.html` is required for `Barco
 
 | Name | UUID | Purpose |
 |---|---|---|
+| `shelf-scanner-db` | `a6547253-cfd8-47cb-9bd0-ca61db1b6d61` | Production database |
 | `shelf-scanner-db-dev` | `be60b33e-892f-4dde-8b54-f097e53f552e` | Development database |
 | `admin-auth` | `74e5cbce-56ee-4c85-b492-9baa3e8a0097` | Cloudflare Access admin auth |
-| `shelf-scanner-db` | *needs to be found* | Production database |
 
-**⚠️ Known issue:** `api/wrangler.prod.toml` currently has `database_id = "74e5cbce-..."` which points to `admin-auth`, NOT `shelf-scanner-db`. Find the correct UUID for `shelf-scanner-db` via `wrangler d1 list` before deploying.
-
-**Migration file:** `api/migrations/001_init.sql` — contains full DDL for all 15 tables.
+**Migration files:**
+- `api/migrations/001_init.sql` — Base schema (Better Auth + app tables)
+- `api/migrations/002_store_registrations.sql` — Store registration requests table
 
 **Apply migrations:**
 ```bash
-# Remote dev
-wrangler d1 execute shelf-scanner-db-dev --remote --file=migrations/001_init.sql
-# Production (after fixing DB ID)
 wrangler d1 execute shelf-scanner-db --remote --file=migrations/001_init.sql
+wrangler d1 execute shelf-scanner-db --remote --file=migrations/002_store_registrations.sql
 ```
 
-**D1 tables (15 total):**
+**D1 tables (17 total):**
 - Better Auth core: `user`, `session`, `account`, `verification`
 - Organization plugin: `organization`, `member`, `invitation`
-- App tables: `product`, `scan_event`, `store_branding`, `promotion`, `discount_item`, `import_mapping`, `pending_import`
+- App tables: `product`, `scan_event`, `store_branding`, `promotion`, `discount_item`, `import_mapping`, `pending_import`, `store_registration`
 - Internal: `_cf_KV`
 
 ---
@@ -198,6 +194,44 @@ Previously, store subdomains hit a 308 redirect loop because `env.ASSETS.fetch('
 
 ## Known Issues
 
-1. **`wrangler.prod.toml` database ID is wrong** — it currently points to `admin-auth` (74e5cbce...) instead of the correct production database ID. Must be fixed before production deployment.
-2. **`BETTER_AUTH_SECRET`** is not yet set in Cloudflare secrets.
-3. **Remote D1 migrations** need to be applied before the Worker will function in production.
+### Content-Type for static JS files
+
+When deploying to Cloudflare Pages, JS files **must** be served with `Content-Type: application/javascript`. A stale or partial deploy can cause JS URLs to return HTML (e.g., the homepage or a 404 page) instead of JS, which silently breaks the app.
+
+**Symptoms:**
+- Login button does nothing
+- Dashboard sidebar loads but no event handlers fire
+- Browser console shows no JS errors but `<script>` tags are ignored (because the response body is HTML, not valid JS)
+
+**Verification after deploy:**
+```bash
+curl -I https://ivond.com/auth/js/app.js
+# Look for: content-type: application/javascript
+```
+
+**Prevention:**
+- Always run a full `npm run build` before `wrangler pages deploy dist/`
+- If a previous deploy was partial or interrupted, re-run the full build + deploy
+- Verify the build output contains the JS files in the expected paths (`dist/auth/js/app.js`, etc.) before deploying
+
+### Stale HTML/JS Mismatch
+
+Production deployments can ship new JS that expects DOM elements (e.g., tabs, registration form fields) that aren't yet in the deployed HTML. This causes the JS to crash at `null.addEventListener()` before event handlers register, resulting in silent failure.
+
+**Mitigation:** All frontend JS uses a defensive `$` helper that returns `null` for missing elements and logs a warning instead of crashing. See `patterns/defensive-js.md` for the pattern.
+
+**Symptoms:**
+- Form submit does nothing
+- Buttons appear but don't respond
+- Console shows `Cannot read properties of null (reading 'addEventListener')`
+
+**Fix:** Re-run `npm run build` to regenerate `dist/` with matching HTML and JS, then redeploy.
+
+---
+
+## Resolved Issues
+
+1. ✅ ~~`wrangler.prod.toml` database ID was wrong~~ — Fixed, now correctly points to `shelf-scanner-db` (a6547253-...)
+2. ✅ ~~`BETTER_AUTH_SECRET` not set~~ — Set via `wrangler secret put` on 2026-06-04
+3. ✅ ~~Remote D1 migrations not applied~~ — Both migrations (001 + 002) applied to production DB on 2026-06-04
+4. ✅ ~~Auth login crash from stale HTML/JS mismatch~~ — Fixed 2026-06-04 by defensive `$` helper + null guards on top-level handlers

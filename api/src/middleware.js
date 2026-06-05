@@ -11,7 +11,7 @@
 export async function loadSession(c, next) {
   // Use Hono's header() method for reliable cookie access
   const cookie = c.req.header('cookie') || c.req.header('Cookie') || ''
-  const match = cookie.match(/better-auth\.session_token=([^;]+)/)
+  const match = cookie.match(/(?:__Secure-)?better-auth\.session_token=([^;]+)/)
   let token = null
   if (match) {
     const raw = decodeURIComponent(match[1])
