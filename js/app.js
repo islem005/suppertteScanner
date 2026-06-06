@@ -324,24 +324,28 @@
 
   idleCheckInterval = setInterval(checkIdle, 10000);
 
-  btnInstall.addEventListener('click', async () => {
-    if (!deferredPrompt) {
-      const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-      if (isIos) {
-        showToast('Tap Share → Add to Home Screen');
-      } else if (window.matchMedia('(display-mode: standalone)').matches) {
-        showToast('Already installed');
-      } else {
-        showToast('Visit a few times, then install will be ready');
+  if (btnInstall) {
+    btnInstall.addEventListener('click', async () => {
+      if (!deferredPrompt) {
+        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        if (isIos) {
+          showToast('Tap Share → Add to Home Screen');
+        } else if (window.matchMedia('(display-mode: standalone)').matches) {
+          showToast('Already installed');
+        } else {
+          showToast('Visit a few times, then install will be ready');
+        }
+        return;
       }
-      return;
-    }
-    deferredPrompt.prompt();
-    const result = await deferredPrompt.userChoice;
-    if (result.outcome === 'accepted') {
-      deferredPrompt = null;
-    }
-  });
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      if (result.outcome === 'accepted') {
+        deferredPrompt = null;
+      }
+    });
+  } else {
+    console.warn('Missing #btn-install — install button not rendered');
+  }
 
   window.addEventListener('unhandledrejection', e => {
     console.warn('Unhandled:', e.reason);

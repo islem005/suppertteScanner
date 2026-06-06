@@ -295,7 +295,7 @@
         <div class="stat-card"><span class="num">${products.length}</span><span class="label">Products</span></div>
       `
       const topHtml = (s.topProducts || []).map(p => `<div class="activity-item"><span class="act-barcode">${esc(p.barcode)}</span><span class="meta">${p.count} scans</span></div>`).join('')
-      $('ov-store-table').innerHTML = `<header class="view-header" style="margin-top:16px"><h3 style="font-size:16px">Top Scanned Products</h3><a href="/${esc(store.slug)}" target="_blank" class="btn small">Public Link ↗</a></header>` +
+      $('ov-store-table').innerHTML = `<header class="view-header" style="margin-top:16px"><h3 style="font-size:16px">Top Scanned Products</h3><a href="https://${esc(store.slug)}.ivond.com" target="_blank" class="btn small">Public Link ↗</a></header>` +
         (topHtml || '<div class="empty-state">No scans yet</div>')
     } catch { $('ov-cards').innerHTML = '<div class="empty-state">Could not load overview.</div>' }
   }

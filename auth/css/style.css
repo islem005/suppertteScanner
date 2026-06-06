@@ -27,6 +27,24 @@
   margin-bottom: var(--space-5);
 }
 
+/* ─── Language Selector ─── */
+.auth-lang-row { display: flex; justify-content: flex-end; margin-bottom: var(--space-3); }
+html[dir="rtl"] .auth-lang-row { justify-content: flex-start; }
+.auth-lang-selector { display: flex; gap: var(--space-1); }
+.auth-lang-btn {
+  padding: var(--space-1) var(--space-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-tertiary);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+  font-weight: 500;
+}
+.auth-lang-btn:hover { color: var(--text-primary); border-color: var(--border-strong); }
+.auth-lang-btn.active { background: var(--color-primary-muted); color: var(--color-primary); border-color: var(--color-primary); }
+
 /* ─── Auth Tabs ─── */
 .auth-tabs {
   display: flex;

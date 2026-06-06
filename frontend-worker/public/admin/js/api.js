@@ -46,6 +46,7 @@ const API = (() => {
     getAdminUsers: () => get('/admin/users'),
     createUser: (fields) => post('/admin/users', fields),
     deleteUser: (id) => del(`/admin/users/${id}`),
+    setUserPassword: (id, password) => post(`/admin/users/${id}/password`, { password }),
     getAdminActivity: (limit) => get(`/admin/activity?limit=${limit || 30}`),
 
     // Imports

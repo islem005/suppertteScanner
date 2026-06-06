@@ -237,9 +237,9 @@
         twitter_url: $('brand-twitter').value,
         youtube_url: $('brand-youtube').value
       })
-      $('brand-msg').textContent = 'Branding saved!'
+      $('brand-msg').textContent = I18N.t('brandingSaved')
       setTimeout(() => $('brand-msg').textContent = '', 2000)
-    } catch (err) { $('brand-msg').textContent = 'Error: ' + err.message; $('brand-msg').style.color = '#ff4444' }
+    } catch (err) { $('brand-msg').textContent = I18N.t('errorPrefix') + err.message; $('brand-msg').style.color = '#ff4444' }
   })
 
   // ─── Activity ───
@@ -248,12 +248,12 @@
       const stats = await API.getScanStats(user.store_id)
       const items = stats.topProducts || []
       if (items.length === 0) {
-        $('activity-list').innerHTML = '<div class="empty-state">No scans yet.</div>'; return
+        $('activity-list').innerHTML = '<div class="empty-state">' + I18N.t('noScansYet') + '</div>'; return
       }
       $('activity-list').innerHTML = items.map(p =>
-        `<div class="activity-item"><span class="act-barcode">${esc(p.barcode)}</span><span class="meta">${p.count} scans</span></div>`
+        `<div class="activity-item"><span class="act-barcode">${esc(p.barcode)}</span><span class="meta">${p.count} ${I18N.t('scans')}</span></div>`
       ).join('')
-    } catch { $('activity-list').innerHTML = '<div class="empty-state">Could not load activity.</div>' }
+    } catch { $('activity-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoadActivity') + '</div>' }
   }
 
   // ─── Profile ───
@@ -279,7 +279,7 @@
 
   async function loadManagerOverview() {
     if (!user.store_id) {
-      $('ov-cards').innerHTML = '<div class="empty-state">No store assigned. Contact an admin.</div>'
+      $('ov-cards').innerHTML = '<div class="empty-state">' + I18N.t('noStoreAssigned') + '</div>'
       $('ov-store-table').innerHTML = ''
       return
     }
@@ -290,14 +290,14 @@
 
       $('ov-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
       $('ov-cards').innerHTML = `
-        <div class="stat-card"><span class="num">${s.total}</span><span class="label">Total Scans</span></div>
-        <div class="stat-card"><span class="num">${s.today}</span><span class="label">Today</span></div>
-        <div class="stat-card"><span class="num">${products.length}</span><span class="label">Products</span></div>
+        <div class="stat-card"><span class="num">${s.total}</span><span class="label">${I18N.t('totalLabel')}</span></div>
+        <div class="stat-card"><span class="num">${s.today}</span><span class="label">${I18N.t('todayLabel')}</span></div>
+        <div class="stat-card"><span class="num">${products.length}</span><span class="label">${I18N.t('productsLabel')}</span></div>
       `
-      const topHtml = (s.topProducts || []).map(p => `<div class="activity-item"><span class="act-barcode">${esc(p.barcode)}</span><span class="meta">${p.count} scans</span></div>`).join('')
-      $('ov-store-table').innerHTML = `<header class="view-header" style="margin-top:16px"><h3 style="font-size:16px">Top Scanned Products</h3><a href="/${esc(store.slug)}" target="_blank" class="btn small">Public Link ↗</a></header>` +
-        (topHtml || '<div class="empty-state">No scans yet</div>')
-    } catch { $('ov-cards').innerHTML = '<div class="empty-state">Could not load overview.</div>' }
+      const topHtml = (s.topProducts || []).map(p => `<div class="activity-item"><span class="act-barcode">${esc(p.barcode)}</span><span class="meta">${p.count} ${I18N.t('scanCount')}</span></div>`).join('')
+      $('ov-store-table').innerHTML = `<header class="view-header" style="margin-top:16px"><h3 style="font-size:16px">${I18N.t('topProducts')}</h3><a href="https://${esc(store.slug)}.ivond.com" target="_blank" class="btn small">${I18N.t('publicLink')} ↗</a></header>` +
+        (topHtml || '<div class="empty-state">' + I18N.t('noScans') + '</div>')
+    } catch { $('ov-cards').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoadOverview') + '</div>' }
   }
 
   // ─── Products (manager) ───
@@ -309,9 +309,9 @@
   }
 
   function renderProducts(list) {
-    if (list.length === 0 && allProducts.length === 0) { $('product-list').innerHTML = '<div class="empty-state">No products. Upload a CSV to get started.</div>'; return }
-    if (list.length === 0) { $('product-list').innerHTML = '<div class="empty-state">No products match your search.</div>'; return }
-    let html = '<table><thead><tr><th>Barcode</th><th>Name</th><th>Price</th><th>Category</th><th></th></tr></thead><tbody>'
+    if (list.length === 0 && allProducts.length === 0) { $('product-list').innerHTML = '<div class="empty-state">' + I18N.t('noProducts') + '</div>'; return }
+    if (list.length === 0) { $('product-list').innerHTML = '<div class="empty-state">' + I18N.t('noProductsMatch') + '</div>'; return }
+    let html = '<table><thead><tr><th>' + I18N.t('tableBarcode') + '</th><th>' + I18N.t('tableName') + '</th><th>' + I18N.t('tablePrice') + '</th><th>' + I18N.t('tableCategory') + '</th><th></th></tr></thead><tbody>'
     for (const p of list) html += `<tr><td class="meta" style="font-family:monospace">${esc(p.barcode)}</td><td><strong>${esc(p.name)}</strong></td><td>${parseFloat(p.price).toFixed(2)} DA</td><td class="meta">${esc(p.category||'—')}</td><td class="actions-cell"><button class="btn small danger" onclick="deleteProduct('${p.id}')">✕</button></td></tr>`
     $('product-list').innerHTML = html + '</tbody></table>'
   }
@@ -349,7 +349,7 @@
     const supported = ['csv', 'xlsx', 'xls', 'db', 'sqlite', 'sqlite3', 'json']
 
     if (!supported.includes(ext)) {
-      showToast('Unsupported format: .' + ext + '. Use CSV, XLSX, DB, or JSON')
+      showToast(I18N.t('unsupportedFormat', ext))
       e.target.value = ''
       return
     }
@@ -364,37 +364,37 @@
         const mapped = preview.mapped_preview
 
         let previewHtml = '<div style="margin-bottom:12px;font-size:var(--text-sm)">' +
-          '<div style="color:var(--text-secondary);margin-bottom:8px">We mapped your file using the saved configuration:</div>' +
-          `<div style="margin-bottom:4px"><span class="meta" style="font-size:12px">Barcode</span> ← <strong>${esc(preview.mapping_used.barcode)}</strong></div>` +
-          `<div style="margin-bottom:4px"><span class="meta" style="font-size:12px">Name</span> ← <strong>${esc(preview.mapping_used.name)}</strong></div>` +
-          `<div style="margin-bottom:4px"><span class="meta" style="font-size:12px">Price</span> ← <strong>${esc(preview.mapping_used.price)}</strong></div>` +
+          '<div style="color:var(--text-secondary);margin-bottom:8px">' + I18N.t('fileMappedWithSavedConfig') + '</div>' +
+          `<div style="margin-bottom:4px"><span class="meta" style="font-size:12px">${I18N.t('tableBarcode')}</span> ← <strong>${esc(preview.mapping_used.barcode)}</strong></div>` +
+          `<div style="margin-bottom:4px"><span class="meta" style="font-size:12px">${I18N.t('tableName')}</span> ← <strong>${esc(preview.mapping_used.name)}</strong></div>` +
+          `<div style="margin-bottom:4px"><span class="meta" style="font-size:12px">${I18N.t('tablePrice')}</span> ← <strong>${esc(preview.mapping_used.price)}</strong></div>` +
           '</div>'
 
         if (mapped && mapped.length > 0) {
           previewHtml += '<div class="mapping-preview-card" style="background:var(--bg-inset);border-radius:8px;padding:12px;margin-bottom:8px">'
-          previewHtml += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">First product preview:</div>'
-          previewHtml += `<div class="row" style="display:flex;gap:8px;padding:4px 0"><span class="label" style="color:var(--text-secondary);min-width:60px">Barcode:</span><span class="value" style="font-family:monospace">${esc(mapped[0].barcode || '—')}</span></div>`
-          previewHtml += `<div class="row" style="display:flex;gap:8px;padding:4px 0"><span class="label" style="color:var(--text-secondary);min-width:60px">Name:</span><span class="value">${esc(mapped[0].name || '—')}</span></div>`
-          previewHtml += `<div class="row" style="display:flex;gap:8px;padding:4px 0"><span class="label" style="color:var(--text-secondary);min-width:60px">Price:</span><span class="value">${esc(mapped[0].price || '—')} DA</span></div>`
+          previewHtml += '<div style="font-size:12px;color:var(--text-secondary);margin-bottom:4px">' + I18N.t('firstProductPreview') + '</div>'
+          previewHtml += `<div class="row" style="display:flex;gap:8px;padding:4px 0"><span class="label" style="color:var(--text-secondary);min-width:60px">${I18N.t('tableBarcode')}:</span><span class="value" style="font-family:monospace">${esc(mapped[0].barcode || '—')}</span></div>`
+          previewHtml += `<div class="row" style="display:flex;gap:8px;padding:4px 0"><span class="label" style="color:var(--text-secondary);min-width:60px">${I18N.t('tableName')}:</span><span class="value">${esc(mapped[0].name || '—')}</span></div>`
+          previewHtml += `<div class="row" style="display:flex;gap:8px;padding:4px 0"><span class="label" style="color:var(--text-secondary);min-width:60px">${I18N.t('tablePrice')}:</span><span class="value">${esc(mapped[0].price || '—')} DA</span></div>`
           previewHtml += '</div>'
-          previewHtml += `<div style="font-size:var(--text-sm);color:var(--text-secondary)">and ${result.row_count - 1} more products</div>`
+          previewHtml += `<div style="font-size:var(--text-sm);color:var(--text-secondary)">${I18N.t('moreProducts', result.row_count - 1)}</div>`
         }
 
-        showModal('Verify Import', previewHtml, async () => {
+        showModal(I18N.t('verifyImport'), previewHtml, async () => {
           try {
             const r = await API.confirmImport(result.id)
-            showToast(`${r.imported} products imported!`)
+            showToast(r.imported + ' ' + I18N.t('importConfirmed'))
             loadManagerProducts()
-          } catch (err) { showToast('Error: ' + err.message) }
+          } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
         })
-        $('modal-confirm').textContent = 'Looks good, import ✓'
+        $('modal-confirm').textContent = I18N.t('looksGoodImport')
         $('modal-confirm').className = 'btn primary'
       } else if (result.status === 'pending' && result.requires_admin) {
-        showToast('File submitted to admin for mapping review.')
+        showToast(I18N.t('fileSubmittedToAdmin'))
       } else {
-        showToast('File uploaded (status: ' + result.status + ')')
+        showToast(I18N.t('fileUploadedStatus', result.status))
       }
-    } catch (err) { showToast('Error: ' + err.message) }
+    } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
     e.target.value = ''
   }
 
@@ -407,14 +407,14 @@
   // ══════════════════════════════════════════════
 
   async function loadOffers() {
-    if (!user.store_id) { $('offers-list').innerHTML = '<div class="empty-state">No store assigned.</div>'; return }
+    if (!user.store_id) { $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('noStoreText') + '</div>'; return }
     try {
       const promos = await API.getStorePromotions(user.store_id)
       const offers = promos.filter(p => p.type === 'offer')
       if (offers.length === 0) {
         $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('noOffers') + '</div>'; return
       }
-      let html = '<table><thead><tr><th>Image</th><th>Title</th><th>Trigger</th><th>Active</th><th></th></tr></thead><tbody>'
+      let html = '<table><thead><tr><th>' + I18N.t('image') + '</th><th>' + I18N.t('title') + '</th><th>' + I18N.t('trigger') + '</th><th>' + I18N.t('active') + '</th><th></th></tr></thead><tbody>'
       for (const o of offers) {
         const trigger = o.trigger_type ? o.trigger_type + ': ' + esc(o.trigger_value) : '<span class="tag success">Default</span>'
         const offerImg = o.image_url || o.image_data
@@ -427,13 +427,13 @@
           <td class="meta">${esc(trigger)}</td>
           <td>${o.active ? '<span style="color:#00c875">✓</span>' : '<span style="color:#ffc107">○</span>'}</td>
           <td class="actions-cell" style="display:flex;gap:4px">
-            <button class="btn small" onclick="editOffer('${o.id}')">Edit</button>
+            <button class="btn small" onclick="editOffer('${o.id}')">${I18N.t('edit')}</button>
             <button class="btn small danger" onclick="deleteOffer('${o.id}')">${I18N.t('delete')}</button>
           </td>
         </tr>`
       }
       $('offers-list').innerHTML = html + '</tbody></table>'
-    } catch { $('offers-list').innerHTML = '<div class="empty-state">Could not load offers.</div>' }
+    } catch { $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + '</div>' }
   }
 
   $('btn-add-offer').onclick = () => openOfferModal(null)
@@ -527,7 +527,7 @@
         } catch (e) {
           if (e.message !== 'cancelled') {
             console.warn('Upload failed:', e)
-            showToast('Image upload failed: ' + e.message)
+            showToast(I18N.t('uploadFailed') + ': ' + e.message)
           }
         }
       }
@@ -545,7 +545,7 @@
     try {
       const promo = await API.getPromotion(id)
       openOfferModal(promo)
-    } catch (err) { showToast('Error: ' + err.message) }
+    } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
   }
 
   window.deleteOffer = async (id) => {
@@ -557,13 +557,13 @@
 
   // ─── Discount Items ───
   async function loadDiscounts() {
-    if (!user.store_id) { $('discount-list').innerHTML = '<div class="empty-state">No store assigned.</div>'; return }
+    if (!user.store_id) { $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noStoreText') + '</div>'; return }
     try {
       const items = await API.getDiscounts(user.store_id)
       if (items.length === 0) {
         $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noDiscounts') + '</div>'; return
       }
-      let html = '<table><thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Featured</th><th>Active</th><th></th></tr></thead><tbody>'
+      let html = '<table><thead><tr><th>' + I18N.t('image') + '</th><th>' + I18N.t('tableName') + '</th><th>' + I18N.t('tableCategory') + '</th><th>' + I18N.t('tablePrice') + '</th><th>' + I18N.t('featured') + '</th><th>' + I18N.t('active') + '</th><th></th></tr></thead><tbody>'
       for (const d of items) {
         const discImg = d.image_url || d.image_data
         const thumb = discImg ? `<img src="${esc(discImg)}" class="offer-thumb" alt="">` : '<span class="offer-thumb offer-thumb-empty"></span>'
@@ -582,7 +582,7 @@
         </tr>`
       }
       $('discount-list').innerHTML = html + '</tbody></table>'
-    } catch { $('discount-list').innerHTML = '<div class="empty-state">Could not load discounts.</div>' }
+    } catch { $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + '</div>' }
   }
 
   $('btn-add-discount').onclick = () => openDiscountModal(null)
@@ -715,7 +715,7 @@
         } catch (e) {
           if (e.message !== 'cancelled') {
             console.warn('Upload failed:', e)
-            showToast('Image upload failed: ' + e.message)
+            showToast(I18N.t('uploadFailed') + ': ' + e.message)
           }
         }
       }
@@ -765,7 +765,7 @@
 
   window.editDiscount = async (id) => {
     try { const item = await API.getDiscount(id); openDiscountModal(item) }
-    catch (err) { showToast('Error: ' + err.message) }
+    catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
   }
 
   window.deleteDiscount = async (id) => {
@@ -784,7 +784,7 @@
   window.showModal = (title, body, onConfirm, danger) => {
     $('modal-overlay').classList.remove('hidden')
     $('modal-body').innerHTML = `<h3 style="margin-bottom:12px">${title}</h3>${body}`
-    $('modal-confirm').textContent = danger ? 'Delete' : 'Confirm'
+    $('modal-confirm').textContent = danger ? I18N.t('delete') : I18N.t('confirm')
     $('modal-confirm').className = 'btn ' + (danger ? 'danger' : 'primary')
     modalCallback = onConfirm
     $('modal-confirm').onclick = async () => { if (modalCallback) await modalCallback() }

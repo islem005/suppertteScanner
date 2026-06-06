@@ -102,6 +102,23 @@ router.delete('/users/:id', async (c) => {
   return c.json({ ok: true })
 })
 
+router.post('/users/:id/password', async (c) => {
+  const { password } = await c.req.json()
+  if (!password || password.length < 6) {
+    return c.json({ error: 'Password must be at least 6 characters' }, 400)
+  }
+  const auth = createAuth(c.env)
+  try {
+    await auth.api.setUserPassword({
+      body: { userId: c.req.param('id'), newPassword: password },
+      headers: c.req.raw.headers
+    })
+    return c.json({ ok: true })
+  } catch (err) {
+    return c.json({ error: err.message || 'Failed to set password' }, 400)
+  }
+})
+
 router.get('/activity', async (c) => {
   const db = c.env.DB
   const limit = parseInt(c.req.query('limit')) || 30

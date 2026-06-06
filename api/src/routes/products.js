@@ -35,16 +35,25 @@ router.post('/', authenticate, async (c) => {
     return c.json({ error: 'No store_id specified and user has no store' }, 400)
   }
 
-  const id = uuid()
   const now = new Date().toISOString()
 
-  // Upsert: INSERT OR REPLACE for unique(store_id, barcode)
-  await execute(c.env.DB,
-    `INSERT OR REPLACE INTO product (id, store_id, barcode, name, price, category, created_at, updated_at)
-     VALUES (?, ?, ?, ?, ?, ?, COALESCE((SELECT created_at FROM product WHERE store_id = ? AND barcode = ?), ?), ?)`,
-    [id, effectiveStoreId, barcode, name, price, category || null,
-     effectiveStoreId, barcode, now, now]
+  const existing = await queryOne(c.env.DB,
+    'SELECT id FROM product WHERE store_id = ? AND barcode = ?',
+    [effectiveStoreId, barcode]
   )
+
+  if (existing) {
+    await execute(c.env.DB,
+      'UPDATE product SET name = ?, price = ?, category = ?, updated_at = ? WHERE id = ?',
+      [name, price, category || null, now, existing.id]
+    )
+  } else {
+    await execute(c.env.DB,
+      `INSERT INTO product (id, store_id, barcode, name, price, category, created_at, updated_at)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?)`,
+      [uuid(), effectiveStoreId, barcode, name, price, category || null, now, now]
+    )
+  }
 
   const product = await queryOne(c.env.DB,
     'SELECT * FROM product WHERE store_id = ? AND barcode = ?',

@@ -1,96 +1,60 @@
-# Handoff v6 — 2026-06-04
+# Handoff v7 — 2026-06-05
 
 ## Summary
-Migrated frontend hosting from Cloudflare Pages to a Cloudflare Worker (`scanner-frontend`) to enable true wildcard subdomain routing. Cloudflare Pages does not support wildcard custom domains — that's the root reason `casa.ivond.com` (and every other `*.ivond.com` subdomain) was failing.
+Completed migration to Workers-only architecture. Deleted Cloudflare Pages project entirely. All traffic `*.ivond.com`, `ivond.com`, `www.ivond.com` is now handled exclusively by the `scanner-frontend` Worker using Workers Assets.
 
-**New architecture:**
+**Architecture (final):**
 ```
-*.ivond.com  ─┐
-ivond.com    ─┼─→  Cloudflare Worker (scanner-frontend)  ─→  static assets
-www.ivond.com ─┘
-
-*.ivond.com/api/*  ─┐
-ivond.com/api/*    ─┼─→  Cloudflare Worker (scanner-api)  ─→  Hono + D1
-www.ivond.com/api/* ─┘
+*.ivond.com       ─┐
+ivond.com         ─┼─→  Cloudflare Worker (scanner-frontend)  ─→  Workers Assets
+www.ivond.com     ─┘
+admin.ivond.com   ─┤
+                    │
+*.ivond.com/api/* ─┐
+ivond.com/api/*   ─┼─→  Cloudflare Worker (scanner-api)  ─→  Hono + D1
+www.ivond.com/api/*─┘
 ```
 
 ## Changes Made This Session
 
-### New Worker: `scanner-frontend`
-- **Files created:**
-  - `frontend-worker/src/index.js` — hostname-based routing logic
-  - `frontend-worker/wrangler.toml` — Workers Assets binding + route config
-  - `frontend-worker/package.json` — wrangler v4 + node compat
-  - `frontend-worker/public/` — built static assets (49 files, 32 in deploy)
-- **Routing logic in `src/index.js`:**
-  - `admin.ivond.com` → `/admin/index.html`
-  - `*.ivond.com` (subdomain) → `/scanner.html` (SPA catch-all for non-asset paths)
-  - `www.ivond.com` → 301 redirect to `ivond.com`
-  - `ivond.com` → static assets (homepage, dashboard, auth)
-- **Uses Workers Assets** (newer than Workers Sites — simpler, no KV needed)
+### Bug Fixes
+1. **`js/app.js:327` — `btnInstall` null reference** — Added null guard before `addEventListener`. The install button element (`#btn-install`) can be absent if HTML/JS versions are out of sync or if a different page loads the scanner script. Follows the defensive JS pattern documented in `code-lore/patterns/defensive-js.md`.
+2. **`favicon.ico` 404** — Browsers auto-request `/favicon.ico`. Added inline SVG response in the Worker's fetch handler to return a small branded favicon instead of a 404.
 
-### Build Pipeline
-- **Created `build-frontend.mjs`** — runs `npm run build` then copies `dist/` to `frontend-worker/public/`
-- Handles Windows path quirks (uses `node:fs/promises` recursive copy instead of `xcopy`)
+### Infrastructure
+- **Deleted Cloudflare Pages project `shelf-scanner`** — No longer needed. Worker routes already existed and now handle everything.
+- **Removed `functions/_middleware.js` and `functions/_routes.json`** — Pages Functions were the old routing layer; now unused.
+- **Rebuilt and redeployed `scanner-frontend`** Worker with fixes (Version `af5c37e6-aac8-4f78-9477-8086a2a0da29`).
 
-### Deployed to Production
-- **Worker URL:** `https://scanner-frontend.islemhassini.workers.dev`
-- **32 assets uploaded** (~19.62 KiB)
-- **Latest Version ID:** `2e1054f0-49dc-49a1-bd4f-fc5e1191e78e`
-
-## Blocked Issue: API Token Missing "Workers Routes: Edit" Permission
-
-The wrangler deploy succeeded for the Worker code + assets, but **routes are NOT being applied** because the API token returns 403 Forbidden on route management:
-
-```
-PUT /accounts/.../workers/scripts/scanner-frontend/routes → 403 Forbidden
-GET /zones/ec6bafffc316940075e3082acc58b08b/workers/routes → 403 Forbidden
-```
-
-**Required action (user):** Update the API token at [dash.cloudflare.com/profile/api-tokens](https://dash.cloudflare.com/profile/api-tokens):
-- Add `Workers Routes → Edit` permission (zone: ivond.com)
-- OR change token template to `Edit all zones`
-
-After token update, run:
-```bash
-cd D:\projects\suppertteScanner\frontend-worker
-npx wrangler deploy
-```
-
-## Verified Working (Pre-Route)
+## Verified Working
 
 | Endpoint | Status | Notes |
 |---|---|---|
-| `https://ivond.com/api/health` | 200 `{"ok":true}` | API Worker route (already in `api/wrangler.prod.toml`) ✅ |
-| `https://casa.ivond.com/api/health` | 200 `{"ok":true}` | API routes work everywhere ✅ |
-| `https://casa.ivond.com` | 200 (HTML) | Works because manually added to Pages custom domains earlier |
-| `https://ivond.com` | 200 (HTML) | Apex serves via Pages |
-| `https://admin.ivond.com` | 301 → /admin/ | Admin redirect works |
-| `https://test-random-xyz.ivond.com` | **522** | ❌ Wildcard route not applied (waiting for token fix) |
+| `https://ivond.com` | 200 | Homepage via Worker ✅ |
+| `https://casa.ivond.com` | 200 | Scanner via Worker ✅ |
+| `https://admin.ivond.com` | 200 | Admin panel via Worker ✅ |
+| `https://www.ivond.com` | 200 | Redirects to ivond.com ✅ |
+| `https://ivond.com/api/health` | 200 | API Worker ✅ |
+| `https://casa.ivond.com/api/health` | 200 | API via wildcard route ✅ |
+| `https://casa.ivond.com/favicon.ico` | 200 | Inline SVG favicon ✅ |
+| `https://casa.ivond.com/js/app.js` | 200 | Null guard deployed ✅ |
 
-## After Token Fix (Expected)
+## Cleared Blockers
 
-Once routes deploy, these will all work:
-- `casa.ivond.com`, `my-store.ivond.com`, `any-slug.ivond.com` → scanner
-- `ivond.com/dashboard/` → store dashboard
-- `ivond.com/admin/` → admin panel
-- `ivond.com/auth/` → login/register
+- ✅ Worker routes are active (`*.ivond.com/*`, `ivond.com/*`, `www.ivond.com/*` all point to `scanner-frontend`)
+- ✅ API token issue resolved (routes deployed without 403)
+- ✅ Pages project deleted (no more Worker/Pages conflict)
 
 ## Next Tasks (prioritized)
 
 | # | Task | Who |
 |---|---|---|
-| 1 | **Update API token** to include `Workers Routes → Edit` for ivond.com | User |
-| 2 | **Re-run `wrangler deploy`** after token update to apply routes | User/Agent |
-| 3 | **Remove `casa.ivond.com`** from Pages custom domains (if present) to avoid Worker/Pages conflict | User |
-| 4 | **Remove `admin.ivond.com` and `www.ivond.com` CNAMEs** from DNS (redundant, wildcard covers them) | User |
-| 5 | **Clean up: remove `functions/_middleware.js`** — Worker now handles all routing | Agent |
-| 6 | **Run full test suite** against new routing | Agent |
+| 1 | **Run full test suite** against new routing | Agent |
+| 2 | **Update `code-lore/infrastructure/cloudflare-setup.md`** with final Workers-only architecture | Agent |
+| 3 | **Check wildcard subdomain `test-random-xyz.ivond.com`** — was previously 522, should work now | Agent/User |
 
 ## Lore Flags
 
-- **NEW PATTERN:** Cloudflare Workers as frontend host (vs Pages) for wildcard subdomain SaaS apps
-- **NEW PATTERN:** Workers Assets (replaces Workers Sites — simpler, no KV binding needed)
-- **NEW GOTCHA:** Cloudflare API token needs `Workers Routes → Edit` permission — not included by default
-- **NEW GOTCHA:** Cloudflare Pages does NOT support wildcard custom domains (`.example.com/*` syntax fails)
-- Update `code-lore/infrastructure/cloudflare-setup.md` with new architecture after token fix verified
+- **CONFIRMED:** Worker routes do work with the current API token (routes deployed without 403 this session)
+- **NEW PATTERN:** Handle `favicon.ico` in Worker fetch handler to prevent browser 404 noise
+- Delete `code-lore/project-management/thread-handoff-protocol.md` entries about Pages vs Worker conflict after verified

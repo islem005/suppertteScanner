@@ -324,7 +324,7 @@
     const store = stores.find(s => s.id === currentStoreId)
     if (store) {
       $('sd-title').textContent = store.name
-      $('sd-public-link').href = `/${store.slug}`
+      $('sd-public-link').href = `https://${store.slug}.ivond.com`
     }
 
     Promise.all([
@@ -645,10 +645,10 @@
     const storeMap = {}; stores.forEach(s => storeMap[s.id] = s.name)
 
     if (users.length === 0) { $('user-table').innerHTML = '<div class="empty-state">No users yet.</div>'; return }
-    let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Store</th><th></th></tr></thead><tbody>'
+    let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Store</th><th>Password</th><th></th></tr></thead><tbody>'
     for (const u of users) {
       const storeName = u.store_id ? (storeMap[u.store_id] || '—') : '—'
-      html += `<tr><td>${esc(u.display_name)}</td><td class="meta">${esc(u.email)}</td><td><span class="tag ${u.role}">${u.role}</span></td><td class="meta">${esc(storeName)}</td><td class="actions-cell">${u.role !== 'admin' ? `<button class="btn small danger" onclick="deleteUser('${u.id}','${esc(u.display_name)}')">Delete</button>` : ''}</td></tr>`
+      html += `<tr><td>${esc(u.display_name)}</td><td class="meta">${esc(u.email)}</td><td><span class="tag ${u.role}">${u.role}</span></td><td class="meta">${esc(storeName)}</td><td><span class="meta" style="letter-spacing:2px">••••••</span> <button class="btn small" onclick="setPassword('${u.id}','${esc(u.display_name)}')">Change</button></td><td class="actions-cell">${u.role !== 'admin' ? `<button class="btn small danger" onclick="deleteUser('${u.id}','${esc(u.display_name)}')">Delete</button>` : ''}</td></tr>`
     }
     $('user-table').innerHTML = html + '</tbody></table>'
   }
@@ -684,6 +684,22 @@
     showModal('Delete User', `Delete <strong>${name}</strong>?`, async () => {
       await API.deleteUser(id); closeModal(); loadUsers()
     }, true)
+  }
+
+  window.setPassword = (id, name) => {
+    showModal('Set Password', `
+      <p>Set new password for <strong>${esc(name)}</strong></p>
+      <div class="form">
+        <input id="mod-user-new-pass" type="password" placeholder="New password (min 6 chars)" required>
+      </div>
+    `, async () => {
+      const password = $('mod-user-new-pass').value
+      if (!password || password.length < 6) {
+        showToast('Password must be at least 6 characters'); return
+      }
+      await API.setUserPassword(id, password)
+      closeModal(); showToast('Password updated')
+    })
   }
 
   let _editingStoreId = null

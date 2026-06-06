@@ -10,6 +10,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="../css/tokens.css">
   <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="../css/rtl.css">
 </head>
 <body>
   <div id="app">
@@ -22,20 +23,20 @@
       <aside id="sidebar">
         <div id="sidebar-brand">
           <span id="sidebar-logo"><i data-feather="bar-chart-2"></i></span>
-          <span id="sidebar-title">Shelf Scanner</span>
+          <span id="sidebar-title" data-i18n="welcome">Shelf Scanner</span>
           <button id="btn-sidebar-close" class="icon-btn sidebar-close-btn" aria-label="Close menu"><i data-feather="x"></i></button>
         </div>
         <nav id="sidebar-nav"></nav>
         <div id="sidebar-user">
           <span id="sidebar-username"></span>
-          <button id="btn-logout" class="btn small">Sign Out</button>
+          <button id="btn-logout" class="btn small" data-i18n="signOut">Sign Out</button>
         </div>
       </aside>
 
       <!-- Mobile header -->
       <div id="mobile-header">
         <button id="btn-toggle-sidebar" class="icon-btn" aria-label="Toggle menu"><i data-feather="menu"></i></button>
-        <span id="mobile-title">Dashboard</span>
+        <span id="mobile-title" data-i18n="dashboard">Dashboard</span>
         <div style="width:40px"></div>
       </div>
 
@@ -44,23 +45,23 @@
 
         <!-- ══ ADMIN: Overview ══ -->
         <section id="view-overview" class="dash-view">
-          <header class="view-header"><h2>Overview</h2><span id="ov-date" class="meta"></span></header>
+          <header class="view-header"><h2 data-i18n="navOverview">Overview</h2><span id="ov-date" class="meta"></span></header>
           <div id="ov-cards" class="stats-row"></div>
           <div id="ov-store-table" class="table-wrap"></div>
         </section>
 
         <!-- ══ Branding ══ -->
         <section id="view-branding" class="dash-view">
-          <header class="view-header"><h2>Branding</h2></header>
+          <header class="view-header"><h2 data-i18n="navBranding">Branding</h2></header>
           <div class="dash-view-inner">
             <div class="branding-column">
               <form id="branding-form" class="branding-form">
                 <div class="form-row">
-                  <label>Display Name</label>
+                  <label data-i18n="name">Display Name</label>
                   <input type="text" id="brand-name" placeholder="Store display name"><!-- TODO: replace placeholder with actual store data -->
                 </div>
                 <div class="form-row">
-                  <label>Logo</label>
+                  <label data-i18n="logo">Logo</label>
                   <div class="logo-picker">
                     <input type="file" id="brand-logo-input" accept="image/png,image/jpeg,image/webp">
                     <input type="hidden" id="brand-logo">
@@ -69,50 +70,50 @@
                   </div>
                 </div>
                 <div class="form-row">
-                  <label>Primary Color</label>
+                  <label data-i18n="primaryColor">Primary Color</label>
                   <div class="color-row"><input type="color" id="brand-primary" value="#6366f1"><span id="brand-primary-val">#6366f1</span></div>
                 </div>
                 <div class="form-row">
-                  <label>Accent Color</label>
+                  <label data-i18n="accentColor">Accent Color</label>
                   <div class="color-row"><input type="color" id="brand-accent" value="#10b981"><span id="brand-accent-val">#10b981</span></div>
                 </div>
                 <div class="form-row">
-                  <label>Contact Email</label>
+                  <label data-i18n="contactEmail">Contact Email</label>
                   <input type="email" id="brand-email" placeholder="store@example.com"><!-- TODO: replace placeholder with actual store data -->
-                </div>
-                <div class="form-row">
-                  <label>Contact Phone</label>
+                  </div>
+                  <div class="form-row">
+                  <label data-i18n="contactPhone">Contact Phone</label>
                   <input type="tel" id="brand-phone" placeholder="+1 555-0123"><!-- TODO: replace placeholder with actual store data -->
-                </div>
-                <div class="form-row">
-                  <label>Footer Text</label>
+                  </div>
+                  <div class="form-row">
+                  <label data-i18n="footerText">Footer Text</label>
                   <input type="text" id="brand-footer" placeholder="© 2026 My Store"><!-- TODO: replace placeholder with actual store data -->
-                </div>
-                <div class="form-row">
-                  <label>Instagram URL</label>
+                  </div>
+                  <div class="form-row">
+                  <label>Instagram</label>
                   <input type="url" id="brand-instagram" placeholder="https://instagram.com/..."><!-- TODO: replace placeholder with actual store data -->
-                </div>
-                <div class="form-row">
-                  <label>TikTok URL</label>
+                  </div>
+                  <div class="form-row">
+                  <label>TikTok</label>
                   <input type="url" id="brand-tiktok" placeholder="https://tiktok.com/@..."><!-- TODO: replace placeholder with actual store data -->
-                </div>
-                <div class="form-row">
-                  <label>Website URL</label>
+                  </div>
+                  <div class="form-row">
+                  <label data-i18n="websiteUrl">Website</label>
                   <input type="url" id="brand-website" placeholder="https://..."><!-- TODO: replace placeholder with actual store data -->
-                </div>
-                <div class="form-row">
-                  <label>Facebook URL</label>
+                  </div>
+                  <div class="form-row">
+                  <label>Facebook</label>
                   <input type="url" id="brand-facebook" placeholder="https://facebook.com/..."><!-- TODO: replace placeholder with actual store data -->
-                </div>
-                <div class="form-row">
-                  <label>Twitter / X URL</label>
+                  </div>
+                  <div class="form-row">
+                  <label>Twitter / X</label>
                   <input type="url" id="brand-twitter" placeholder="https://twitter.com/..."><!-- TODO: replace placeholder with actual store data -->
-                </div>
-                <div class="form-row">
-                  <label>YouTube URL</label>
+                  </div>
+                  <div class="form-row">
+                  <label>YouTube</label>
                   <input type="url" id="brand-youtube" placeholder="https://youtube.com/@..."><!-- TODO: replace placeholder with actual store data -->
-                </div>
-                <button type="submit" class="btn primary">Save Branding</button>
+                  </div>
+                <button type="submit" class="btn primary" data-i18n="saveBranding">Save Branding</button>
                 <div id="brand-msg" class="success-msg"></div>
               </form>
             </div>
@@ -164,19 +165,19 @@
 
         <!-- ══ ADMIN: Activity ══ -->
         <section id="view-activity" class="dash-view">
-          <header class="view-header"><h2>Recent Activity</h2></header>
+          <header class="view-header"><h2 data-i18n="recentActivity">Recent Activity</h2></header>
           <div id="activity-list" class="table-wrap"></div>
         </section>
 
         <!-- ══ MANAGER: Products ══ -->
         <section id="view-products" class="dash-view">
-          <header class="view-header"><h2>Products</h2>
+          <header class="view-header"><h2 data-i18n="navProducts">Products</h2>
             <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:320px;margin-left:auto">
               <div style="position:relative;flex:1">
                 <i data-feather="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-tertiary);pointer-events:none"></i>
-                <input type="text" id="product-search" class="form-input" placeholder="Search barcode or name..." style="padding-left:30px;font-size:var(--text-sm)">
+                <input type="text" id="product-search" class="form-input" data-i18n="searchPlaceholder" placeholder="Search barcode or name..." style="padding-left:30px;font-size:var(--text-sm)">
               </div>
-              <button id="btn-upload-csv" class="btn small">Upload Data</button>
+              <button id="btn-upload-csv" class="btn small" data-i18n="uploadData">Upload Data</button>
             </div>
             <input type="file" id="csv-file" accept=".csv,.xlsx,.xls,.db,.sqlite,.json" style="display:none">
           </header>
@@ -185,13 +186,13 @@
 
         <!-- ══ Offers ══ -->
         <section id="view-offers" class="dash-view">
-          <header class="view-header"><h2>Offers</h2><button id="btn-add-offer" class="btn small">+ New Offer</button></header>
+          <header class="view-header"><h2 data-i18n="navOffers">Offers</h2><button id="btn-add-offer" class="btn small" data-i18n="newOffer">+ New Offer</button></header>
           <div id="offers-list" class="table-wrap"></div>
         </section>
 
         <!-- ══ Discounts ══ -->
         <section id="view-discounts" class="dash-view">
-          <header class="view-header"><h2>Discount Items</h2><button id="btn-add-discount" class="btn small">+ New Discount</button></header>
+          <header class="view-header"><h2 data-i18n="navDiscounts">Discount Items</h2><button id="btn-add-discount" class="btn small" data-i18n="newDiscount">+ New Discount</button></header>
           <div id="discount-list" class="table-wrap"></div>
         </section>
 
@@ -207,8 +208,8 @@
           <div class="profile-card lang-section" style="margin-top:var(--space-4)">
             <div class="form-row"><label data-i18n="language">Language</label>
               <div class="lang-selector">
-                <button class="lang-btn" data-lang="en">English</button>
-                <button class="lang-btn" data-lang="fr">Fran&ccedil;ais</button>
+                <button class="lang-btn" data-lang="en" data-i18n="english">English</button>
+                <button class="lang-btn" data-lang="fr" data-i18n="french">Fran&ccedil;ais</button>
               </div>
             </div>
           </div>
@@ -221,7 +222,7 @@
     <div id="modal-overlay" class="hidden" onclick="closeModal(event)">
       <div id="modal-box">
         <div id="modal-body"></div>
-        <div class="modal-actions"><button class="btn small" onclick="closeModal()">Cancel</button><button id="modal-confirm" class="btn primary" type="button">Confirm</button></div>
+        <div class="modal-actions"><button class="btn small" onclick="closeModal()" data-i18n="cancel">Cancel</button><button id="modal-confirm" class="btn primary" type="button" data-i18n="confirm">Confirm</button></div>
       </div>
     </div>
 
@@ -229,7 +230,7 @@
 
   <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
   <script src="../js/shared.js"></script>
-  <script src="js/i18n.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
 </body>
