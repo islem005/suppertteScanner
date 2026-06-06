@@ -18,3 +18,5 @@ Thumbs.db
 supabase.env
 .agents/
 .opencode/
+
+purge-cache.bat
