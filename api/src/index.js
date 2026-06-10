@@ -17,6 +17,8 @@ import { manifestRouter } from './routes/manifest.js'
 import { registrationsRouter } from './routes/registrations.js'
 import { uploadRouter } from './routes/upload.js'
 import { filesRouter } from './routes/files.js'
+import { pageViewsRouter } from './routes/page-views.js'
+import { analyticsRouter } from './routes/analytics.js'
 
 const app = new Hono()
 
@@ -71,6 +73,8 @@ app.route('/api/manifest', manifestRouter)
 app.route('/api/registrations', registrationsRouter)
 app.route('/api/upload', uploadRouter)
 app.route('/api/files', filesRouter)
+app.route('/api/page-views', pageViewsRouter)
+app.route('/api/analytics', analyticsRouter)
 
 app.get('/api/health', (c) => c.json({ ok: true }))
 
@@ -107,7 +111,7 @@ app.get('/api/debug/session', async (c) => {
   })
 })
 
-app.get('/', (c) => c.json({ name: 'Shelf Scanner API', version: '1.0.0', status: 'running' }))
+app.get('/', (c) => c.json({ name: 'ivond API', version: '1.0.0', status: 'running' }))
 
 app.notFound((c) => c.json({ error: 'Not found' }, 404))
 

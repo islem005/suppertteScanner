@@ -1,7 +1,7 @@
 {
-  "name": "Shelf Scanner",
-  "short_name": "Scanner",
-  "description": "Fast barcode scanner for shelf inventory",
+  "name": "SKANER",
+  "short_name": "SKANER",
+  "description": "SKANER by ivond — instant in-store barcode scanning",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",

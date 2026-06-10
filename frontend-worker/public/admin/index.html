@@ -4,13 +4,17 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <meta name="theme-color" content="#0c0c0d">
-
-  <title>Shelf Scanner - Admin</title>
+  <meta name="description" content="SKANER Admin Panel by ivond — Manage stores, users, branding, and platform analytics.">
+  <meta property="og:title" content="SKANER — Admin">
+  <meta property="og:description" content="SKANER Admin Panel by ivond.">
+  <meta property="og:url" content="https://admin.ivond.com">
+  <meta property="og:type" content="website">
+  <title>SKANER — Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" crossorigin href="/assets/admin-fdK2gh-7.css">
-  <link rel="stylesheet" crossorigin href="/assets/tokens-BTOVpmB-.css">
+  <link rel="stylesheet" crossorigin href="/assets/admin-BZA3aSBN.css">
+  <link rel="stylesheet" crossorigin href="/assets/tokens-B_D_T2_f.css">
 </head>
 <body>
   <div id="app">
@@ -67,6 +71,7 @@
         <section id="view-overview" class="dash-view">
           <header class="view-header"><h2>Overview</h2><span id="ov-date" class="meta"></span></header>
           <div id="ov-cards" class="stats-row"></div>
+          <div id="ov-attention"></div>
           <div id="ov-store-table" class="table-wrap"></div>
         </section>
 
@@ -75,7 +80,7 @@
           <div id="store-table" class="table-wrap"></div>
         </section>
 
-        <section id="view-store-detail" class="dash-view" style="display:none">
+        <section id="view-store-detail" class="dash-view">
           <header class="view-header">
             <button id="btn-back-stores" class="btn small" style="margin-right:8px">← Back</button>
             <h2 id="sd-title">Store</h2>
@@ -213,7 +218,7 @@
                   <div class="phone-notch"></div>
                   <div class="phone-screen">
                     <div class="phone-topbar">
-                      <span class="phone-title" id="preview-title">Shelf Scanner</span>
+                      <span class="phone-title" id="preview-title">SKANER</span>
                     </div>
                     <div class="phone-scan-area">
                       <div class="phone-scan-frame">
@@ -289,6 +294,42 @@
         <section id="view-activity" class="dash-view">
           <header class="view-header"><h2>Recent Activity</h2></header>
           <div id="activity-list" class="table-wrap"></div>
+        </section>
+
+        <section id="view-analytics" class="dash-view">
+          <header class="view-header">
+            <h2>Analytics</h2>
+            <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
+              <select id="an-store-filter" class="form-input" style="width:auto;padding:var(--space-1) var(--space-3);font-size:var(--text-xs)">
+                <option value="">All Stores</option>
+              </select>
+              <select id="an-days-filter" class="form-input" style="width:auto;padding:var(--space-1) var(--space-3);font-size:var(--text-xs)">
+                <option value="7">7 days</option>
+                <option value="30" selected>30 days</option>
+                <option value="90">90 days</option>
+              </select>
+              <button id="btn-an-export" class="btn small">Export CSV</button>
+            </div>
+          </header>
+          <div id="an-cards" class="stats-row"></div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);margin-top:var(--space-4)">
+            <div class="card" style="padding:var(--space-4);background:var(--bg-surface)">
+              <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)">Daily Trend</h4>
+              <div id="an-trend-chart" style="min-height:160px"></div>
+            </div>
+            <div class="card" style="padding:var(--space-4);background:var(--bg-surface)">
+              <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)">Device Breakdown</h4>
+              <div id="an-device-chart" style="min-height:160px"></div>
+            </div>
+          </div>
+          <div class="card" style="padding:var(--space-4);background:var(--bg-surface);margin-top:var(--space-4)">
+            <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)">Top Scanned Products</h4>
+            <div id="an-top-products" class="table-wrap"></div>
+          </div>
+          <div class="card" style="padding:var(--space-4);background:var(--bg-surface);margin-top:var(--space-4)">
+            <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)">Per-Store Breakdown</h4>
+            <div id="an-per-store" class="table-wrap"></div>
+          </div>
         </section>
 
         <section id="view-profile" class="dash-view">

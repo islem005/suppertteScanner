@@ -50,11 +50,11 @@ www.ivond.com/api/*─┘
 | # | Task | Who |
 |---|---|---|
 | 1 | **Run full test suite** against new routing | Agent |
-| 2 | **Update `code-lore/infrastructure/cloudflare-setup.md`** with final Workers-only architecture | Agent |
+| 2 | ✅ **Update `code-lore/infrastructure/cloudflare-setup.md`** with final Workers-only architecture | Agent — Done 2026-06-07 |
 | 3 | **Check wildcard subdomain `test-random-xyz.ivond.com`** — was previously 522, should work now | Agent/User |
 
-## Lore Flags
+## Lore Flags (Resolved 2026-06-07)
 
-- **CONFIRMED:** Worker routes do work with the current API token (routes deployed without 403 this session)
-- **NEW PATTERN:** Handle `favicon.ico` in Worker fetch handler to prevent browser 404 noise
-- Delete `code-lore/project-management/thread-handoff-protocol.md` entries about Pages vs Worker conflict after verified
+- ✅ **CONFIRMED:** Worker routes work with current API token — no additional action needed
+- ✅ **NEW PATTERN:** `favicon.ico` handling documented in `cloudflare-setup.md` under scanner-frontend Worker section
+- ✅ **Pages vs Worker conflict:** No entries found in `thread-handoff-protocol.md` — nothing to delete

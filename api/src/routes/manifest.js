@@ -75,7 +75,7 @@ router.get('/', async (c) => {
         return c.json({
           name: store.name,
           short_name: store.name.length > 12 ? store.name.substring(0, 12) + '…' : store.name,
-          description: `${store.name} — barcode scanner`,
+          description: `${store.name} — SKANER by ivond`,
           start_url: '/',
           display: 'standalone',
           orientation: 'portrait',
@@ -88,9 +88,9 @@ router.get('/', async (c) => {
   }
 
   return c.json({
-    name: 'Shelf Scanner',
-    short_name: 'Scanner',
-    description: 'Fast barcode scanner for shelf inventory',
+    name: 'SKANER',
+    short_name: 'SKANER',
+    description: 'SKANER by ivond — instant in-store barcode scanning',
     start_url: '/',
     display: 'standalone',
     orientation: 'portrait',

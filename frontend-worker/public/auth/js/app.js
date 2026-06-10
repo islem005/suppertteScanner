@@ -1,6 +1,17 @@
 (function() {
   if (typeof feather !== 'undefined') feather.replace()
+  if (typeof I18N !== 'undefined') I18N.applyHtml()
   const $ = id => { if (typeof document === 'undefined' || typeof document.getElementById !== 'function') { console.error('DOM not available'); return null }; return document.getElementById(id) }
+
+  // ─── Language selector ───
+  document.querySelectorAll('.auth-lang-btn').forEach(b => {
+    b.addEventListener('click', () => {
+      if (typeof I18N !== 'undefined') {
+        I18N.setLang(b.dataset.lang)
+        location.reload()
+      }
+    })
+  })
 
   // ─── Tab Switching ───
   const tabs = document.querySelectorAll('.auth-tab')
@@ -17,7 +28,6 @@
         if (loginWrap) loginWrap.classList.toggle('active', target === 'login')
         if (registerWrap) registerWrap.classList.toggle('active', target === 'register')
 
-        // Clear errors
         const loginErr = $('login-error')
         const regErr = $('register-error')
         const regSuccess = $('register-success')
@@ -37,7 +47,8 @@
       const banner = document.createElement('div')
       banner.id = 'api-warning'
       banner.style.cssText = 'background:var(--color-danger-muted);color:var(--color-danger);padding:var(--space-3) var(--space-4);border-radius:var(--radius-md);font-size:var(--text-sm);text-align:center;margin-bottom:var(--space-4)'
-      banner.textContent = '⚠ API server unreachable — make sure the backend is running'
+      const msg = typeof I18N !== 'undefined' ? I18N.t('apiUnreachable') : '⚠ API server unreachable — make sure the backend is running'
+      banner.textContent = msg
       if (loginWrap) loginWrap.insertBefore(banner, loginWrap.querySelector('form'))
     }
   })()
@@ -72,38 +83,38 @@
   async function checkSlug() {
     clearTimeout(slugCheckTimeout)
     const slug = slugInput.value.trim()
+    const t = typeof I18N !== 'undefined' ? I18N.t : (k) => k
     if (!slug || slug.length < 2) {
       slugHint.textContent = ''
       slugHint.className = 'field-hint'
       return
     }
 
-    // Validate slug format
     const slugRegex = /^[a-z0-9]+(-[a-z0-9]+)*$/
     if (!slugRegex.test(slug)) {
-      slugHint.textContent = 'Only lowercase letters, numbers, and hyphens allowed'
+      slugHint.textContent = t('slugInvalid')
       slugHint.className = 'field-hint error'
       return
     }
 
-    slugHint.textContent = 'Checking availability...'
+    slugHint.textContent = t('slugChecking')
     slugHint.className = 'field-hint'
 
     slugCheckTimeout = setTimeout(async () => {
       try {
         const res = await fetch(`/api/stores/slug/${encodeURIComponent(slug)}`)
         if (res.ok) {
-          slugHint.textContent = 'This URL is already taken'
+          slugHint.textContent = t('slugTaken')
           slugHint.className = 'field-hint error'
         } else if (res.status === 404) {
-          slugHint.textContent = '✓ Available!'
+          slugHint.textContent = t('slugAvailable')
           slugHint.className = 'field-hint success'
         } else {
-          slugHint.textContent = 'Could not check availability'
+          slugHint.textContent = t('slugCheckFailed')
           slugHint.className = 'field-hint error'
         }
       } catch {
-        slugHint.textContent = 'Could not check availability'
+        slugHint.textContent = t('slugCheckFailed')
         slugHint.className = 'field-hint error'
       }
     }, 500)
@@ -113,8 +124,9 @@
   const loginForm = $('login-form')
   if (loginForm) loginForm.addEventListener('submit', async e => {
     e.preventDefault()
-    const btn = $('login-form').querySelector('button[type="submit"]')
-    btn.disabled = true; btn.textContent = 'Signing in...'
+    const t = typeof I18N !== 'undefined' ? I18N.t : (k) => k
+    const btn = document.querySelector('#login-form button[type="submit"]')
+    btn.disabled = true; btn.textContent = t('signingIn')
     $('login-error').textContent = ''
 
     try {
@@ -127,24 +139,21 @@
       let data = {}
       try { data = await res.json() } catch { data = {} }
       if (!res.ok) {
-        const statusText = data.error || data.message || `HTTP ${res.status}${res.status === 405 ? ' — server may not be running' : ''}`
+        const statusText = data.error || data.message || t('loginFailed')
         throw new Error(statusText)
       }
 
       const userData = data.user || data
 
-      // Reject admins — they must use the admin panel login
       if (userData.role === 'admin') {
-        throw new Error('Admins must sign in through the admin panel')
+        throw new Error(t('adminsUseAdminPanel'))
       }
 
-      // Store user for UI state
       localStorage.setItem('user', JSON.stringify(userData))
-
       window.location.href = '/dashboard/'
     } catch (err) {
       $('login-error').textContent = err.message
-      btn.disabled = false; btn.textContent = 'Sign In'
+      btn.disabled = false; btn.textContent = t('signIn')
     }
   })
 
@@ -152,8 +161,9 @@
   const registerForm = $('register-form')
   if (registerForm) registerForm.addEventListener('submit', async e => {
     e.preventDefault()
-    const btn = $('register-form').querySelector('button[type="submit"]')
-    btn.disabled = true; btn.textContent = 'Submitting...'
+    const t = typeof I18N !== 'undefined' ? I18N.t : (k) => k
+    const btn = document.querySelector('#register-form button[type="submit"]')
+    btn.disabled = true; btn.textContent = t('submitting')
     $('register-error').textContent = ''
     $('register-success').classList.add('hidden')
 
@@ -176,22 +186,21 @@
       try { data = await res.json() } catch { data = {} }
 
       if (!res.ok) {
-        throw new Error(data.error || 'Submission failed')
+        throw new Error(data.error || t('submissionFailed'))
       }
 
-      // Success — show success message, clear form
       $('register-form').reset()
       slugInput.dataset.manual = ''
       slugHint.textContent = ''
       slugHint.className = 'field-hint'
 
       $('register-success').classList.remove('hidden')
-      $('register-success').textContent = 'Your request has been submitted! Our team will review it and get back to you at ' + payload.contact_email
-      btn.textContent = 'Submitted ✓'
+      $('register-success').textContent = t('requestSubmitted') + payload.contact_email
+      btn.textContent = t('submitted')
       btn.disabled = false
     } catch (err) {
       $('register-error').textContent = err.message
-      btn.disabled = false; btn.textContent = 'Submit Request'
+      btn.disabled = false; btn.textContent = t('submitRequest')
     }
   })
 })()

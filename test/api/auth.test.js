@@ -70,31 +70,6 @@ describe('POST /api/auth/sign-in/email', () => {
   })
 })
 
-describe('GET /api/auth/session (get session)', () => {
-  let adminCookie
-
-  beforeAll(async () => {
-    const session = await loginAs(ADMIN_EMAIL, ADMIN_PASS)
-    adminCookie = session.cookie
-  })
-
-  it('returns session data for authenticated user', async () => {
-    const res = await fetch(`${API_BASE}/auth/session`, {
-      headers: { Cookie: adminCookie }
-    })
-    expect(res.status).toBe(200)
-    const data = await res.json()
-    expect(data).toHaveProperty('user')
-    expect(data.user.email).toBe(ADMIN_EMAIL)
-    expect(data.user).toHaveProperty('role')
-  })
-
-  it('returns 401 without auth cookie', async () => {
-    const res = await fetch(`${API_BASE}/auth/session`)
-    expect(res.status).toBe(401)
-  })
-})
-
 describe('GET /api/auth/get-session (get current session)', () => {
   let adminCookie
 

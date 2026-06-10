@@ -13,12 +13,22 @@ router.use('*', authenticate, adminOnly)
 router.get('/stats', async (c) => {
   const db = c.env.DB
 
-  const [stores, users, products, scans] = await Promise.all([
+  const [stores, users, products, scans, pendingRegs, pendingImps, noBranding, noMapping, totalDevices, totalVisits] = await Promise.all([
     queryAll(db, 'SELECT * FROM organization'),
     queryAll(db, 'SELECT id, email, display_name as display_name, role, store_id FROM user'),
     queryAll(db, 'SELECT id, store_id FROM product'),
-    queryAll(db, 'SELECT * FROM scan_event')
+    queryAll(db, 'SELECT * FROM scan_event'),
+    db.prepare("SELECT COUNT(*) as c FROM store_registration WHERE status='pending'").first(),
+    db.prepare("SELECT COUNT(*) as c FROM pending_import WHERE status IN ('pending','auto-mapped')").first(),
+    db.prepare("SELECT COUNT(*) as c FROM organization o LEFT JOIN store_branding b ON o.id=b.store_id WHERE b.store_id IS NULL OR b.display_name IS NULL OR b.display_name=''").first(),
+    db.prepare("SELECT COUNT(*) as c FROM organization o LEFT JOIN import_mapping m ON o.id=m.store_id WHERE m.store_id IS NULL").first(),
+    db.prepare("SELECT COUNT(*) as c FROM client_device").first(),
+    db.prepare("SELECT COUNT(*) as c FROM page_view").first(),
   ])
+
+  const storesWithZeroProducts = stores.filter(s =>
+    products.filter(p => p.store_id === s.id).length === 0
+  ).length
 
   const today = new Date()
   today.setHours(0, 0, 0, 0)
@@ -39,7 +49,14 @@ router.get('/stats', async (c) => {
     totalProducts: products.length,
     totalScans: scans.length,
     todayScans,
-    storeStats
+    totalDevices: totalDevices?.c || 0,
+    totalVisits: totalVisits?.c || 0,
+    storeStats,
+    pendingRegistrations: pendingRegs?.c || 0,
+    pendingImports: pendingImps?.c || 0,
+    storesWithoutBranding: noBranding?.c || 0,
+    storesWithoutMapping: noMapping?.c || 0,
+    storesWithZeroProducts
   })
 })
 

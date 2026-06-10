@@ -91,5 +91,46 @@ const Storage = (() => {
     localStorage.removeItem('scanned_items');
   }
 
-  return { getAll, put, remove, clear };
+  let _clientId = null;
+
+  async function getClientId() {
+    if (_clientId) return _clientId;
+    // Try IndexedDB first
+    try {
+      const db = await getDb();
+      if (db) {
+        return new Promise((resolve, reject) => {
+          const tx = db.transaction(STORE_NAME, 'readonly');
+          const store = tx.objectStore(STORE_NAME);
+          const req = store.get('client_id');
+          req.onsuccess = () => {
+            if (req.result && req.result.value) {
+              _clientId = req.result.value;
+              resolve(_clientId);
+            } else {
+              _clientId = crypto.randomUUID();
+              put({ id: 'client_id', value: _clientId }).then(() => resolve(_clientId)).catch(() => resolve(_clientId));
+            }
+          };
+          req.onerror = () => {
+            _clientId = crypto.randomUUID();
+            resolve(_clientId);
+          };
+        });
+      }
+    } catch {}
+    // Fallback to localStorage
+    try {
+      const stored = localStorage.getItem('scanner_client_id');
+      if (stored) { _clientId = stored; return _clientId; }
+      _clientId = crypto.randomUUID();
+      localStorage.setItem('scanner_client_id', _clientId);
+      return _clientId;
+    } catch {
+      _clientId = crypto.randomUUID();
+      return _clientId;
+    }
+  }
+
+  return { getAll, put, remove, clear, getClientId };
 })();

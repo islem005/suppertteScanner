@@ -45,6 +45,7 @@ const API = (() => {
 
     // Products
     getProducts: (storeId) => get(`/products?store_id=${storeId}`),
+    getProductByBarcode: (storeId, barcode) => get(`/products/lookup/${storeId}?barcode=${encodeURIComponent(barcode)}`),
     uploadCsv: (csv, storeId) => post('/products/upload', { csv }),
     deleteProduct: (id) => del(`/products/${id}`),
 
@@ -85,6 +86,17 @@ const API = (() => {
     createDiscount: (data) => post('/discounts', data),
     updateDiscount: (id, data) => put(`/discounts/${id}`, data),
     deleteDiscount: (id) => del(`/discounts/${id}`),
+
+    // Analytics
+    getAnalytics: (days) => get(`/analytics/store?days=${days || 30}`),
+    exportAnalytics: async (days) => {
+      const res = await fetch(`/api/analytics/store/export?days=${days || 30}`, { credentials: 'include' })
+      if (!res.ok) throw new Error('Export failed')
+      const blob = await res.blob()
+      const url = URL.createObjectURL(blob)
+      const a = document.createElement('a'); a.href = url; a.download = `analytics-${days || 30}d.csv`; a.click()
+      URL.revokeObjectURL(url)
+    },
 
     // File upload to R2
     /**

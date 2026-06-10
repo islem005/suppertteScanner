@@ -37,6 +37,7 @@ const API = (() => {
     getStore: (id) => get(`/stores/${id}`),
     getStoreBySlug: (slug) => get(`/stores/slug/${slug}`),
     getProducts: (storeId) => get(`/products?store_id=${storeId}`),
+    getProductByBarcode: (storeId, barcode) => get(`/products/lookup/${storeId}?barcode=${encodeURIComponent(barcode)}`),
     uploadCsv: (csv, storeId) => post('/products/upload', { csv }),
     deleteProduct: (id) => del(`/products/${id}`),
     getScanStats: (storeId) => get(`/scans/stats?store_id=${storeId}`),
@@ -88,7 +89,18 @@ const API = (() => {
     updateDiscount: (id, data) => put(`/discounts/${id}`, data),
     deleteDiscount: (id) => del(`/discounts/${id}`),
 
-    // File upload to R2
+      // Analytics
+      getPlatformAnalytics: (storeId, days) => get(`/analytics/admin?store_id=${storeId || ''}&days=${days || 30}`),
+      exportAnalytics: async (storeId, days) => {
+        const res = await fetch(`/api/analytics/admin/export?store_id=${storeId || ''}&days=${days || 30}`, { credentials: 'include' })
+        if (!res.ok) throw new Error('Export failed')
+        const blob = await res.blob()
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a'); a.href = url; a.download = `analytics-${storeId || 'all'}-${days || 30}d.csv`; a.click()
+        URL.revokeObjectURL(url)
+      },
+
+      // File upload to R2
     /**
      * Upload a data URL (cropped image) to R2 storage.
      * @param {string} dataUrl — cropped image as data:image/...;base64,...

@@ -74,3 +74,26 @@ export async function updateAndReturn(db, table, id, data) {
 export function uuid() {
   return crypto.randomUUID()
 }
+
+/**
+ * Upsert a client device record.
+ * Inserts if new, updates last_seen_at, user_agent, ip, device_type, visit/scan counts.
+ */
+export async function upsertClientDevice(db, { id, storeId, userAgent, ip, deviceType, incrementScans = false }) {
+  const now = new Date().toISOString()
+  await execute(db,
+    `INSERT OR IGNORE INTO client_device (id, store_id, first_seen_at, last_seen_at, last_user_agent, last_ip, last_device_type)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+    [id, storeId, now, now, userAgent || null, ip || null, deviceType || null]
+  )
+  const scanInc = incrementScans ? ', total_scans = total_scans + 1' : ''
+  await execute(db,
+    `UPDATE client_device SET last_seen_at = ?,
+      last_user_agent = COALESCE(?, last_user_agent),
+      last_ip = COALESCE(?, last_ip),
+      last_device_type = COALESCE(?, last_device_type),
+      total_visits = total_visits + 1${scanInc}
+     WHERE id = ?`,
+    [now, userAgent || null, ip || null, deviceType || null, id]
+  )
+}

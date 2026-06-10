@@ -117,6 +117,23 @@ router.post('/upload', authenticate, async (c) => {
   return c.json({ imported })
 })
 
+// Barcode lookup by store_id (authenticated — for dashboard/admin discount form)
+router.get('/lookup/:storeId', authenticate, async (c) => {
+  const barcode = c.req.query('barcode')
+  if (!barcode) return c.json({ error: 'Barcode query param required' }, 400)
+
+  const product = await queryOne(c.env.DB,
+    'SELECT barcode, name, price, category FROM product WHERE store_id = ? AND barcode = ?',
+    [c.req.param('storeId'), barcode]
+  )
+
+  if (product) {
+    product.found = true
+    return c.json(product)
+  }
+  return c.json({ found: false, barcode })
+})
+
 router.delete('/:id', authenticate, async (c) => {
   const user = c.get('user')
 

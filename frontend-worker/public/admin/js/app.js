@@ -4,6 +4,7 @@
 
   const navItems = [
     { id: 'overview',      icon: 'bar-chart-2', label: 'Overview' },
+    { id: 'analytics',     icon: 'trending-up', label: 'Analytics' },
     { id: 'stores',        icon: 'home', label: 'Stores' },
     { id: 'registrations', icon: 'user-plus', label: 'Registrations' },
     { id: 'users',         icon: 'users', label: 'Users' },
@@ -99,6 +100,7 @@
     document.querySelectorAll('.dash-view').forEach(v => v.classList.toggle('active', v.id === 'view-' + id))
     document.querySelectorAll('.nav-item').forEach(n => n.classList.toggle('active', n.dataset.view === id))
     if (id === 'overview') loadAdminOverview()
+    else if (id === 'analytics') loadAnalytics()
     else if (id === 'stores') loadStores()
     else if (id === 'registrations') loadRegistrations()
     else if (id === 'users') loadUsers()
@@ -152,7 +154,27 @@
       <div class="stat-card"><span class="num">${s.totalProducts}</span><span class="label">Products</span></div>
       <div class="stat-card"><span class="num">${s.todayScans}</span><span class="label">Today's Scans</span></div>
       <div class="stat-card"><span class="num">${s.totalScans}</span><span class="label">All Scans</span></div>
+      <div class="stat-card"><span class="num">${s.totalVisits || 0}</span><span class="label">Total Visits</span></div>
+      <div class="stat-card"><span class="num">${s.totalDevices || 0}</span><span class="label">Devices</span></div>
     `
+
+    // Attention cards — only shown when > 0
+    const attentionItems = [
+      { key: 'pendingRegistrations', label: 'Pending Registrations', view: 'registrations' },
+      { key: 'pendingImports', label: 'Pending Imports', view: 'stores' },
+      { key: 'storesWithoutBranding', label: 'Stores Without Branding', view: 'branding' },
+      { key: 'storesWithoutMapping', label: 'Stores Without Mapping', view: 'stores' },
+      { key: 'storesWithZeroProducts', label: 'Inactive Stores (No Products)', view: 'stores' },
+    ]
+    const cards = attentionItems.filter(i => s[i.key] > 0).map(i =>
+      `<div class="stat-card attention" onclick="navigateTo('${i.view}')">
+        <span class="num">${s[i.key]}</span>
+        <span class="label">${i.label}</span>
+        <span class="attention-link">View →</span>
+      </div>`
+    ).join('')
+    $('ov-attention').innerHTML = cards ? `<div class="stats-row">${cards}</div>` : ''
+
     if (!s.storeStats || s.storeStats.length === 0) {
       $('ov-store-table').innerHTML = '<div class="empty-state">No stores yet. Create one in Stores.</div>'
       return
@@ -161,6 +183,176 @@
     for (const st of s.storeStats) html += `<tr><td><strong>${esc(st.name)}</strong></td><td><span class="meta">/${esc(st.slug)}</span></td><td>${st.products}</td><td>${st.scans}</td><td>${st.users}</td></tr>`
     $('ov-store-table').innerHTML = html + '</tbody></table>'
   }
+
+  // ─── Analytics ───
+  let _anStoreId = null
+
+  async function loadAnalytics() {
+    const days = $('an-days-filter').value || 30
+    const storeFilter = $('an-store-filter').value || ''
+    _anStoreId = storeFilter || null
+
+    try {
+      const data = await API.getPlatformAnalytics(_anStoreId, days)
+
+      // Stat cards
+      const p = data.platform
+      $('an-cards').innerHTML = `
+        <div class="stat-card"><span class="num">${p.totalDevices}</span><span class="label">Total Devices</span></div>
+        <div class="stat-card"><span class="num">${p.devicesToday}</span><span class="label">Active Today</span></div>
+        <div class="stat-card"><span class="num">${p.totalVisits}</span><span class="label">Total Visits</span></div>
+        <div class="stat-card"><span class="num">${p.visitsToday}</span><span class="label">Visits Today</span></div>
+        <div class="stat-card"><span class="num">${p.totalScans}</span><span class="label">Total Scans</span></div>
+        <div class="stat-card"><span class="num">${p.scansToday}</span><span class="label">Scans Today</span></div>
+        <div class="stat-card"><span class="num">${p.hitRate}%</span><span class="label">Hit Rate</span></div>
+        <div class="stat-card"><span class="num">${p.avgScansPerVisit}</span><span class="label">Scans/Visit</span></div>
+      `
+
+      // Daily trend chart
+      renderTrendChart('an-trend-chart', data.dailyTrend)
+
+      // Device breakdown
+      renderDeviceChart('an-device-chart', data.deviceBreakdown)
+
+      // Top products
+      renderTopProducts('an-top-products', data.topProducts)
+
+      // Per-store breakdown
+      renderPerStoreTable('an-per-store', data.perStore, days)
+
+      // Populate store filter if needed
+      const filter = $('an-store-filter')
+      if (data.perStore && data.perStore.length > 0 && filter.options.length <= 1) {
+        for (const st of data.perStore) {
+          const opt = document.createElement('option')
+          opt.value = st.store_id; opt.textContent = st.name
+          filter.appendChild(opt)
+        }
+      }
+    } catch (err) {
+      $('an-cards').innerHTML = '<div class="empty-state">Could not load analytics: ' + esc(err.message) + '</div>'
+    }
+  }
+
+  function renderTrendChart(containerId, data) {
+    const el = $(containerId)
+    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">No data yet</div>'; return }
+
+    const maxVisits = Math.max(...data.map(d => d.visits), 1)
+    const maxScans = Math.max(...data.map(d => d.scans), 1)
+    const maxVal = Math.max(maxVisits, maxScans)
+    const barWidth = Math.max(8, Math.min(24, Math.floor(600 / data.length)))
+    const chartW = Math.max(300, data.length * (barWidth + 4) + 40)
+    const chartH = 140
+    const padL = 30, padR = 10, padT = 8, padB = 20
+    const innerH = chartH - padT - padB
+
+    let svg = `<svg viewBox="0 0 ${chartW} ${chartH}" style="width:100%;max-height:160px" xmlns="http://www.w3.org/2000/svg">`
+    // Grid lines
+    for (let i = 0; i <= 4; i++) {
+      const y = padT + (innerH / 4) * i
+      svg += `<line x1="${padL}" y1="${y}" x2="${chartW - padR}" y2="${y}" stroke="#2a2a3e" stroke-width="1"/>`
+    }
+    // Bars
+    data.forEach((d, i) => {
+      const x = padL + i * (barWidth + 4)
+      const vH = (d.visits / maxVal) * innerH
+      const sH = (d.scans / maxVal) * innerH
+      // Visits bar (indigo)
+      svg += `<rect x="${x}" y="${padT + innerH - vH}" width="${barWidth}" height="${vH}" fill="#6366f1" rx="2" opacity="0.8">`
+      svg += `<title>${d.date}: ${d.visits} visits</title></rect>`
+      // Scans bar (emerald), offset slightly
+      const sx = x + barWidth * 0.5
+      const sw = Math.max(4, barWidth * 0.4)
+      svg += `<rect x="${sx}" y="${padT + innerH - sH}" width="${sw}" height="${sH}" fill="#10b981" rx="2" opacity="0.8">`
+      svg += `<title>${d.date}: ${d.scans} scans</title></rect>`
+    })
+    // X-axis labels (every Nth)
+    const step = Math.max(1, Math.floor(data.length / 10))
+    data.forEach((d, i) => {
+      if (i % step === 0 || i === data.length - 1) {
+        const x = padL + i * (barWidth + 4) + barWidth / 2
+        const label = d.date.slice(5)
+        svg += `<text x="${x}" y="${chartH - 4}" text-anchor="middle" fill="#6b7280" font-size="9">${label}</text>`
+      }
+    })
+    // Legend
+    svg += `<rect x="${chartW - 80}" y="2" width="8" height="8" fill="#6366f1" rx="1"/><text x="${chartW - 68}" y="9" fill="#9ca3af" font-size="9">Visits</text>`
+    svg += `<rect x="${chartW - 40}" y="2" width="8" height="8" fill="#10b981" rx="1"/><text x="${chartW - 28}" y="9" fill="#9ca3af" font-size="9">Scans</text>`
+    svg += '</svg>'
+    el.innerHTML = svg
+  }
+
+  function renderDeviceChart(containerId, data) {
+    const el = $(containerId)
+    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">No device data yet</div>'; return }
+
+    const total = data.reduce((s, d) => s + d.count, 0)
+    const colors = { mobile: '#6366f1', desktop: '#10b981', tablet: '#f59e0b' }
+    const labels = { mobile: 'Mobile', desktop: 'Desktop', tablet: 'Tablet' }
+
+    let html = '<div style="display:flex;flex-direction:column;gap:var(--space-3)">'
+    for (const d of data) {
+      const pct = total > 0 ? Math.round((d.count / total) * 100) : 0
+      const color = colors[d.type] || '#6b7280'
+      const label = labels[d.type] || d.type || 'Unknown'
+      html += `
+        <div>
+          <div style="display:flex;justify-content:space-between;font-size:var(--text-xs);margin-bottom:4px">
+            <span>${label}</span>
+            <span style="color:var(--text-secondary)">${d.count} (${pct}%)</span>
+          </div>
+          <div style="height:8px;background:var(--bg-inset);border-radius:4px;overflow:hidden">
+            <div style="height:100%;width:${pct}%;background:${color};border-radius:4px;transition:width 0.3s"></div>
+          </div>
+        </div>
+      `
+    }
+    html += '</div>'
+    el.innerHTML = html
+  }
+
+  function renderTopProducts(containerId, data) {
+    const el = $(containerId)
+    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">No scan data yet</div>'; return }
+    let html = '<table><thead><tr><th>#</th><th>Barcode</th><th>Name</th><th>Scans</th></tr></thead><tbody>'
+    data.forEach((p, i) => {
+      html += `<tr><td>${i + 1}</td><td class="meta" style="font-family:monospace">${esc(p.barcode)}</td><td><strong>${esc(p.name || '—')}</strong></td><td>${p.count}</td></tr>`
+    })
+    el.innerHTML = html + '</tbody></table>'
+  }
+
+  function renderPerStoreTable(containerId, stores, days) {
+    const el = $(containerId)
+    if (!stores || stores.length === 0) { el.innerHTML = '<div class="empty-state">No stores yet</div>'; return }
+    let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Visits</th><th>Scans</th><th>Devices</th><th>Hit Rate</th><th></th></tr></thead><tbody>'
+    for (const st of stores) {
+      html += `<tr>
+        <td><strong>${esc(st.name)}</strong></td>
+        <td><span class="meta">/${esc(st.slug)}</span></td>
+        <td>${st.visits}</td>
+        <td>${st.scans}</td>
+        <td>${st.devices}</td>
+        <td>${st.hitRate}%</td>
+        <td><button class="btn small" onclick="exportStoreCSV('${st.store_id}')">CSV</button></td>
+      </tr>`
+    }
+    el.innerHTML = html + '</tbody></table>'
+  }
+
+  window.exportStoreCSV = (storeId) => {
+    const days = $('an-days-filter').value || 30
+    API.exportAnalytics(storeId, days)
+  }
+
+  // Filter change handlers for analytics
+  if ($('an-store-filter')) $('an-store-filter').addEventListener('change', loadAnalytics)
+  if ($('an-days-filter')) $('an-days-filter').addEventListener('change', loadAnalytics)
+  if ($('btn-an-export')) $('btn-an-export').addEventListener('click', () => {
+    const days = $('an-days-filter').value || 30
+    const storeFilter = $('an-store-filter').value || ''
+    API.exportAnalytics(storeFilter, days)
+  })
 
   // ─── Registrations ───
   async function loadRegistrations() {
@@ -308,13 +500,11 @@
   window.showStoreDetail = async (storeId) => {
     currentStoreId = storeId
     document.querySelectorAll('.dash-view').forEach(v => v.classList.remove('active'))
-    $('view-store-detail').style.display = 'block'
     $('view-store-detail').classList.add('active')
     loadStoreDetail()
   }
 
   $('btn-back-stores').onclick = () => {
-    $('view-store-detail').style.display = 'none'
     $('view-store-detail').classList.remove('active')
     navigateTo('stores')
   }
@@ -1346,7 +1536,10 @@
       <div class="form">
         <div class="form-row">
           <label>Barcode (optional, for scan matching)</label>
-          <input id="mod-disc-barcode" class="form-input" value="${esc(barcode)}" placeholder="e.g. 5901234123457">
+          <div style="display:flex;gap:8px">
+            <input id="mod-disc-barcode" class="form-input" value="${esc(barcode)}" placeholder="e.g. 5901234123457" style="flex:1">
+            <button id="mod-disc-scan-btn" class="btn small" type="button" title="Scan barcode" style="flex-shrink:0;display:flex;align-items:center;gap:4px"><i data-feather="camera"></i></button>
+          </div>
         </div>
         <div class="form-row">
           <label>Product Name</label>
@@ -1355,7 +1548,12 @@
         <div class="form-row">
           <label>Product Photo</label>
           <div class="logo-picker">
-            <input type="file" id="mod-disc-image-input" accept="image/png,image/jpeg,image/webp" capture="environment">
+            <div style="display:flex;gap:8px;margin-bottom:8px">
+              <button id="mod-disc-camera-btn" class="btn small" type="button" style="display:flex;align-items:center;gap:4px"><i data-feather="camera"></i> Camera</button>
+              <button id="mod-disc-gallery-btn" class="btn small" type="button" style="display:flex;align-items:center;gap:4px"><i data-feather="image"></i> Gallery</button>
+            </div>
+            <input type="file" id="mod-disc-camera-input" accept="image/*" capture="environment" style="display:none">
+            <input type="file" id="mod-disc-gallery-input" accept="image/png,image/jpeg,image/webp" style="display:none">
             <input type="hidden" id="mod-disc-image" value="${esc(existingImage)}">
             <img id="mod-disc-image-preview" class="logo-preview ${existingImage ? '' : 'hidden'}" src="${esc(existingImage)}">
             <button id="mod-disc-image-remove" class="btn small ${existingImage ? '' : 'hidden'}" type="button">Remove</button>
@@ -1437,22 +1635,17 @@
     })
     $('modal-confirm').textContent = 'Save Discount'
 
-    // Image picker with camera capture — crop then upload to R2
-    const imgInput = $('mod-disc-image-input')
-    const imgHidden = $('mod-disc-image')
-    const imgPreview = $('mod-disc-image-preview')
-    const imgRemove = $('mod-disc-image-remove')
-    imgInput.addEventListener('change', async e => {
-      const file = e.target.files[0]; if (!file) return
+    // Shared image handler for camera + gallery
+    function handleImageFile(file) {
       const reader = new FileReader()
       reader.onload = async ev => {
         try {
           const cropped = await window.cropImage(ev.target.result, 3/4, 300, 400)
           const result = await API.uploadImage(cropped, sid, 'discount')
-          imgHidden.value = result.url
-          imgPreview.src = result.url
-          imgPreview.classList.remove('hidden')
-          imgRemove.classList.remove('hidden')
+          $('mod-disc-image').value = result.url
+          $('mod-disc-image-preview').src = result.url
+          $('mod-disc-image-preview').classList.remove('hidden')
+          $('mod-disc-image-remove').classList.remove('hidden')
         } catch (e) {
           if (e.message !== 'cancelled') {
             console.warn('Upload failed:', e)
@@ -1461,10 +1654,103 @@
         }
       }
       reader.readAsDataURL(file)
+    }
+    // Camera capture
+    $('mod-disc-camera-input').addEventListener('change', e => { const f = e.target.files[0]; if (f) handleImageFile(f) })
+    $('mod-disc-camera-btn').onclick = () => $('mod-disc-camera-input').click()
+    // Gallery picker
+    $('mod-disc-gallery-input').addEventListener('change', e => { const f = e.target.files[0]; if (f) handleImageFile(f) })
+    $('mod-disc-gallery-btn').onclick = () => $('mod-disc-gallery-input').click()
+    // Remove
+    $('mod-disc-image-remove').addEventListener('click', () => {
+      $('mod-disc-image').value = ''
+      $('mod-disc-camera-input').value = ''
+      $('mod-disc-gallery-input').value = ''
+      $('mod-disc-image-preview').classList.add('hidden')
+      $('mod-disc-image-remove').classList.add('hidden')
     })
-    imgRemove.addEventListener('click', () => {
-      imgHidden.value = ''; imgInput.value = ''; imgPreview.classList.add('hidden'); imgRemove.classList.add('hidden')
-    })
+
+    // ─── Barcode scanner overlay ───
+    async function startBarcodeScanner(onDetected) {
+      if (!('BarcodeDetector' in window)) {
+        showToast('Barcode scanning not supported on this browser. Use Chrome on Android.')
+        return
+      }
+      const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','code_128','code_39','code_93','codabar','itf','upc_a','upc_e','qr_code','data_matrix','aztec','pdf417'] })
+      let stream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        })
+      } catch (e) { showToast('Camera access denied'); return }
+
+      const overlay = document.createElement('div')
+      overlay.id = 'scanner-overlay'
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000;display:flex;flex-direction:column'
+      const video = document.createElement('video')
+      video.style.cssText = 'flex:1;width:100%;object-fit:cover'
+      video.setAttribute('playsinline', ''); video.setAttribute('autoplay', '')
+      video.srcObject = stream; video.play()
+
+      const toolbar = document.createElement('div')
+      toolbar.style.cssText = 'padding:16px;text-align:center;background:#000'
+      const hint = document.createElement('p')
+      hint.style.cssText = 'color:#fff;margin:0 0 12px;font-size:14px;opacity:.8'
+      hint.textContent = 'Point camera at a barcode'
+      toolbar.appendChild(hint)
+      const cancelBtn = document.createElement('button')
+      cancelBtn.className = 'btn small'
+      cancelBtn.textContent = '\u2716 Cancel'
+      toolbar.appendChild(cancelBtn)
+      overlay.appendChild(video); overlay.appendChild(toolbar)
+      document.body.appendChild(overlay)
+
+      let active = true, lastResults = [], lastResultTime = 0;
+      const SCAN_THROTTLE = 1200
+
+      async function detect() {
+        if (!active) return
+        try {
+          if (video.readyState >= 2) {
+            const codes = await detector.detect(video)
+            if (active && codes.length > 0) {
+              const now = Date.now()
+              for (const code of codes) {
+                if (!code.rawValue) continue
+                if (lastResults.includes(code.rawValue) && now - lastResultTime < SCAN_THROTTLE) continue
+                lastResults.push(code.rawValue); lastResultTime = now
+                if (lastResults.length > 20) lastResults.shift()
+                cleanup(); onDetected(code.rawValue); return
+              }
+            }
+          }
+        } catch (_) {}
+        if (active) requestAnimationFrame(detect)
+      }
+      function cleanup() { active = false; stream.getTracks().forEach(t => t.stop()); overlay.remove() }
+      cancelBtn.onclick = cleanup
+      detect()
+    }
+
+    // Barcode scan button — scan and auto-fill product
+    $('mod-disc-scan-btn').onclick = () => {
+      startBarcodeScanner(async (barcodeValue) => {
+        $('mod-disc-barcode').value = barcodeValue
+        try {
+          const product = await API.getProductByBarcode(sid, barcodeValue)
+          if (product && product.found) {
+            if (product.name) $('mod-disc-name').value = product.name
+            if (product.price) $('mod-disc-orig-price').value = product.price
+            if (product.category) $('mod-disc-category').value = product.category
+            showToast('Product found: ' + product.name)
+            if (typeof updatePreview === 'function') updatePreview()
+          } else {
+            showToast('Product not found for this barcode')
+          }
+        } catch (err) { showToast('Lookup failed: ' + err.message) }
+      })
+    }
 
     // Price preview calculator
     const origPriceInput = $('mod-disc-orig-price')
@@ -1531,6 +1817,7 @@
   window.showModal = (title, body, onConfirm, danger) => {
     $('modal-overlay').classList.remove('hidden')
     $('modal-body').innerHTML = `<h3 style="margin-bottom:12px">${title}</h3>${body}`
+    if (typeof feather !== 'undefined') feather.replace()
     $('modal-confirm').textContent = danger ? 'Delete' : 'Confirm'
     $('modal-confirm').className = 'btn ' + (danger ? 'danger' : 'primary')
     modalCallback = onConfirm
@@ -1575,6 +1862,7 @@
     origNavigate(id)
     if (window.innerWidth <= 768) closeSidebar()
   }
+  window.navigateTo = navigateTo
 
   // ─── Bootstrap: check session, fall back to login ──
   ;(async function init() {

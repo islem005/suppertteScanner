@@ -4,39 +4,51 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="theme-color" content="#0c0c0d">
-  <title>Shelf Scanner — Sign In</title>
+  <meta name="description" content="SKANER by ivond — Sign in to your store dashboard to manage products, branding, and analytics.">
+  <meta property="og:title" content="SKANER — Sign In">
+  <meta property="og:description" content="SKANER by ivond — Sign in to manage your store.">
+  <meta property="og:url" content="https://ivond.com/auth">
+  <meta property="og:type" content="website">
+  <title>SKANER — Sign In</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" crossorigin href="/assets/auth-BeBeCjx1.css">
-  <link rel="stylesheet" crossorigin href="/assets/tokens-BTOVpmB-.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" crossorigin href="/assets/auth-D8muqmul.css">
+  <link rel="stylesheet" crossorigin href="/assets/rtl-D3Vhemfn.css">
+  <link rel="stylesheet" crossorigin href="/assets/tokens-B_D_T2_f.css">
 </head>
 <body>
   <div id="app">
     <div class="auth-card">
+      <div class="auth-lang-row">
+        <div class="auth-lang-selector">
+          <button class="auth-lang-btn" data-lang="en">English</button>
+          <button class="auth-lang-btn" data-lang="fr">Fran&ccedil;ais</button>
+        </div>
+      </div>
       <div class="auth-logo"><i data-feather="camera"></i></div>
-      <h1>Shelf Scanner</h1>
+      <h1 data-i18n="welcome">SKANER</h1>
 
       <div class="auth-tabs">
-        <button id="tab-login" class="auth-tab active" data-tab="login">Sign In</button>
-        <button id="tab-register" class="auth-tab" data-tab="register">Create Account</button>
+        <button id="tab-login" class="auth-tab active" data-tab="login" data-i18n="signIn">Sign In</button>
+        <button id="tab-register" class="auth-tab" data-tab="register" data-i18n="createAccount">Create Account</button>
       </div>
 
       <!-- Login Form -->
       <div id="form-login" class="auth-form-wrap active">
         <div class="tab-header">
-          <p>Sign in to your store dashboard</p>
+          <p data-i18n="signInToDashboard">Sign in to your store dashboard</p>
         </div>
         <form id="login-form" class="auth-form" autocomplete="off">
           <div class="form-group">
-            <label for="login-email">Email</label>
+            <label for="login-email" data-i18n="email">Email</label>
             <input type="email" id="login-email" placeholder="you@store.com" required autocomplete="email">
           </div>
           <div class="form-group">
-            <label for="login-password">Password</label>
+            <label for="login-password" data-i18n="password">Password</label>
             <input type="password" id="login-password" placeholder="Password" required autocomplete="current-password">
           </div>
-          <button type="submit" class="btn primary btn-block">Sign In</button>
+          <button type="submit" class="btn primary btn-block" data-i18n="signIn">Sign In</button>
           <div id="login-error" class="error-msg"></div>
         </form>
       </div>
@@ -44,15 +56,15 @@
       <!-- Registration Form -->
       <div id="form-register" class="auth-form-wrap">
         <div class="tab-header">
-          <p>Register your store to get started</p>
+          <p data-i18n="registerStore">Register your store to get started</p>
         </div>
         <form id="register-form" class="auth-form" autocomplete="off">
           <div class="form-group">
-            <label for="reg-store-name">Store Name</label>
+            <label for="reg-store-name" data-i18n="storeName">Store Name</label>
             <input type="text" id="reg-store-name" placeholder="e.g. Downtown Grocery" required>
           </div>
           <div class="form-group">
-            <label for="reg-store-slug">Store URL</label>
+            <label for="reg-store-slug" data-i18n="storeUrl">Store URL</label>
             <div class="slug-input-wrap">
               <span class="slug-prefix">ivond.com/</span>
               <input type="text" id="reg-store-slug" placeholder="my-store" required pattern="[a-z0-9]+(-[a-z0-9]+)*">
@@ -60,34 +72,35 @@
             <div id="slug-availability" class="field-hint"></div>
           </div>
           <div class="form-group">
-            <label for="reg-name">Your Name</label>
+            <label for="reg-name" data-i18n="yourName">Your Name</label>
             <input type="text" id="reg-name" placeholder="e.g. John Doe" required>
           </div>
           <div class="form-group">
-            <label for="reg-email">Your Email</label>
+            <label for="reg-email" data-i18n="yourEmail">Your Email</label>
             <input type="email" id="reg-email" placeholder="you@example.com" required>
           </div>
           <div class="form-group">
-            <label for="reg-phone">Phone (optional)</label>
+            <label for="reg-phone" data-i18n="phoneOptional">Phone (optional)</label>
             <input type="tel" id="reg-phone" placeholder="+1 555-0123">
           </div>
           <div class="form-group">
-            <label for="reg-message">Message (optional)</label>
+            <label for="reg-message" data-i18n="messageOptional">Message (optional)</label>
             <textarea id="reg-message" placeholder="Tell us about your store..." rows="3"></textarea>
           </div>
-          <button type="submit" class="btn primary btn-block">Submit Request</button>
+          <button type="submit" class="btn primary btn-block" data-i18n="submitRequest">Submit Request</button>
           <div id="register-success" class="success-msg hidden"></div>
           <div id="register-error" class="error-msg"></div>
         </form>
       </div>
 
       <div class="auth-footer">
-        <a href="/">← Back to home</a>
+        <a href="/" data-i18n="backToHome">← Back to home</a>
       </div>
     </div>
   </div>
 
   <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="js/app.js"></script>
 </body>
 </html>

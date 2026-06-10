@@ -43,6 +43,8 @@
   let discSwiper = null;
   let lastScanTime = 0;
   let idleCheckInterval = null;
+  let clientId = null;
+  let sessionId = null;
 
   // ── Store slug detection ────────────────────────────────────────────
   // Priority 1: If we're on a store subdomain (my-store.ivond.com),
@@ -58,6 +60,9 @@
       storeSlug = path.replace(/^\//, '');
     }
   }
+
+  // ── Client Tracking IDs ────────────────────────────────────────
+  sessionId = sessionStorage.getItem('scanner_session') || (() => { const id = crypto.randomUUID(); sessionStorage.setItem('scanner_session', id); return id })();
 
   // ── PWA Install ───────────────────────────────────────────────
   window.addEventListener('beforeinstallprompt', e => {
@@ -139,8 +144,26 @@
         camName.textContent = 'Camera ready';
         return;
       }
+
+      // Initialize client ID and fire page_view
+      try {
+        clientId = await Storage.getClientId();
+        const deviceType = /mobile|iphone|ipad|ipod|android/i.test(navigator.userAgent) ? 'mobile' :
+          /tablet|ipad/i.test(navigator.userAgent) ? 'tablet' : 'desktop';
+        fetch(`${apiBase}/page-views`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            store_slug: storeSlug,
+            client_id: clientId,
+            session_id: sessionId,
+            device_type: deviceType,
+            referrer: document.referrer || null
+          })
+        }).catch(() => {});
+      } catch {}
     } else {
-      profileName.textContent = 'Scanner';
+      profileName.textContent = 'SKANER';
     }
 
     const result = await Scanner.init();
@@ -174,7 +197,12 @@
       fetch(`${apiBase}/scans`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ store_slug: storeSlug, barcode: code })
+        body: JSON.stringify({
+          store_slug: storeSlug,
+          barcode: code,
+          client_id: clientId,
+          session_id: sessionId
+        })
       }).catch(() => {});
     }
 

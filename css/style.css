@@ -1,25 +1,27 @@
 html, body { overflow: hidden; height: 100%; }
 
 #app {
-  position: relative; width: 100%; height: 100%;
-  height: 100dvh; /* dynamic viewport height for mobile */
+  position: relative; width: 100%; height: 100vh;
+  height: 100dvh;
   display: flex; flex-direction: column;
   background: #000;
+  padding-top: env(safe-area-inset-top);
+  padding-bottom: env(safe-area-inset-bottom);
 }
 
 /* ════════════════════════════════════════════
    PROFILE BAR  ~10%
    ════════════════════════════════════════════ */
 #profile-bar {
-  flex: 0 0 10%; min-height: 48px;
+  flex: 0 0 auto; min-height: 44px;
   display: flex; align-items: center; gap: var(--space-3);
-  padding: max(var(--space-1), env(safe-area-inset-top)) var(--space-4) 0;
+  padding: 0 var(--space-4);
   background: var(--bg-base); z-index: 10;
 }
 
 .avatar-ring {
   position: relative;
-  width: 40px; height: 40px;
+  width: 36px; height: 36px;
   border-radius: 50%; flex-shrink: 0;
   display: flex; align-items: center; justify-content: center;
   background: linear-gradient(135deg, #6366f1, #a855f7, #ec4899, #f59e0b);
@@ -37,10 +39,16 @@ html, body { overflow: hidden; height: 100%; }
 
 #profile-info { flex: 1; min-width: 0; display: flex; flex-direction: column; gap: 1px; }
 #profile-name {
-  font-size: var(--text-sm); font-weight: 700; color: var(--text-primary);
+  font-size: clamp(0.75rem, 2.5vw, 0.875rem); font-weight: 700; color: var(--text-primary);
   white-space: nowrap; overflow: hidden; text-overflow: ellipsis;
 }
 #profile-links { display: flex; gap: var(--space-1); }
+#profile-brand {
+  font-size: 0.625rem; color: var(--text-tertiary); opacity: 0.6;
+  text-decoration: none; white-space: nowrap;
+  transition: opacity var(--transition-fast);
+}
+#profile-brand:hover { opacity: 1; }
 
 .p-link {
   display: inline-flex; align-items: center; justify-content: center;
@@ -71,8 +79,8 @@ html, body { overflow: hidden; height: 100%; }
 #banner-area {
   width: 100%;
   flex: 0 0 auto;
-  min-height: 80px;
-  max-height: min(280px, 35vh);
+  min-height: 60px;
+  max-height: min(240px, 30vh);
   aspect-ratio: 8 / 3;
   position: relative;
   display: flex;
@@ -109,7 +117,9 @@ html, body { overflow: hidden; height: 100%; }
   width: 100%; height: 100%;
 }
 #banner-fallback.hidden { display: none; }
-#banner-text { font-size: var(--text-xl); font-weight: 700; color: var(--text-tertiary); }
+#banner-text {
+  font-size: clamp(1rem, 4vw, 1.5rem); font-weight: 700; color: var(--text-tertiary);
+}
 
 /* ════════════════════════════════════════════
    CAMERA FEED  ~20%
@@ -137,34 +147,34 @@ html, body { overflow: hidden; height: 100%; }
 }
 
 #cam-name {
-  font-size: var(--text-lg); font-weight: 700; color: var(--text-primary);
+  font-size: clamp(0.8rem, 3.5vw, 1.25rem); font-weight: 700; color: var(--text-primary);
   text-align: center; line-height: 1.2;
   text-shadow: 0 1px 8px rgba(0,0,0,0.7);
   transition: font-size var(--transition-fast), color var(--transition-fast);
 }
 #cam-name.hint {
-  font-size: var(--text-sm); font-weight: 500; color: var(--text-tertiary);
+  font-size: clamp(0.65rem, 2.5vw, 0.875rem); font-weight: 500; color: var(--text-tertiary);
 }
 
 #cam-price {
-  font-size: var(--text-xl); font-weight: 800; color: var(--color-success);
+  font-size: clamp(1rem, 5vw, 1.5rem); font-weight: 800; color: var(--color-success);
   text-align: center; line-height: 1.2;
   text-shadow: 0 1px 8px rgba(0,0,0,0.7);
   transition: font-size var(--transition-fast), color var(--transition-fast);
 }
 #cam-price.error {
-  font-size: var(--text-xs); color: var(--text-tertiary);
+  font-size: clamp(0.6rem, 2vw, 0.75rem); color: var(--text-tertiary);
   font-family: var(--font-mono); letter-spacing: 0.5px;
 }
 
 /* ════════════════════════════════════════════
-   PROMO CARD  — same look as banner
+   PROMO CARD
    ════════════════════════════════════════════ */
 #promo-card {
   width: 100%;
   flex: 0 0 auto;
-  min-height: 60px;
-  max-height: min(200px, 25vh);
+  min-height: 50px;
+  max-height: min(180px, 22vh);
   aspect-ratio: 8 / 3;
   position: relative;
   background: var(--bg-surface);
@@ -182,7 +192,7 @@ html, body { overflow: hidden; height: 100%; }
 }
 
 /* ════════════════════════════════════════════
-   DISCOUNT CAROUSEL  — 3 per view fills rest of screen
+   DISCOUNT CAROUSEL  — fills rest of screen
    ════════════════════════════════════════════ */
 #discount-area {
   width: 100%;
@@ -195,6 +205,11 @@ html, body { overflow: hidden; height: 100%; }
   border-top: 1px solid var(--border-subtle);
 }
 #discount-area.hidden { display: none; }
+
+/* When discounts hidden, promo fills remaining space */
+#discount-area.hidden ~ #promo-card {
+  flex: 1; max-height: none;
+}
 
 #discount-track {
   flex: 1;
@@ -214,9 +229,6 @@ html, body { overflow: hidden; height: 100%; }
   padding: 8px 4px;
   box-sizing: border-box;
 }
-
-
-
 
 .discount-card img {
   max-width: 100px;
@@ -250,7 +262,7 @@ html, body { overflow: hidden; height: 100%; }
 }
 
 .discount-new-price {
-  font-size: var(--text-lg);
+  font-size: clamp(0.875rem, 3vw, 1.125rem);
   font-weight: 800;
   color: var(--color-success);
   line-height: 1;
@@ -303,3 +315,70 @@ html, body { overflow: hidden; height: 100%; }
 #toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
 
 .hidden { display: none !important; }
+
+/* ════════════════════════════════════════════
+   RESPONSIVE: Small phones (< 380px)
+   ════════════════════════════════════════════ */
+@media (max-width: 379px) {
+  #profile-bar { min-height: 38px; padding: 0 var(--space-3); gap: var(--space-2); }
+  .avatar-ring { width: 30px; height: 30px; }
+  .p-link { width: 18px; height: 18px; }
+  .p-link svg { width: 9px; height: 9px; }
+  .install-btn { width: 24px; height: 24px; }
+  .install-btn svg { width: 12px; height: 12px; }
+
+  #camera-feed { flex: 0 0 18%; min-height: 70px; }
+  #banner-area { max-height: min(180px, 25vh); min-height: 50px; }
+  #promo-card { max-height: min(140px, 18vh); min-height: 40px; }
+
+  .discount-card img { max-width: 70px; }
+  #profile-brand { font-size: 0.5rem; }
+}
+
+/* ════════════════════════════════════════════
+   RESPONSIVE: Large phones / phablets (≥ 481px)
+   ════════════════════════════════════════════ */
+@media (min-width: 481px) {
+  #profile-bar { padding: 0 var(--space-6); }
+  #camera-feed { flex: 0 0 22%; }
+  #banner-area { max-height: min(300px, 35vh); }
+  #promo-card { max-height: min(220px, 25vh); }
+}
+
+/* ════════════════════════════════════════════
+   RESPONSIVE: Landscape mode
+   Camera sits absolutely on the left 40%.
+   All content flows naturally on the right.
+   ════════════════════════════════════════════ */
+@media (orientation: landscape) and (max-height: 520px) {
+  #app {
+    padding-left: 40%;
+  }
+
+  #camera-feed {
+    position: absolute;
+    left: 0; top: 0;
+    width: 40%; height: 100%;
+    flex: none; min-height: 100%;
+    z-index: 5;
+  }
+
+  #banner-area {
+    max-height: min(160px, 40vh);
+    min-height: 40px;
+  }
+
+  #promo-card {
+    max-height: min(120px, 30vh);
+    min-height: 35px;
+  }
+
+  #profile-bar { min-height: 36px; }
+  .avatar-ring { width: 28px; height: 28px; }
+  #profile-brand { font-size: 0.5rem; }
+
+  #cam-name { font-size: clamp(0.65rem, 2vw, 1rem); }
+  #cam-price { font-size: clamp(0.8rem, 3vw, 1.25rem); }
+
+  .discount-card img { max-width: 60px; }
+}

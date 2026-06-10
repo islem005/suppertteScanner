@@ -58,7 +58,13 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
 .stats-row { display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr)); gap: var(--space-3); margin-bottom: var(--space-6); }
 .stat-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-5); text-align: center; }
 .stat-card .num { display: block; font-size: var(--text-2xl); font-weight: 800; color: var(--color-primary); letter-spacing: var(--tracking-tight); }
+.stat-card .num.warning { color: var(--color-warning); }
 .stat-card .label { font-size: var(--text-xs); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: var(--tracking-wide); margin-top: var(--space-1); }
+.stat-card.attention { border-left: 3px solid var(--color-warning); background: var(--bg-surface); cursor: pointer; transition: background var(--transition-fast); }
+.stat-card.attention:hover { background: var(--bg-elevated); }
+.stat-card.attention .num { color: var(--color-warning); }
+.stat-card.attention .label { color: var(--text-secondary); }
+.stat-card .attention-link { display: block; font-size: var(--text-xs); color: var(--color-primary); margin-top: var(--space-1); }
 
 .form input, .form select, .form-input {
   width: 100%;

@@ -21,7 +21,7 @@ Permanent project memory for Shelf Scanner. This index maps every lore file to i
 | **Patterns** | `patterns/defensive-js.md` | Defensive `$` helper, Feather icons init, IIFE wrapper, null guards on top-level handlers |
 | **Patterns** | `patterns/tool-preferences.md` | MCP-first tool usage rule |
 | **Security** | `security/protocols.md` | Better Auth, middleware chain, role enforcement, Cloudflare Access |
-| **Infrastructure** | `infrastructure/cloudflare-setup.md` | Pages, Worker, D1, R2 resources, deployment flow, CI/CD, dynamic CORS, cross-subdomain auth, auto-subdomain registration, known issues |
+| **Infrastructure** | `infrastructure/cloudflare-setup.md` | Workers-only architecture (scanner-frontend + scanner-api), D1, R2, deployment flow, CI/CD, dynamic CORS, cross-subdomain auth, auto-subdomain registration, known issues |
 | **Infrastructure** | `infrastructure/pwa-setup.md` | Service Worker cache-first strategy, web manifest, PWA registration flow |
 | **Infrastructure** | `infrastructure/r2-file-storage.md` | R2 bucket, upload/serve endpoints, cache strategy, path convention, frontend upload helpers, migration, display priority |
 | **Infrastructure** | `infrastructure/build-tooling.md` | Vite MPA build config, SSL, proxy, entry points, asset copy |

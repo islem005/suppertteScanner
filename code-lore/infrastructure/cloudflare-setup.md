@@ -2,36 +2,59 @@
 
 ## Overview
 
-Shelf Scanner runs entirely on Cloudflare's free tier:
-- **Pages** hosts the frontend (Vite MPA build)
-- **Workers** hosts the Hono API (`scanner-api`)
+Shelf Scanner runs entirely on Cloudflare's free tier with a **Workers-only architecture** (no Pages project):
+- **Worker `scanner-frontend`** — hosts all frontend via Workers Assets (Vite MPA build)
+- **Worker `scanner-api`** — hosts the Hono API
 - **D1** provides relational storage
 - **R2** stores catalog images and uploaded files
 
-**Development model: Deployed-only.** All development happens against the live deployed instance at `https://ivond.com`. There is no local dev environment — changes are pushed to GitHub, then CI/CD builds, deploys, and runs the full test suite against production. Manual deploy is also available via `npm run deploy:all`.
+**Development model: Deployed-only.** All development happens against the live deployed instance at `https://ivond.com`. There is no local dev environment — changes are pushed to GitHub, then CI/CD builds, deploys, and runs the full test suite against production.
+
+**Architecture:**
+```
+*.ivond.com       ─┐
+ivond.com         ─┼─→  Worker scanner-frontend  ─→  Workers Assets
+www.ivond.com     ─┘
+admin.ivond.com   ─┤
+                    │
+*.ivond.com/api/* ─┐
+ivond.com/api/*   ─┼─→  Worker scanner-api  ─→  Hono + D1 + R2
+www.ivond.com/api/*─┘
+```
 
 ---
 
-## Pages — `shelf-scanner`
+## Worker — `scanner-frontend`
 
-The `shelf-scanner` Pages project serves the Vite-built frontend.
+The frontend Worker serves all static assets and handles hostname-based routing.
 
-**Custom domains:**
-| Domain | Purpose | Routing |
-|---|---|---|
-| `shelf-scanner.pages.dev` | Default Cloudflare Pages domain | — |
-| `ivond.com` | Homepage + Dashboard + Auth | Normal Pages routing |
-| `*.ivond.com` (wildcard) | Store scanner subdomains | Pages Function → `scanner.html` |
-| `admin.ivond.com` | Admin panel (behind Cloudflare Access) | Pages Function → `/admin/` |
+**Config:** `frontend-worker/wrangler.toml`
 
-**Deployment:** Via `npm run deploy:fe` (wrangler pages deploy), or CI/CD via `.github/workflows/deploy.yml`.
+**Worker Routes:**
+| Pattern | Zone |
+|---|---|
+| `*.ivond.com/*` | ivond.com |
+| `ivond.com/*` | ivond.com |
+| `www.ivond.com/*` | ivond.com |
 
-**Pages Functions:** `functions/_middleware.js` routes by hostname:
-- `admin.ivond.com` → redirects `/` → `/admin/`
-- `*.ivond.com` (store subdomains) → serves `scanner.html`
-- `ivond.com` → normal routing
+**Workers Assets:** Built frontend lives in `frontend-worker/public/` (output of `npm run build` + `node copy-assets.mjs`). The `run_worker_first = true` setting means the Worker runs before serving static assets, allowing custom routing logic.
 
-**Pages routing:** `functions/_routes.json` excludes `/api/*` from Pages so the Worker handles them.
+**Hostname-based routing** (`frontend-worker/src/index.js`):
+- `admin.ivond.com` → serves `/admin/index.html`
+- `www.ivond.com` → 301 redirects to `ivond.com`
+- `*.ivond.com` (store subdomains, e.g. `casa.ivond.com`) → serves `/scanner.html`
+- `ivond.com` (apex) → serves whatever the request path maps to (homepage, dashboard, auth)
+
+**Asset detection:** Requests for `.css`, `.js`, `.json`, `.svg`, `.png`, `.jpg`, `.ico`, `.woff2?`, `.ttf`, `.webmanifest`, `.map` are passed directly to `env.ASSETS.fetch()` without modification.
+
+**No-cache headers:** All HTML responses get `Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate` to prevent stale Cloudflare edge cache issues.
+
+**Favicon:** `/favicon.ico` is handled inline in the Worker fetch handler — returns a branded SVG favicon (`image/svg+xml`) to prevent browser 404 noise.
+
+**Deploy:**
+```bash
+cd frontend-worker && wrangler deploy
+```
 
 ---
 
@@ -54,7 +77,7 @@ The Hono Workers API runs as `scanner-api`. Configured in two wrangler configs:
 **Secrets (set):**
 - `BETTER_AUTH_SECRET` ✅ — Set 2026-06-04 for production Worker `scanner-api`
 
-**Worker Route:** `ivond.com/api/*` and `*.ivond.com/api/*` → `scanner-api`
+**Worker Routes:** `ivond.com/api/*` and `*.ivond.com/api/*` → `scanner-api`
 
 ### Dynamic CORS Configuration
 
@@ -75,22 +98,6 @@ This echoes back the request origin for trusted subdomains, enabling credentiale
 ### Cross-Subdomain Cookie Config
 
 Better Auth is configured with `sameSite: 'none'` and `secure: true` on the session cookie (`api/src/auth/index.js`). This ensures the `better-auth.session_token` cookie is sent by the browser when a scanner at `my-store.ivond.com` makes API calls to `ivond.com/api/*`. Without this, the cookie would be blocked.
-
-### Security Headers
-
-Applied via `static/_headers` to all Pages responses:
-
-```
-/*
-  X-Content-Type-Options: nosniff
-  X-Frame-Options: DENY
-  Referrer-Policy: strict-origin-when-cross-origin
-
-/scanner.html
-  Permissions-Policy: camera=(self)
-```
-
-The `Permissions-Policy: camera=(self)` on `scanner.html` is required for `BarcodeDetector` API access.
 
 ---
 
@@ -132,10 +139,12 @@ One bucket exists:
 
 ## Deployment Flow
 
-### Manual deploy
+### Manual Deploy
 ```bash
-npm run deploy:all
-# = npm run build + wrangler pages deploy dist/ + cd api && wrangler deploy
+npm run build                    # Build frontend to dist/
+node copy-assets.mjs             # Copy dist/ to frontend-worker/public/
+cd frontend-worker && wrangler deploy && cd ..
+cd api && wrangler deploy --config wrangler.prod.toml && cd ..
 ```
 
 ### CI/CD (on push to main)
@@ -157,62 +166,36 @@ Triggers on push to `main` branch or via `workflow_dispatch`. Uses concurrency g
 1. **Checkout + Setup Node.js 20** with npm cache
 2. **Install dependencies** (`npm ci`)
 3. **Build frontend** (`npm run build` → `dist/`)
-4. **Deploy frontend to Pages** via `cloudflare/wrangler-action@v3`:
-   `wrangler pages deploy dist/ --project-name shelf-scanner --branch main`
-5. **Install API dependencies** (`cd api && npm ci`)
-6. **Deploy backend to Workers** via `cloudflare/wrangler-action@v3`:
+4. **Copy assets to frontend-worker/public/**
+5. **Deploy frontend Worker** via `cloudflare/wrangler-action@v3` in `frontend-worker/`
+6. **Install API dependencies** (`cd api && npm ci`)
+7. **Deploy backend Worker** via `cloudflare/wrangler-action@v3`:
    `wrangler deploy --config wrangler.prod.toml`
-7. **Warm-up** — polls `API_BASE/health` every 5s up to 60s until 200 OK
-8. **Run full test suite** (`npx vitest run --reporter=verbose`) against live deployed URL with `API_BASE`, `ADMIN_EMAIL`, `ADMIN_PASS`, `ORIGIN` env vars
-9. **Notify on failure** — prints `::error::` annotation if tests fail post-deploy
+8. **Warm-up** — polls `API_BASE/health` every 5s up to 60s until 200 OK
+9. **Run full test suite** (`npx vitest run --reporter=verbose`) against live deployed URL
+10. **Notify on failure** — prints `::error::` annotation if tests fail post-deploy
 
 ---
 
 ## Auto-Subdomain Registration
 
-When a new store (organization) is created, the Worker automatically registers `{slug}.ivond.com` as a custom domain on the Pages project via the Cloudflare API.
+When a new store (organization) is created, the Worker automatically registers `{slug}.ivond.com` via the Cloudflare API.
 
-**How it works:**
-- `api/src/routes/stores.js` exports a `registerStoreSubdomain()` helper
-- Called fire-and-forget (no `await`) after `INSERT INTO organization` succeeds
-- Uses `CLOUDFLARE_PAGES_TOKEN` (Worker secret) for API auth
-- Uses `CLOUDFLARE_ACCOUNT_ID` (env var in `wrangler.prod.toml`) for endpoint URL
+**Current implementation** (`api/src/routes/stores.js`):
+- `registerStoreSubdomain()` helper — called fire-and-forget after `INSERT INTO organization`
+- Uses `CLOUDFLARE_PAGES_TOKEN` and `CLOUDFLARE_ACCOUNT_ID` env vars
 - POSTs to `https://api.cloudflare.com/client/v4/accounts/{id}/pages/projects/shelf-scanner/domains`
 - Body: `{ "name": "{slug}.ivond.com" }`
-- On failure, only logs a warning — doesn't block store creation
 
-**Prerequisites:**
-1. `CLOUDFLARE_PAGES_TOKEN` secret must be set on the Worker (a Cloudflare API token with `pages:write` permission for the Pages project)
-2. `CLOUDFLARE_ACCOUNT_ID` must be set as an env var (in `wrangler.prod.toml`)
-3. Wildcard `*.ivond.com` DNS CNAME must exist pointing to `shelf-scanner.pages.dev` (set manually via Cloudflare DNS)
-4. The Pages Function (`functions/_middleware.js`) must route `*.ivond.com` → `scanner.html`
+**⚠️ NOTE:** The Pages project `shelf-scanner` has been deleted. This auto-registration code targets the old Pages project and does **not** work with the current Workers-only architecture. It needs to be updated to either:
+- Add a custom domain to the Worker with `GET/POST /accounts/{id}/workers/domains`
+- Or use Worker routes API
 
-**Middleware redirect fix:**
-Previously, store subdomains hit a 308 redirect loop because `env.ASSETS.fetch('/scanner.html')` returns a 308 redirect to `/scanner` (Pages strips `.html`). The fix: `fetch()` follows the redirect internally by not setting `redirect: 'manual'`, so the middleware now serves the redirected page correctly.
+On failure, only logs a warning — doesn't block store creation.
 
 ---
 
 ## Known Issues
-
-### Content-Type for static JS files
-
-When deploying to Cloudflare Pages, JS files **must** be served with `Content-Type: application/javascript`. A stale or partial deploy can cause JS URLs to return HTML (e.g., the homepage or a 404 page) instead of JS, which silently breaks the app.
-
-**Symptoms:**
-- Login button does nothing
-- Dashboard sidebar loads but no event handlers fire
-- Browser console shows no JS errors but `<script>` tags are ignored (because the response body is HTML, not valid JS)
-
-**Verification after deploy:**
-```bash
-curl -I https://ivond.com/auth/js/app.js
-# Look for: content-type: application/javascript
-```
-
-**Prevention:**
-- Always run a full `npm run build` before `wrangler pages deploy dist/`
-- If a previous deploy was partial or interrupted, re-run the full build + deploy
-- Verify the build output contains the JS files in the expected paths (`dist/auth/js/app.js`, etc.) before deploying
 
 ### Stale HTML/JS Mismatch
 
@@ -227,6 +210,10 @@ Production deployments can ship new JS that expects DOM elements (e.g., tabs, re
 
 **Fix:** Re-run `npm run build` to regenerate `dist/` with matching HTML and JS, then redeploy.
 
+### Auto-Subdomain Registration Broken
+
+The `registerStoreSubdomain()` function in `api/src/routes/stores.js` still targets the deleted Pages project. New stores created in the dashboard will have a `slug` but their subdomain won't be registered on the Worker. See Auto-Subdomain Registration section above.
+
 ---
 
 ## Resolved Issues
@@ -235,3 +222,5 @@ Production deployments can ship new JS that expects DOM elements (e.g., tabs, re
 2. ✅ ~~`BETTER_AUTH_SECRET` not set~~ — Set via `wrangler secret put` on 2026-06-04
 3. ✅ ~~Remote D1 migrations not applied~~ — Both migrations (001 + 002) applied to production DB on 2026-06-04
 4. ✅ ~~Auth login crash from stale HTML/JS mismatch~~ — Fixed 2026-06-04 by defensive `$` helper + null guards on top-level handlers
+5. ✅ ~~Pages project `shelf-scanner` deleted~~ — Migrated to Workers-only architecture 2026-06-05
+6. ✅ ~~Pages Functions (`_middleware.js`, `_routes.json`) removed~~ — No longer needed with Worker routing
