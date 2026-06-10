@@ -150,7 +150,7 @@ router.delete('/:id', authenticate, async (c) => {
     [c.req.param('id')]
   )
 
-  if (!product) return c.json({ error: 'Not found' }, 404)
+  if (!product) return c.json({ ok: true })
   if (user.role !== 'admin' && product.store_id !== user.store_id) {
     return c.json({ error: 'Forbidden' }, 403)
   }

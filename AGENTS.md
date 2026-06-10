@@ -64,6 +64,8 @@ Subagents available:
 - `@ui-rules` — UI design system enforcer
 - `@tester` — Test runner and output analysis
 
+**All subagents (build agent, plan agent, etc.) must read `code-lore/code-lore-index.md` before starting any work.** This applies to every agent invoked, not just the initial session agent.
+
 ## Backend Source Directory
 
 - **`api/`** — Hono Workers API using Better Auth + D1 (local dev and Cloudflare production).
