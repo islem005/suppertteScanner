@@ -15,7 +15,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link rel="stylesheet" crossorigin href="/assets/dashboard-CHn9rQiP.css">
   <link rel="stylesheet" crossorigin href="/assets/rtl-D3Vhemfn.css">
-  <link rel="stylesheet" crossorigin href="/assets/tokens-B_D_T2_f.css">
+  <link rel="stylesheet" crossorigin href="/assets/tokens-BJ4xS31_.css">
 </head>
 <body>
   <div id="app">
@@ -127,7 +127,7 @@
                 <div class="phone-notch"></div>
                 <div class="phone-screen">
                   <div class="phone-topbar">
-                      <span class="phone-title" id="preview-title">SKANER</span>
+                    <span class="phone-title" id="preview-title">SKANER</span>
                   </div>
                   <div class="phone-scan-area">
                     <div class="phone-scan-frame">
@@ -223,6 +223,18 @@
             <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)">Top Scanned Products</h4>
             <div id="an-top-products" class="table-wrap"></div>
           </div>
+        </section>
+
+        <!-- ══ Team (manager only) ══ -->
+        <section id="view-team" class="dash-view">
+          <header class="view-header"><h2 data-i18n="navTeam">Team</h2><button id="btn-add-associate" class="btn small" data-i18n="newAssociate">+ New Associate</button></header>
+          <div id="team-list" class="table-wrap"></div>
+        </section>
+
+        <!-- ══ Audit Log (manager only) ══ -->
+        <section id="view-audit" class="dash-view">
+          <header class="view-header"><h2 data-i18n="navAuditLog">Audit Log</h2></header>
+          <div id="audit-list" class="table-wrap"></div>
         </section>
 
         <!-- ══ Profile ══ -->

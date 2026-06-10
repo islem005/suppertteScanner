@@ -6,6 +6,7 @@ import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 import { parse } from 'csv-parse/sync'
+import { logAudit } from './audit.js'
 
 const router = new Hono()
 
@@ -59,6 +60,13 @@ router.post('/', authenticate, async (c) => {
     'SELECT * FROM product WHERE store_id = ? AND barcode = ?',
     [effectiveStoreId, barcode]
   )
+
+  logAudit(c.env, {
+    storeId: effectiveStoreId, userId: user.id, userName: user.display_name || user.email,
+    userRole: user.role, action: existing ? 'update' : 'create', entityType: 'product',
+    entityId: product.id, details: { name, barcode, price, category }
+  })
+
   return c.json(product)
 })
 
@@ -137,10 +145,27 @@ router.get('/lookup/:storeId', authenticate, async (c) => {
 router.delete('/:id', authenticate, async (c) => {
   const user = c.get('user')
 
-  await execute(c.env.DB,
-    'DELETE FROM product WHERE id = ? AND store_id = ?',
-    [c.req.param('id'), user.store_id]
+  const product = await queryOne(c.env.DB,
+    'SELECT id, name, barcode, store_id FROM product WHERE id = ?',
+    [c.req.param('id')]
   )
+
+  if (!product) return c.json({ error: 'Not found' }, 404)
+  if (user.role !== 'admin' && product.store_id !== user.store_id) {
+    return c.json({ error: 'Forbidden' }, 403)
+  }
+
+  await execute(c.env.DB,
+    'DELETE FROM product WHERE id = ?',
+    [c.req.param('id')]
+  )
+
+  logAudit(c.env, {
+    storeId: product.store_id, userId: user.id, userName: user.display_name || user.email,
+    userRole: user.role, action: 'delete', entityType: 'product',
+    entityId: product.id, details: { name: product.name, barcode: product.barcode }
+  })
+
   return c.json({ ok: true })
 })
 

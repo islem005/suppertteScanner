@@ -6,6 +6,7 @@
 import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
+import { logAudit } from './audit.js'
 
 const router = new Hono()
 
@@ -68,6 +69,7 @@ router.get('/:storeId', async (c) => {
 
 // ── Admin/dashboard: create discount item ──
 router.post('/', authenticate, async (c) => {
+  const user = c.get('user')
   const body = await c.req.json()
 
   if (!body.store_id || !body.name) {
@@ -86,11 +88,19 @@ router.post('/', authenticate, async (c) => {
   )
 
   const data = await queryOne(c.env.DB, 'SELECT * FROM discount_item WHERE id = ?', [id])
+
+  logAudit(c.env, {
+    storeId: body.store_id, userId: user.id, userName: user.display_name || user.email,
+    userRole: user.role, action: 'create', entityType: 'discount',
+    entityId: id, details: { name: body.name, barcode: body.barcode }
+  })
+
   return c.json(data)
 })
 
 // ── Admin/dashboard: update discount item ──
 router.put('/:id', authenticate, async (c) => {
+  const user = c.get('user')
   const body = await c.req.json()
   const id = c.req.param('id')
 
@@ -114,11 +124,29 @@ router.put('/:id', authenticate, async (c) => {
 
   const data = await queryOne(c.env.DB, 'SELECT * FROM discount_item WHERE id = ?', [id])
   if (!data) return c.json({ error: 'Not found' }, 404)
+
+  logAudit(c.env, {
+    storeId: data.store_id, userId: user.id, userName: user.display_name || user.email,
+    userRole: user.role, action: 'update', entityType: 'discount',
+    entityId: id, details: { name: data.name, changes: Object.keys(body).filter(k => k !== 'store_id') }
+  })
+
   return c.json(data)
 })
 
 router.delete('/:id', authenticate, async (c) => {
+  const user = c.get('user')
+  const existing = await queryOne(c.env.DB, 'SELECT * FROM discount_item WHERE id = ?', [c.req.param('id')])
+  if (!existing) return c.json({ error: 'Not found' }, 404)
+
   await execute(c.env.DB, 'DELETE FROM discount_item WHERE id = ?', [c.req.param('id')])
+
+  logAudit(c.env, {
+    storeId: existing.store_id, userId: user.id, userName: user.display_name || user.email,
+    userRole: user.role, action: 'delete', entityType: 'discount',
+    entityId: existing.id, details: { name: existing.name, barcode: existing.barcode }
+  })
+
   return c.json({ ok: true })
 })
 

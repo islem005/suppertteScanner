@@ -1,6 +1,6 @@
 import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid, upsertClientDevice } from '../db.js'
-import { authenticate, adminOnly } from '../middleware.js'
+import { authenticate, adminOnly, requireManagerOrAbove } from '../middleware.js'
 
 const router = new Hono()
 
@@ -26,15 +26,13 @@ router.get('/admin/export', authenticate, adminOnly, async (c) => {
 
 // ─── Store Analytics (authenticated, scoped to user's store) ────────────
 
-router.get('/store', authenticate, async (c) => {
+router.get('/store', authenticate, requireManagerOrAbove, async (c) => {
   const user = c.get('user')
-  if (!user) return c.json({ error: 'Authentication required' }, 401)
   return getAnalyticsResponse(c, user.store_id)
 })
 
-router.get('/store/export', authenticate, async (c) => {
+router.get('/store/export', authenticate, requireManagerOrAbove, async (c) => {
   const user = c.get('user')
-  if (!user) return c.json({ error: 'Authentication required' }, 401)
   const days = parseInt(c.req.query('days')) || 30
   return exportAnalyticsCSV(c, user.store_id, days)
 })

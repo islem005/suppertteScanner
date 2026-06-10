@@ -90,6 +90,19 @@ export async function adminOnly(c, next) {
 }
 
 /**
+ * Require manager or admin role. Blocks associate and staff.
+ */
+export async function requireManagerOrAbove(c, next) {
+  const user = c.get('user')
+  if (!user) return c.json({ error: 'Authentication required' }, 401)
+  if (user.role === 'admin' || user.role === 'manager') {
+    await next()
+  } else {
+    return c.json({ error: 'Manager or admin required' }, 403)
+  }
+}
+
+/**
  * Require manager or admin for a given store.
  * If user is platform admin, they pass. Otherwise checks store_id match.
  */

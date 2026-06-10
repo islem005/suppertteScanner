@@ -224,6 +224,8 @@ tbody tr:hover td { background: var(--bg-hover); }
 .tag.success { background: var(--color-success-muted); color: var(--color-success); }
 .tag.warning { background: var(--color-warning-muted); color: var(--color-warning); }
 .tag.danger { background: var(--color-danger-muted); color: var(--color-danger); }
+.tag.associate { background: var(--color-warning-muted); color: var(--color-warning); }
+.tag.manager { background: var(--color-primary-muted); color: var(--color-primary); }
 
 .meta { color: var(--text-tertiary); font-size: var(--text-xs); }
 

@@ -4,7 +4,7 @@
 
 import { Hono } from 'hono'
 import { queryOne, execute, uuid } from '../db.js'
-import { authenticate } from '../middleware.js'
+import { authenticate, requireManagerOrAbove } from '../middleware.js'
 
 const router = new Hono()
 
@@ -26,8 +26,8 @@ router.get('/:storeId', async (c) => {
   return c.json(branding)
 })
 
-// Update/create branding (authenticated)
-router.put('/:storeId', authenticate, async (c) => {
+// Update/create branding (manager or admin only)
+router.put('/:storeId', authenticate, requireManagerOrAbove, async (c) => {
   const body = await c.req.json()
   const storeId = c.req.param('storeId')
 

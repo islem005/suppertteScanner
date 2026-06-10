@@ -5,6 +5,7 @@
 import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
+import { logAudit } from './audit.js'
 
 const router = new Hono()
 
@@ -46,6 +47,7 @@ router.get('/single/:id', authenticate, async (c) => {
 
 // Create promotion
 router.post('/', authenticate, async (c) => {
+  const user = c.get('user')
   const body = await c.req.json()
 
   if (!body.store_id || !body.type) {
@@ -62,11 +64,19 @@ router.post('/', authenticate, async (c) => {
   )
 
   const data = await queryOne(c.env.DB, 'SELECT * FROM promotion WHERE id = ?', [id])
+
+  logAudit(c.env, {
+    storeId: body.store_id, userId: user.id, userName: user.display_name || user.email,
+    userRole: user.role, action: 'create', entityType: 'promotion',
+    entityId: id, details: { type: body.type, title: body.title }
+  })
+
   return c.json(data)
 })
 
 // Update promotion
 router.put('/:id', authenticate, async (c) => {
+  const user = c.get('user')
   const body = await c.req.json()
   const id = c.req.param('id')
 
@@ -89,12 +99,30 @@ router.put('/:id', authenticate, async (c) => {
 
   const data = await queryOne(c.env.DB, 'SELECT * FROM promotion WHERE id = ?', [id])
   if (!data) return c.json({ error: 'Not found' }, 404)
+
+  logAudit(c.env, {
+    storeId: data.store_id, userId: user.id, userName: user.display_name || user.email,
+    userRole: user.role, action: 'update', entityType: 'promotion',
+    entityId: id, details: { title: data.title, changes: Object.keys(body).filter(k => k !== 'store_id') }
+  })
+
   return c.json(data)
 })
 
 // Delete promotion
 router.delete('/:id', authenticate, async (c) => {
+  const user = c.get('user')
+  const existing = await queryOne(c.env.DB, 'SELECT * FROM promotion WHERE id = ?', [c.req.param('id')])
+  if (!existing) return c.json({ error: 'Not found' }, 404)
+
   await execute(c.env.DB, 'DELETE FROM promotion WHERE id = ?', [c.req.param('id')])
+
+  logAudit(c.env, {
+    storeId: existing.store_id, userId: user.id, userName: user.display_name || user.email,
+    userRole: user.role, action: 'delete', entityType: 'promotion',
+    entityId: existing.id, details: { title: existing.title, type: existing.type }
+  })
+
   return c.json({ ok: true })
 })
 

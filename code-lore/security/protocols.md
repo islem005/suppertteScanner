@@ -49,20 +49,25 @@ These credentials are used for both local dev and deployed testing (CI/CD + manu
 
 ## Role Enforcement
 
-Three roles enforced both client-side and server-side:
+Four roles enforced both client-side and server-side:
 
-| Resource | Admin | Manager | Staff | Public |
-|---|---|---|---|---|
-| View all stores | ✅ | Own only | Own only | ❌ |
-| Create store | ✅ | ❌ | ❌ | ❌ |
-| Delete store | ✅ | ❌ | ❌ | ❌ |
-| View products (any) | ✅ | Own store | Own store | ❌ |
-| Upload CSV | ❌ | Own store | ❌ | ❌ |
-| Lookup barcode | — | — | — | ✅ |
-| Log scan | — | — | — | ✅ |
-| Edit branding (any) | ✅ | Own store | ❌ | ❌ |
-| Manage users | ✅ | ❌ | ❌ | ❌ |
-| View admin stats | ✅ | ❌ | ❌ | ❌ |
+| Resource | Admin | Manager | Associate | Staff | Public |
+|---|---|---|---|---|---|
+| View all stores | ✅ | Own only | Own only | Own only | ❌ |
+| Create store | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Delete store | ✅ | ❌ | ❌ | ❌ | ❌ |
+| View products (any) | ✅ | Own store | Own store | Own store | ❌ |
+| Add/edit/delete products | ✅ | Own store | Own store | ❌ | ❌ |
+| Upload CSV / import | ✅ | Own store | Own store | ❌ | ❌ |
+| Manage offers & discounts | ✅ | Own store | Own store | ❌ | ❌ |
+| View analytics/stats | ✅ | Own store | ❌ | ❌ | ❌ |
+| Edit branding | ✅ | Own store | ❌ | ❌ | ❌ |
+| Manage team (CRUD associates) | ✅ | Own store | ❌ | ❌ | ❌ |
+| View audit log | ✅ | Own store | ❌ | ❌ | ❌ |
+| Manage users | ✅ | ❌ | ❌ | ❌ | ❌ |
+| View admin stats | ✅ | ❌ | ❌ | ❌ | ❌ |
+| Lookup barcode | — | — | — | — | ✅ |
+| Log scan | — | — | — | — | ✅ |
 
 ### Admin Login Gate
 
@@ -109,6 +114,15 @@ if (!user) return c.json({ error: 'Authentication required' }, 401)
 const user = c.get('user')
 if (!user || user.role !== 'admin') return c.json({ error: 'Admin only' }, 403)
 ```
+
+### `requireManagerOrAbove` — Blocks associate and staff
+
+```js
+const user = c.get('user')
+if (!user || (user.role !== 'admin' && user.role !== 'manager')) return 403
+```
+
+Applied to: analytics, branding, team management, audit log endpoints.
 
 ### `requireStoreAccess` — Store-scoped access
 

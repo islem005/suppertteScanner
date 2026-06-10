@@ -851,7 +851,7 @@
         <input id="mod-user-pass" type="password" placeholder="Password" required>
         <input id="mod-user-name" placeholder="Display Name" required>
         <select id="mod-user-store"><option value="">— No store (admin) —</option>${storeOpts}</select>
-        <select id="mod-user-role"><option value="staff">Staff</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
+        <select id="mod-user-role"><option value="staff">Staff</option><option value="associate">Associate</option><option value="manager">Manager</option><option value="admin">Admin</option></select>
       </div>
     `, async () => {
       const email = $('mod-user-email').value
@@ -1552,7 +1552,6 @@
               <button id="mod-disc-camera-btn" class="btn small" type="button" style="display:flex;align-items:center;gap:4px"><i data-feather="camera"></i> Camera</button>
               <button id="mod-disc-gallery-btn" class="btn small" type="button" style="display:flex;align-items:center;gap:4px"><i data-feather="image"></i> Gallery</button>
             </div>
-            <input type="file" id="mod-disc-camera-input" accept="image/*" capture="environment" style="display:none">
             <input type="file" id="mod-disc-gallery-input" accept="image/png,image/jpeg,image/webp" style="display:none">
             <input type="hidden" id="mod-disc-image" value="${esc(existingImage)}">
             <img id="mod-disc-image-preview" class="logo-preview ${existingImage ? '' : 'hidden'}" src="${esc(existingImage)}">
@@ -1655,16 +1654,82 @@
       }
       reader.readAsDataURL(file)
     }
-    // Camera capture
-    $('mod-disc-camera-input').addEventListener('change', e => { const f = e.target.files[0]; if (f) handleImageFile(f) })
-    $('mod-disc-camera-btn').onclick = () => $('mod-disc-camera-input').click()
+    // Camera capture (in-page viewfinder — avoids native camera app, which can lose URL hash)
+    async function startCameraCapture(onCaptured) {
+      let stream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        })
+      } catch (e) { showToast('Camera access denied'); return }
+
+      const overlay = document.createElement('div')
+      overlay.id = 'camera-capture-overlay'
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000;display:flex;flex-direction:column'
+      const video = document.createElement('video')
+      video.style.cssText = 'flex:1;width:100%;object-fit:contain'
+      video.setAttribute('playsinline', '')
+      video.setAttribute('autoplay', '')
+      video.srcObject = stream
+      video.play()
+
+      const toolbar = document.createElement('div')
+      toolbar.style.cssText = 'padding:16px;text-align:center;background:#000;display:flex;gap:12px;justify-content:center'
+      const cancelBtn = document.createElement('button')
+      cancelBtn.className = 'btn small'
+      cancelBtn.textContent = 'Cancel'
+      const captureBtn = document.createElement('button')
+      captureBtn.className = 'btn primary'
+      captureBtn.textContent = 'Capture'
+
+      toolbar.appendChild(cancelBtn)
+      toolbar.appendChild(captureBtn)
+      overlay.appendChild(video)
+      overlay.appendChild(toolbar)
+      document.body.appendChild(overlay)
+
+      function cleanup() {
+        stream.getTracks().forEach(t => t.stop())
+        overlay.remove()
+      }
+
+      captureBtn.onclick = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        canvas.getContext('2d').drawImage(video, 0, 0)
+        const dataUrl = canvas.toDataURL('image/webp', 0.92)
+        cleanup()
+        onCaptured(dataUrl)
+      }
+      cancelBtn.onclick = cleanup
+    }
+
+    $('mod-disc-camera-btn').onclick = () => {
+      startCameraCapture(async (dataUrl) => {
+        try {
+          const cropped = await window.cropImage(dataUrl, 3/4, 300, 400)
+          const result = await API.uploadImage(cropped, sid, 'discount')
+          $('mod-disc-image').value = result.url
+          $('mod-disc-image-preview').src = result.url
+          $('mod-disc-image-preview').classList.remove('hidden')
+          $('mod-disc-image-remove').classList.remove('hidden')
+        } catch (e) {
+          if (e.message !== 'cancelled') {
+            console.warn('Upload failed:', e)
+            showToast('Image upload failed: ' + e.message)
+          }
+        }
+      })
+    }
+
     // Gallery picker
     $('mod-disc-gallery-input').addEventListener('change', e => { const f = e.target.files[0]; if (f) handleImageFile(f) })
     $('mod-disc-gallery-btn').onclick = () => $('mod-disc-gallery-input').click()
     // Remove
     $('mod-disc-image-remove').addEventListener('click', () => {
       $('mod-disc-image').value = ''
-      $('mod-disc-camera-input').value = ''
       $('mod-disc-gallery-input').value = ''
       $('mod-disc-image-preview').classList.add('hidden')
       $('mod-disc-image-remove').classList.add('hidden')

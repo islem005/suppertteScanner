@@ -19,6 +19,8 @@ import { uploadRouter } from './routes/upload.js'
 import { filesRouter } from './routes/files.js'
 import { pageViewsRouter } from './routes/page-views.js'
 import { analyticsRouter } from './routes/analytics.js'
+import { auditRouter } from './routes/audit.js'
+import { teamRouter } from './routes/team.js'
 
 const app = new Hono()
 
@@ -75,6 +77,8 @@ app.route('/api/upload', uploadRouter)
 app.route('/api/files', filesRouter)
 app.route('/api/page-views', pageViewsRouter)
 app.route('/api/analytics', analyticsRouter)
+app.route('/api/audit', auditRouter)
+app.route('/api/team', teamRouter)
 
 app.get('/api/health', (c) => c.json({ ok: true }))
 

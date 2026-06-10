@@ -98,6 +98,14 @@ const API = (() => {
       URL.revokeObjectURL(url)
     },
 
+    // Team management
+    getTeam: (storeId) => get(`/team/${storeId}`),
+    createAssociate: (storeId, data) => post(`/team/${storeId}`, data),
+    deleteAssociate: (storeId, userId) => del(`/team/${storeId}/${userId}`),
+
+    // Audit log
+    getAuditLog: (storeId, limit, offset) => get(`/audit/${storeId}?limit=${limit || 50}&offset=${offset || 0}`),
+
     // File upload to R2
     /**
      * Upload a data URL (cropped image) to R2 storage.

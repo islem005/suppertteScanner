@@ -2,16 +2,25 @@
   if (typeof feather !== 'undefined') feather.replace()
   let user = null, stores = []
 
-  const navItems = [
-    { id: 'overview',  icon: 'bar-chart-2', labelKey: 'navOverview' },
-    { id: 'analytics', icon: 'trending-up', labelKey: 'navAnalytics' },
-    { id: 'products',  icon: 'package', labelKey: 'navProducts' },
-    { id: 'offers',    icon: 'gift', labelKey: 'navOffers' },
-    { id: 'discounts', icon: 'tag', labelKey: 'navDiscounts' },
-    { id: 'branding',  icon: 'droplet', labelKey: 'navBranding' },
-    { id: 'activity',  icon: 'clock', labelKey: 'navActivity' },
-    { id: 'profile',   icon: 'user', labelKey: 'navProfile' },
-  ]
+  function getNavItems(role) {
+    const base = [
+      { id: 'overview',  icon: 'bar-chart-2', labelKey: 'navOverview' },
+      { id: 'products',  icon: 'package', labelKey: 'navProducts' },
+      { id: 'offers',    icon: 'gift', labelKey: 'navOffers' },
+      { id: 'discounts', icon: 'tag', labelKey: 'navDiscounts' },
+      { id: 'activity',  icon: 'clock', labelKey: 'navActivity' },
+      { id: 'profile',   icon: 'user', labelKey: 'navProfile' },
+    ]
+    if (role === 'manager' || role === 'admin') {
+      base.splice(1, 0, { id: 'analytics', icon: 'trending-up', labelKey: 'navAnalytics' })
+      base.splice(5, 0, { id: 'branding',  icon: 'droplet', labelKey: 'navBranding' })
+      base.push({ id: 'team', icon: 'users', labelKey: 'navTeam' })
+      base.push({ id: 'audit', icon: 'clipboard', labelKey: 'navAuditLog' })
+    }
+    return base
+  }
+
+  let navItems = []
 
   const $ = (id)     => { if (typeof document === 'undefined' || typeof document.getElementById !== 'function') { console.error('DOM not available'); return null }; const e = document.getElementById(id); if (!e) console.warn('Missing #'+id); return e }
   const qs = (s, p)  => (p||document).querySelector(s)
@@ -55,6 +64,8 @@
     else if (id === 'discounts') loadDiscounts()
     else if (id === 'branding') loadBranding()
     else if (id === 'activity') loadActivity()
+    else if (id === 'team') loadTeam()
+    else if (id === 'audit') loadAuditLog()
     else if (id === 'profile') loadProfile()
   }
   function navigateTo(id) {
@@ -81,6 +92,7 @@
 
   function routeDash() {
     showView('view-dash')
+    navItems = getNavItems(user.role)
     buildNav(navItems)
     $('sidebar-username').textContent = user.display_name || user.email
     I18N.applyHtml()
@@ -703,7 +715,6 @@
               <button id="mod-disc-camera-btn" class="btn small" type="button" style="display:flex;align-items:center;gap:4px"><i data-feather="camera"></i> Camera</button>
               <button id="mod-disc-gallery-btn" class="btn small" type="button" style="display:flex;align-items:center;gap:4px"><i data-feather="image"></i> Gallery</button>
             </div>
-            <input type="file" id="mod-disc-camera-input" accept="image/*" capture="environment" style="display:none">
             <input type="file" id="mod-disc-gallery-input" accept="image/png,image/jpeg,image/webp" style="display:none">
             <input type="hidden" id="mod-disc-image" value="${esc(existingImage)}">
             <img id="mod-disc-image-preview" class="logo-preview ${existingImage ? '' : 'hidden'}" src="${esc(existingImage)}">
@@ -805,16 +816,82 @@
       }
       reader.readAsDataURL(file)
     }
-    // Camera capture
-    $('mod-disc-camera-input').addEventListener('change', e => { const f = e.target.files[0]; if (f) handleImageFile(f) })
-    $('mod-disc-camera-btn').onclick = () => $('mod-disc-camera-input').click()
+    // Camera capture (in-page viewfinder — avoids native camera app, which can lose URL hash)
+    async function startCameraCapture(onCaptured) {
+      let stream
+      try {
+        stream = await navigator.mediaDevices.getUserMedia({
+          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          audio: false
+        })
+      } catch (e) { showToast('Camera access denied'); return }
+
+      const overlay = document.createElement('div')
+      overlay.id = 'camera-capture-overlay'
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000;display:flex;flex-direction:column'
+      const video = document.createElement('video')
+      video.style.cssText = 'flex:1;width:100%;object-fit:contain'
+      video.setAttribute('playsinline', '')
+      video.setAttribute('autoplay', '')
+      video.srcObject = stream
+      video.play()
+
+      const toolbar = document.createElement('div')
+      toolbar.style.cssText = 'padding:16px;text-align:center;background:#000;display:flex;gap:12px;justify-content:center'
+      const cancelBtn = document.createElement('button')
+      cancelBtn.className = 'btn small'
+      cancelBtn.textContent = I18N.t('cancel')
+      const captureBtn = document.createElement('button')
+      captureBtn.className = 'btn primary'
+      captureBtn.textContent = 'Capture'
+
+      toolbar.appendChild(cancelBtn)
+      toolbar.appendChild(captureBtn)
+      overlay.appendChild(video)
+      overlay.appendChild(toolbar)
+      document.body.appendChild(overlay)
+
+      function cleanup() {
+        stream.getTracks().forEach(t => t.stop())
+        overlay.remove()
+      }
+
+      captureBtn.onclick = () => {
+        const canvas = document.createElement('canvas')
+        canvas.width = video.videoWidth
+        canvas.height = video.videoHeight
+        canvas.getContext('2d').drawImage(video, 0, 0)
+        const dataUrl = canvas.toDataURL('image/webp', 0.92)
+        cleanup()
+        onCaptured(dataUrl)
+      }
+      cancelBtn.onclick = cleanup
+    }
+
+    $('mod-disc-camera-btn').onclick = () => {
+      startCameraCapture(async (dataUrl) => {
+        try {
+          const cropped = await window.cropImage(dataUrl, 3/4, 300, 400)
+          const result = await API.uploadImage(cropped, user.store_id, 'discount')
+          $('mod-disc-image').value = result.url
+          $('mod-disc-image-preview').src = result.url
+          $('mod-disc-image-preview').classList.remove('hidden')
+          $('mod-disc-image-remove').classList.remove('hidden')
+        } catch (e) {
+          if (e.message !== 'cancelled') {
+            console.warn('Upload failed:', e)
+            showToast(I18N.t('uploadFailed') + ': ' + e.message)
+          }
+        }
+      })
+    }
+
     // Gallery picker
     $('mod-disc-gallery-input').addEventListener('change', e => { const f = e.target.files[0]; if (f) handleImageFile(f) })
     $('mod-disc-gallery-btn').onclick = () => $('mod-disc-gallery-input').click()
     // Remove
     $('mod-disc-image-remove').addEventListener('click', () => {
       $('mod-disc-image').value = ''
-      $('mod-disc-camera-input').value = ''
       $('mod-disc-gallery-input').value = ''
       $('mod-disc-image-preview').classList.add('hidden')
       $('mod-disc-image-remove').classList.add('hidden')
@@ -950,6 +1027,85 @@
       await API.deleteDiscount(id)
       closeModal(); await loadDiscounts()
     }, true)
+  }
+
+  // ══════════════════════════════════════════════
+  //  TEAM (Manager: CRUD associates)
+  // ══════════════════════════════════════════════
+
+  async function loadTeam() {
+    if (!user.store_id) { $('team-list').innerHTML = '<div class="empty-state">' + I18N.t('noStoreAssigned') + '</div>'; return }
+    try {
+      const members = await API.getTeam(user.store_id)
+      if (members.length === 0) {
+        $('team-list').innerHTML = '<div class="empty-state">' + I18N.t('noAssociates') + '</div>'; return
+      }
+      let html = '<table><thead><tr><th>' + I18N.t('associateName') + '</th><th>' + I18N.t('associateEmail') + '</th><th>' + I18N.t('role') + '</th><th></th></tr></thead><tbody>'
+      for (const m of members) {
+        html += '<tr>' +
+          '<td data-label="' + I18N.t('associateName') + '"><strong>' + esc(m.display_name || m.name || '—') + '</strong></td>' +
+          '<td data-label="' + I18N.t('associateEmail') + '" class="meta">' + esc(m.email) + '</td>' +
+          '<td data-label="' + I18N.t('role') + '"><span class="tag associate">' + I18N.t('roleAssociate') + '</span></td>' +
+          '<td class="actions-cell"><button class="btn small danger" onclick="deleteAssociate(\'' + m.id + '\')">' + I18N.t('delete') + '</button></td>' +
+          '</tr>'
+      }
+      $('team-list').innerHTML = html + '</tbody></table>'
+    } catch { $('team-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + '</div>' }
+  }
+
+  $('btn-add-associate') && $('btn-add-associate').addEventListener('click', () => {
+    showModal(I18N.t('newAssociate'), `
+      <div class="form">
+        <div class="form-row"><label>${I18N.t('associateName')}</label><input id="mod-assoc-name" class="form-input" placeholder="e.g. John Doe"></div>
+        <div class="form-row"><label>${I18N.t('associateEmail')}</label><input id="mod-assoc-email" type="email" class="form-input" placeholder="e.g. john@store.com"></div>
+        <div class="form-row"><label>${I18N.t('associatePassword')}</label><input id="mod-assoc-pass" type="password" class="form-input" placeholder="Min 6 characters"></div>
+      </div>
+    `, async () => {
+      const name = $('mod-assoc-name').value
+      const email = $('mod-assoc-email').value
+      const password = $('mod-assoc-pass').value
+      if (!name || !email || !password) { showToast(I18N.t('errorPrefix') + 'All fields required'); return }
+      try {
+        await API.createAssociate(user.store_id, { displayName: name, email, password })
+        closeModal(); await loadTeam(); showToast(I18N.t('associateCreated'))
+      } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
+    })
+    $('modal-confirm').textContent = I18N.t('createAccount')
+  })
+
+  window.deleteAssociate = async (userId) => {
+    showModal(I18N.t('deleteAssociate'), I18N.t('deleteAssociateConfirm'), async () => {
+      await API.deleteAssociate(user.store_id, userId)
+      closeModal(); await loadTeam(); showToast(I18N.t('associateDeleted'))
+    }, true)
+  }
+
+  // ══════════════════════════════════════════════
+  //  AUDIT LOG (Manager: view associate activity)
+  // ══════════════════════════════════════════════
+
+  async function loadAuditLog() {
+    if (!user.store_id) { $('audit-list').innerHTML = '<div class="empty-state">' + I18N.t('noStoreAssigned') + '</div>'; return }
+    try {
+      const data = await API.getAuditLog(user.store_id, 100, 0)
+      const logs = data.logs || []
+      if (logs.length === 0) {
+        $('audit-list').innerHTML = '<div class="empty-state">' + I18N.t('auditNoLogs') + '</div>'; return
+      }
+      let html = '<table><thead><tr><th>' + I18N.t('auditDate') + '</th><th>' + I18N.t('auditUser') + '</th><th>' + I18N.t('auditAction') + '</th><th>' + I18N.t('auditEntity') + '</th><th>' + I18N.t('auditDetails') + '</th></tr></thead><tbody>'
+      for (const l of logs) {
+        const dt = new Date(l.created_at).toLocaleString()
+        const details = l.details ? (typeof l.details === 'string' ? l.details : JSON.stringify(l.details)) : '—'
+        html += '<tr>' +
+          '<td data-label="' + I18N.t('auditDate') + '" class="meta" style="white-space:nowrap">' + esc(dt) + '</td>' +
+          '<td data-label="' + I18N.t('auditUser') + '">' + esc(l.user_name || '—') + '</td>' +
+          '<td data-label="' + I18N.t('auditAction') + '"><span class="tag">' + esc(l.action) + '</span></td>' +
+          '<td data-label="' + I18N.t('auditEntity') + '" class="meta">' + esc(l.entity_type) + '</td>' +
+          '<td data-label="' + I18N.t('auditDetails') + '" class="meta" style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis">' + esc(details) + '</td>' +
+          '</tr>'
+      }
+      $('audit-list').innerHTML = html + '</tbody></table>'
+    } catch { $('audit-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + '</div>' }
   }
 
   // ══════════════════════════════════════════════
