@@ -301,9 +301,11 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.phone-title img {
-  max-height: 22px;
-  display: block;
+.phone-topbar-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 .phone-scan-area {
   flex: 1;

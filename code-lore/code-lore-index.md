@@ -1,6 +1,6 @@
 # Code-Lore Index
 
-Permanent project memory for Shelf Scanner. This index maps every lore file to its purpose.
+Permanent project memory for SKANER by ivond. This index maps every lore file to its purpose.
 
 ## Quick Reference
 
@@ -15,8 +15,8 @@ Permanent project memory for Shelf Scanner. This index maps every lore file to i
 | **Components** | `components/scanner-storage.md` | IndexedDB schema, scan history CRUD, localStorage usage |
 | **Patterns** | `patterns/api-call-patterns.md` | API client structure, cookie-based auth, error handling |
 | **Patterns** | `patterns/error-handling.md` | Toast notifications, modal errors, unhandled rejection handling |
-| **Patterns** | `patterns/dashboard-patterns.md` | Dashboard SPA structure, all 7 views, upload flow, API client, i18n system |
-| **Patterns** | `patterns/admin-patterns.md` | Admin panel SPA structure, all 8 views, store detail, mapping editor, role enforcement |
+| **Patterns** | `patterns/dashboard-patterns.md` | Dashboard SPA structure, all 10 views, upload flow, API client, i18n system |
+| **Patterns** | `patterns/admin-patterns.md` | Admin panel SPA structure, all 11 views, store detail, mapping editor, role enforcement |
 | **Patterns** | `patterns/auth-flow.md` | Login page flow, session persistence, dashboard/admin auth, sign out, localStorage keys |
 | **Patterns** | `patterns/defensive-js.md` | Defensive `$` helper, Feather icons init, IIFE wrapper, null guards on top-level handlers |
 | **Patterns** | `patterns/tool-preferences.md` | MCP-first tool usage rule |

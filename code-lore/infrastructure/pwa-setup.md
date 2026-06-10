@@ -29,9 +29,9 @@ on GET request:
 
 ```json
 {
-  "name": "Shelf Scanner",
-  "short_name": "Scanner",
-  "description": "Fast barcode scanner for shelf inventory",
+  "name": "SKANER",
+  "short_name": "SKANER",
+  "description": "SKANER by ivond — instant in-store barcode scanning",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -50,9 +50,9 @@ on GET request:
 
 In `scanner.html`:
 ```html
-<link rel="manifest" href="/manifest.json">
-...
 <script>
+// Manifest is loaded dynamically from /api/manifest?slug=... for subdomain support
+fetch(`/api/manifest?slug=${storeSlug}`).then(...)
 if ('serviceWorker' in navigator) {
   navigator.serviceWorker.register('/sw.js').catch(() => {});
 }

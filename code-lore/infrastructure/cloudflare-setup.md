@@ -2,7 +2,7 @@
 
 ## Overview
 
-Shelf Scanner runs entirely on Cloudflare's free tier with a **Workers-only architecture** (no Pages project):
+SKANER by ivond runs entirely on Cloudflare's free tier with a **Workers-only architecture** (no Pages project):
 - **Worker `scanner-frontend`** — hosts all frontend via Workers Assets (Vite MPA build)
 - **Worker `scanner-api`** — hosts the Hono API
 - **D1** provides relational storage
@@ -37,7 +37,7 @@ The frontend Worker serves all static assets and handles hostname-based routing.
 | `ivond.com/*` | ivond.com |
 | `www.ivond.com/*` | ivond.com |
 
-**Workers Assets:** Built frontend lives in `frontend-worker/public/` (output of `npm run build` + `node copy-assets.mjs`). The `run_worker_first = true` setting means the Worker runs before serving static assets, allowing custom routing logic.
+**Workers Assets:** Built frontend lives in `frontend-worker/public/` (output of `node build-frontend.mjs`, which runs `npm run build` then copies `dist/` to `frontend-worker/public/`). The `run_worker_first = true` setting means the Worker runs before serving static assets, allowing custom routing logic.
 
 **Hostname-based routing** (`frontend-worker/src/index.js`):
 - `admin.ivond.com` → serves `/admin/index.html`
@@ -111,18 +111,24 @@ Better Auth is configured with `sameSite: 'none'` and `secure: true` on the sess
 
 **Migration files:**
 - `api/migrations/001_init.sql` — Base schema (Better Auth + app tables)
+- `api/migrations/002_r2.sql` — R2 file storage columns
 - `api/migrations/002_store_registrations.sql` — Store registration requests table
+- `api/migrations/003_client_tracking.sql` — Client device + page view tracking
+- `api/migrations/004_audit_log.sql` — Audit log for associate actions
 
 **Apply migrations:**
 ```bash
 wrangler d1 execute shelf-scanner-db --remote --file=migrations/001_init.sql
+wrangler d1 execute shelf-scanner-db --remote --file=migrations/002_r2.sql
 wrangler d1 execute shelf-scanner-db --remote --file=migrations/002_store_registrations.sql
+wrangler d1 execute shelf-scanner-db --remote --file=migrations/003_client_tracking.sql
+wrangler d1 execute shelf-scanner-db --remote --file=migrations/004_audit_log.sql
 ```
 
-**D1 tables (17 total):**
+**D1 tables (20 total):**
 - Better Auth core: `user`, `session`, `account`, `verification`
 - Organization plugin: `organization`, `member`, `invitation`
-- App tables: `product`, `scan_event`, `store_branding`, `promotion`, `discount_item`, `import_mapping`, `pending_import`, `store_registration`
+- App tables: `product`, `scan_event`, `store_branding`, `promotion`, `discount_item`, `import_mapping`, `pending_import`, `store_registration`, `client_device`, `page_view`, `audit_log`
 - Internal: `_cf_KV`
 
 ---
@@ -141,8 +147,7 @@ One bucket exists:
 
 ### Manual Deploy
 ```bash
-npm run build                    # Build frontend to dist/
-node copy-assets.mjs             # Copy dist/ to frontend-worker/public/
+node build-frontend.mjs          # Build frontend + copy to frontend-worker/public/
 cd frontend-worker && wrangler deploy && cd ..
 cd api && wrangler deploy --config wrangler.prod.toml && cd ..
 ```

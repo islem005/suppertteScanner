@@ -1,6 +1,8 @@
 const Scanner = (() => {
   let stream = null;
   let detector = null;
+  let fallbackDetect = null;
+  let fallbackCanvas = null;
   let active = false;
   let loopId = null;
   let lastResults = [];
@@ -14,14 +16,31 @@ const Scanner = (() => {
   let videoEl = null;
 
   async function init() {
-    if (!('BarcodeDetector' in window)) {
-      return { ok: false, error: 'BarcodeDetector not supported. Use Chrome on Android or Safari 16.4+.' };
+    if ('BarcodeDetector' in window) {
+      detector = new BarcodeDetector({ formats: [
+        'qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39',
+        'code_93', 'codabar', 'itf', 'upc_a', 'upc_e',
+        'data_matrix', 'aztec', 'pdf417'
+      ]});
+    } else {
+      try {
+        const zbar = await import('https://cdn.jsdelivr.net/npm/zbar-wasm@2/dist/zbar-wasm.js');
+        fallbackCanvas = document.createElement('canvas');
+        fallbackDetect = async (video) => {
+          const scale = Math.min(640 / video.videoWidth, 480 / video.videoHeight, 1);
+          fallbackCanvas.width = Math.round(video.videoWidth * scale) || 1;
+          fallbackCanvas.height = Math.round(video.videoHeight * scale) || 1;
+          const ctx = fallbackCanvas.getContext('2d');
+          if (!ctx) return [];
+          ctx.drawImage(video, 0, 0, fallbackCanvas.width, fallbackCanvas.height);
+          const imageData = ctx.getImageData(0, 0, fallbackCanvas.width, fallbackCanvas.height);
+          const symbols = await zbar.scanImageData(imageData);
+          return symbols.map(s => ({ rawValue: s.decode, format: s.typeName }));
+        };
+      } catch (_) {
+        return { ok: false, error: 'Barcode decoder failed to load. Use Chrome on Android.' };
+      }
     }
-    detector = new BarcodeDetector({ formats: [
-      'qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39',
-      'code_93', 'codabar', 'itf', 'upc_a', 'upc_e',
-      'data_matrix', 'aztec', 'pdf417'
-    ]});
 
     try {
       stream = await navigator.mediaDevices.getUserMedia({
@@ -35,7 +54,7 @@ const Scanner = (() => {
   }
 
   function start(video, callback) {
-    if (!stream || !detector) return;
+    if (!stream || (!detector && !fallbackDetect)) return;
     if (active) return;
     active = true;
     onDetect = callback;
@@ -50,7 +69,14 @@ const Scanner = (() => {
     const startTime = performance.now();
     try {
       if (videoEl.readyState >= 2) {
-        const codes = await detector.detect(videoEl);
+        let codes;
+        if (fallbackDetect) {
+          codes = await fallbackDetect(videoEl);
+        } else if (detector) {
+          codes = await detector.detect(videoEl);
+        } else {
+          return;
+        }
         if (active && codes.length > 0) {
           processResults(codes);
         }

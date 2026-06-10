@@ -43,12 +43,16 @@ jobs:
       - name: Build frontend
         run: npm run build
 
-      # ── Deploy Frontend to Cloudflare Pages ──
-      - name: Deploy frontend to Pages
+      # ── Deploy Frontend to Cloudflare Worker (Workers Assets) ──
+      - name: Build + copy frontend to Worker public/
+        run: node build-frontend.mjs
+
+      - name: Deploy frontend Worker
         uses: cloudflare/wrangler-action@v3
         with:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-          command: pages deploy dist/ --project-name shelf-scanner --branch main
+          command: deploy
+          workingDirectory: frontend-worker
 
       # ── Deploy Backend to Cloudflare Workers ──
       - name: Install API dependencies

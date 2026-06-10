@@ -4,7 +4,7 @@
 
 ### Better Auth (Current)
 
-Shelf Scanner uses **Better Auth** for authentication, integrated with Hono Workers + D1.
+SKANER by ivond uses **Better Auth** for authentication, integrated with Hono Workers + D1.
 
 - **Sign-in**: `POST /api/auth/sign-in/email` with `{ email, password }` — sets a cookie session
 - **Sign-up**: `POST /api/auth/sign-up/email` with `{ email, password, name }`
@@ -84,11 +84,11 @@ In `dashboard/js/app.js`, the session check verifies with the server and redirec
 ## Cloudflare Access (Production Admin)
 
 - Admin dashboard at `admin.ivond.com` is behind Cloudflare Access (Email OTP)
-- A Pages Function (`functions/_middleware.js`) rewrites `/` → `/admin/` for the admin host
+- The `scanner-frontend` Worker rewrites `/` → `/admin/` for the admin host (see `frontend-worker/src/index.js`)
 - `meta[name="cf-access"]` in admin HTML triggers auto-auth via `POST /api/auth/cf-access`
 - The Cf-Access endpoint at `api/src/routes/cf-access.js` exchanges the `Cf-Access-Authenticated-User-Email` header for a session
-- A separate `admin-auth` D1 database stores authorized admin emails
-- Cloudflare Access is enforced at the network level before any request reaches the Pages Function
+- Admin emails are stored in the main `shelf-scanner-db` (queried via `c.env.DB`)
+- Cloudflare Access is enforced at the network level before any request reaches the Worker
 
 ## Backend Middleware (`api/src/middleware.js`)
 

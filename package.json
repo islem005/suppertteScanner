@@ -15,9 +15,9 @@
     "test:watch": "vitest --reporter=verbose",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
-    "deploy:fe": "wrangler pages deploy dist/ --project-name shelf-scanner",
+    "deploy:fe": "node build-frontend.mjs && cd frontend-worker && wrangler deploy",
     "deploy:api": "cd api && wrangler deploy --config wrangler.prod.toml",
-    "deploy:all": "npm run build && npm run deploy:fe && npm run deploy:api"
+    "deploy:all": "node build-frontend.mjs && cd frontend-worker && wrangler deploy && cd ../api && wrangler deploy --config wrangler.prod.toml"
   },
   "keywords": [],
   "author": "",

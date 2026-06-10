@@ -79,21 +79,41 @@ The dashboard SPA (`dashboard/index.html`, `dashboard/js/app.js`) is the store m
 - Each item: barcode + scan count
 - Data from: `API.getScanStats()`
 
+### Analytics
+- Chart area with scan trend data (last 7/30/90 days)
+- Date range picker + Export CSV button
+- Data from: `API.getAnalytics()`, `API.exportAnalytics()`
+- Only visible to managers/admins (blocked for associates)
+
+### Team
+- Associate user table: display name, email, delete button
+- **New Associate** modal: email, password, display name
+- **Delete Associate** modal: confirmation
+- Data from: `API.getTeam()`, `API.createAssociate()`, `API.deleteAssociate()`
+- Only visible to managers/admins
+
+### Audit Log
+- Action history table: user, action, entity, timestamp
+- Paginated (50 per page) with load-more button
+- Data from: `API.getAuditLog()`
+- Only visible to managers/admins
+
 ### Profile
 - Shows user email, display name, role (styled tag), store name
-- Language switcher: English / French buttons stored in `localStorage.lang`
+- Language switcher: English / French / Arabic buttons stored in `localStorage.lang`
 
 ---
 
-## i18n System (`dashboard/js/i18n.js`)
+## i18n System (`js/i18n.js`)
 
-The `I18N` singleton handles internationalization:
-- **Language storage:** `localStorage.getItem('lang')` — defaults to `'en'`
-- **Languages:** English (`en`) and French (`fr`) — ~106 keys each
+The `I18N` singleton handles internationalization (shared across all apps):
+- **Language storage:** `localStorage.getItem('lang')` or `navigator.language` — falls back to `'en'`
+- **Languages:** English (`en`), French (`fr`), Arabic (`ar`) — ~200+ keys each
 - **`I18N.t(key)`** — returns translated string for current language, falls back to key
 - **`I18N.setLang(l)`** — sets language and saves to localStorage
 - **`I18N.applyHtml()`** — processes all `[data-i18n]` elements on the page
 - Language switcher buttons call `I18N.setLang()` then `location.reload()`
+- Arabic layout uses RTL (right-to-left) direction via `rtlLangs` map
 
 ### Key i18n categories
 | Category | Keys |
@@ -115,7 +135,7 @@ The `I18N` singleton handles internationalization:
 - Singleton `API` object with typed methods for every endpoint
 - Base URL: `localStorage.getItem('api_base') || '/api'`
 - Auto-redirects to `/auth/` on 401
-- Methods: `login`, `register`, `getStores`, `createStore`, `getStore`, `getProducts`, `uploadCsv`, `deleteProduct`, `getScanStats`, `getBranding`, `updateBranding`, `getAdminStats`, `getAdminUsers`, `createUser`, `deleteUser`, `getAdminActivity`, `uploadImport`, `getStoreImports`, `getImport`, `getImportPreview`, `previewMappedImport`, `confirmImport`, `getMapping`, `getStorePromotions`, `getPromotion`, `createPromotion`, `updatePromotion`, `deletePromotion`, `getBanner`, `getDiscounts`, `getDiscount`, `createDiscount`, `updateDiscount`, `deleteDiscount`
+- Methods: `login`, `register`, `getStores`, `createStore`, `getStore`, `getProducts`, `getProductByBarcode`, `uploadCsv`, `deleteProduct`, `getScanStats`, `getAnalytics`, `exportAnalytics`, `getBranding`, `updateBranding`, `getAdminStats`, `getAdminUsers`, `createUser`, `deleteUser`, `getAdminActivity`, `uploadImport`, `getStoreImports`, `getImport`, `getImportPreview`, `previewMappedImport`, `confirmImport`, `getMapping`, `getStorePromotions`, `getPromotion`, `createPromotion`, `updatePromotion`, `deletePromotion`, `getBanner`, `getDiscounts`, `getDiscount`, `createDiscount`, `updateDiscount`, `deleteDiscount`, `getTeam`, `createAssociate`, `deleteAssociate`, `getAuditLog`, `uploadImage`
 
 ### Modal (`window.showModal`)
 - Shared modal overlay with title, body HTML, and optional confirm callback

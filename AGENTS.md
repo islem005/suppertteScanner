@@ -48,7 +48,7 @@ If a plan requires something not covered in code-lore, stop and ask how to proce
 ```bash
 npm run deploy:all
 ```
-This runs: `npm run build && wrangler pages deploy dist/ --project-name shelf-scanner && cd api && wrangler deploy --config wrangler.prod.toml`
+This runs: `node build-frontend.mjs && cd frontend-worker && wrangler deploy && cd ../api && wrangler deploy --config wrangler.prod.toml`
 
 ### Testing
 Tests run **post-deploy** against the live production URL via CI/CD:
@@ -99,9 +99,10 @@ Some LSP errors can be safely ignored — browser APIs like `BarcodeDetector` ma
 ## Known Credentials (Configurable via env vars)
 
 | User | Email | Password | Role |
-|---|---|---|---|
+|---|---|---|---|---|
 | Admin | `admin@store.com` | `admin123` | admin |
 | Manager | `manager@store.com` | `manager123` | manager |
+| Associate | — | — | associate |
 | Store slug | `my-store` | — | — |
 
 For post-deploy testing, override via: `ADMIN_EMAIL`, `ADMIN_PASS`, `API_BASE` env vars.
@@ -121,10 +122,11 @@ When the user says **"Let's prepare for the next thread"** or equivalent:
 - `index.html` / `scanner.html` — Scanner PWA entry points
 - `dashboard/index.html` — Store dashboard SPA
 - `admin/index.html` — Admin panel SPA
-- `functions/_middleware.js` — Pages Function: hostname-based routing (subdomain → scanner.html)
-- `functions/_routes.json` — Pages routing: excludes `/api/*` from Pages
+- `frontend-worker/src/index.js` — Worker fetch handler: hostname-based routing (subdomain → scanner.html)
+- `frontend-worker/wrangler.toml` — Worker routes for `*.ivond.com`, `ivond.com`, `www.ivond.com`
 - `.github/workflows/deploy.yml` — CI/CD pipeline: build → deploy → test
 - `vite.config.js` — Vite build config (not used for serving, only for `npm run build`)
+- `build-frontend.mjs` — Builds frontend, copies to `frontend-worker/public/` for Workers Assets
 - `test/api/setup.js` — Test config (API_BASE from env var, disposable test store)
 
 ## Current Status

@@ -6,17 +6,18 @@ The scanner app (`js/app.js`, `js/scanner.js`, `scanner.html`) is a PWA that run
 
 ---
 
-## BarcodeDetector Engine (`js/scanner.js`)
+## Scanner Engine (`js/scanner.js`)
 
-A singleton `Scanner` module wrapping the native `BarcodeDetector` API.
+A singleton `Scanner` module that wraps the native `BarcodeDetector` API with a **zbar-wasm fallback** for Firefox.
 
 ### Init
 ```js
 const result = await Scanner.init()
 ```
-- Checks `'BarcodeDetector' in window` — returns `{ ok: false, error }` if unsupported
-- Creates detector with formats: `qr_code, ean_13, ean_8, code_128, code_39, code_93, codabar, itf, upc_a, upc_e, data_matrix, aztec, pdf417`
+- If `'BarcodeDetector' in window` — creates native detector with formats: `qr_code, ean_13, ean_8, code_128, code_39, code_93, codabar, itf, upc_a, upc_e, data_matrix, aztec, pdf417`
+- Otherwise — dynamically imports `zbar-wasm` from CDN, creates a hidden canvas for frame capture
 - Requests camera via `getUserMedia` with `facingMode: 'environment'`, resolution `1280x720`
+- Returns `{ ok: false, error }` if both decoder and camera fail
 
 ### Start / Stop
 ```js

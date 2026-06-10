@@ -1659,51 +1659,57 @@
       let stream
       try {
         stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
+          video: { facingMode: 'environment', width: { ideal: 1920 }, height: { ideal: 1080 } },
           audio: false
         })
       } catch (e) { showToast('Camera access denied'); return }
 
       const overlay = document.createElement('div')
       overlay.id = 'camera-capture-overlay'
-      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000;display:flex;flex-direction:column'
+      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000'
       const video = document.createElement('video')
-      video.style.cssText = 'flex:1;width:100%;object-fit:contain'
+      video.style.cssText = 'position:absolute;top:0;left:0;width:100%;height:100%;object-fit:cover'
       video.setAttribute('playsinline', '')
       video.setAttribute('autoplay', '')
       video.srcObject = stream
       video.play()
 
-      const toolbar = document.createElement('div')
-      toolbar.style.cssText = 'padding:16px;text-align:center;background:#000;display:flex;gap:12px;justify-content:center'
       const cancelBtn = document.createElement('button')
-      cancelBtn.className = 'btn small'
-      cancelBtn.textContent = 'Cancel'
-      const captureBtn = document.createElement('button')
-      captureBtn.className = 'btn primary'
-      captureBtn.textContent = 'Capture'
+      cancelBtn.innerHTML = '<i data-feather="x"></i>'
+      cancelBtn.style.cssText = 'position:absolute;top:16px;left:16px;z-index:10;width:40px;height:40px;border-radius:50%;border:none;background:rgba(0,0,0,0.5);color:#fff;display:flex;align-items:center;justify-content:center;cursor:pointer'
 
-      toolbar.appendChild(cancelBtn)
-      toolbar.appendChild(captureBtn)
+      const shutter = document.createElement('button')
+      shutter.style.cssText = 'position:absolute;bottom:48px;left:50%;transform:translateX(-50%);z-index:10;width:72px;height:72px;border-radius:50%;border:4px solid #fff;background:rgba(255,255,255,0.3);cursor:pointer;display:flex;align-items:center;justify-content:center;transition:transform 0.1s'
+      const inner = document.createElement('div')
+      inner.style.cssText = 'width:56px;height:56px;border-radius:50%;background:#fff'
+      shutter.appendChild(inner)
+
       overlay.appendChild(video)
-      overlay.appendChild(toolbar)
+      overlay.appendChild(cancelBtn)
+      overlay.appendChild(shutter)
       document.body.appendChild(overlay)
+
+      if (typeof feather !== 'undefined') feather.replace()
 
       function cleanup() {
         stream.getTracks().forEach(t => t.stop())
         overlay.remove()
       }
 
-      captureBtn.onclick = () => {
-        const canvas = document.createElement('canvas')
-        canvas.width = video.videoWidth
-        canvas.height = video.videoHeight
-        canvas.getContext('2d').drawImage(video, 0, 0)
-        const dataUrl = canvas.toDataURL('image/webp', 0.92)
-        cleanup()
-        onCaptured(dataUrl)
-      }
       cancelBtn.onclick = cleanup
+
+      shutter.onclick = () => {
+        shutter.style.transform = 'translateX(-50%) scale(0.9)'
+        setTimeout(() => {
+          const canvas = document.createElement('canvas')
+          canvas.width = video.videoWidth
+          canvas.height = video.videoHeight
+          canvas.getContext('2d').drawImage(video, 0, 0)
+          const dataUrl = canvas.toDataURL('image/webp', 0.92)
+          cleanup()
+          onCaptured(dataUrl)
+        }, 100)
+      }
     }
 
     $('mod-disc-camera-btn').onclick = () => {

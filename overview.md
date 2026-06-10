@@ -1,8 +1,8 @@
-# Shelf Scanner — Complete Project Overview
+# SKANER by ivond — Complete Project Overview
 
 ## What It Is
 
-Shelf Scanner is a SaaS barcode scanning platform on Cloudflare's free tier. Stores publish product catalogs; customers visit `{store}.ivond.com` on their phone, point at a barcode, and see the name and price instantly.
+SKANER is a SaaS barcode scanning platform on Cloudflare's free tier. Stores publish product catalogs; customers visit `{store}.ivond.com` on their phone, point at a barcode, and see the name and price instantly.
 
 **Three apps in one:**
 - **Scanner PWA** (`{store}.ivond.com`) — Public-facing, continuous barcode scanning via `BarcodeDetector` API
@@ -25,7 +25,7 @@ www.ivond.com/api/*─┘
 - **Frontend:** Workers Assets (deployed as `scanner-frontend` Worker) — Vite MPA build of 5 entry points: `index.html`, `scanner.html`, `dashboard/index.html`, `admin/index.html`, `auth/index.html`
 - **Backend:** Hono Workers API (`scanner-api` Worker) with Better Auth + D1 + R2
 - **Storage:** Cloudflare D1 (relational DB), R2 `store-catalogs` bucket (images/uploaded files)
-- **Auth:** Better Auth — cookie-based sessions (`sameSite: 'none'` + `secure: true` for cross-subdomain), 3 roles (admin, manager, staff)
+- **Auth:** Better Auth — cookie-based sessions (`sameSite: 'none'` + `secure: true` for cross-subdomain), 4 roles (admin, manager, associate, staff)
 - **Deployment:** CI/CD via GitHub Actions (push to main → build → deploy → test against production). No local dev.
 - **Free tier:** Workers 100K req/day, D1 5M rows read/day, R2 10GB free
 

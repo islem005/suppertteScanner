@@ -2,7 +2,7 @@
 
 ## Overview
 
-Shelf Scanner uses Cloudflare R2 (`store-catalogs` bucket) for file storage — primarily promotion and discount item images uploaded via the admin and dashboard panels. File uploads replace the older base64 approach (`image_data` column) with a cleaner URL-based storage pattern (`image_url` column pointing to `/api/files/{key}`).
+SKANER by ivond uses Cloudflare R2 (`store-catalogs` bucket) for file storage — primarily promotion and discount item images uploaded via the admin and dashboard panels. File uploads replace the older base64 approach (`image_data` column) with a cleaner URL-based storage pattern (`image_url` column pointing to `/api/files/{key}`).
 
 **Bucket:** `store-catalogs` (binding: `CATALOGS` on the `scanner-api` Worker)
 

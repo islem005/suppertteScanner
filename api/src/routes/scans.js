@@ -4,7 +4,7 @@
 
 import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid, upsertClientDevice } from '../db.js'
-import { authenticate } from '../middleware.js'
+import { authenticate, requireManagerOrAbove } from '../middleware.js'
 
 const router = new Hono()
 
@@ -51,8 +51,8 @@ router.post('/', async (c) => {
   return c.json({ ok: true })
 })
 
-// Get scan stats (authenticated)
-router.get('/stats', authenticate, async (c) => {
+// Get scan stats (manager+)
+router.get('/stats', authenticate, requireManagerOrAbove, async (c) => {
   const user = c.get('user')
   const storeId = c.req.query('store_id') || user.store_id
 

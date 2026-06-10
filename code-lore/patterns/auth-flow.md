@@ -2,7 +2,7 @@
 
 ## Overview
 
-Shelf Scanner uses Better Auth cookie-based authentication across all apps. Sessions are stored in httpOnly cookies and validated server-side.
+SKANER by ivond uses Better Auth cookie-based authentication across all apps. Sessions are stored in httpOnly cookies and validated server-side.
 
 ---
 
@@ -73,11 +73,10 @@ Test credentials (used in local dev + CI/CD):
 ## Cloudflare Access Auth (`admin.ivond.com`)
 
 - Admin subdomain is behind Cloudflare Access (Email OTP)
-- Pages Function routes `admin.ivond.com/` → redirect to `/admin/`
-- HTML contains `<meta name="cf-access">` tag
+- `scanner-frontend` Worker routes `admin.ivond.com/` → redirect to `/admin/` (see `frontend-worker/src/index.js`)
 - Auth exchange: `POST /api/auth/cf-access` with `Cf-Access-Authenticated-User-Email` header
-- Separate `admin-auth` D1 database for authorized admin emails
-- Cloudflare Access enforces at network level before requests reach Pages
+- Admin emails stored in the main `shelf-scanner-db` (queried via `c.env.DB`)
+- Cloudflare Access enforces at network level before requests reach the Worker
 
 ---
 

@@ -19,7 +19,10 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
 }
 #sidebar-brand { display: flex; align-items: center; gap: var(--space-2); padding: var(--space-5) var(--space-4); border-bottom: 1px solid var(--border-subtle); }
 #sidebar-logo svg { width: 24px; height: 24px; color: var(--color-primary); stroke-width: 1.5; }
+.sidebar-logo-icon { width: 24px; height: 24px; border-radius: 5px; display: block; }
 #sidebar-title { font-size: var(--text-base); font-weight: 700; }
+#sidebar-brand-text { display: flex; flex-direction: column; min-width: 0; flex: 1; }
+#sidebar-store-name { font-size: 10px; color: var(--text-tertiary); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 #sidebar-nav { flex: 1; padding: var(--space-2); display: flex; flex-direction: column; gap: 2px; overflow-y: auto; }
 .nav-item {
   display: flex; align-items: center; gap: var(--space-2); padding: var(--space-2) var(--space-3);
@@ -359,9 +362,11 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
   overflow: hidden;
   text-overflow: ellipsis;
 }
-.phone-title img {
-  max-height: 22px;
-  display: block;
+.phone-topbar-icon {
+  width: 18px;
+  height: 18px;
+  border-radius: 4px;
+  flex-shrink: 0;
 }
 .phone-scan-area {
   flex: 1;

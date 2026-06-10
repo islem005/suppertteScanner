@@ -52,13 +52,17 @@ function del(path)   { return req('DELETE', path) }
 Endpoints are grouped by resource:
 - **Auth**: `signIn`, `signUp`, `signOut`, `getSession`
 - **Stores**: `getStores`, `createStore`, `getStore`, `getStoreBySlug`
-- **Products**: `getProducts`, `deleteProduct`
+- **Products**: `getProducts`, `deleteProduct`, `getProductByBarcode`
 - **Scans**: `getScanStats`
 - **Branding**: `getBranding`, `updateBranding`
-- **Admin**: `getAdminStats`, `getAdminUsers`, `createUser`, `deleteUser`, `getAdminActivity`
+- **Admin**: `getAdminStats`, `getAdminUsers`, `createUser`, `deleteUser`, `getAdminActivity`, `getRegistrations`, `approveRegistration`, `rejectRegistration`, `getPlatformAnalytics`, `exportAnalytics`, `setUserPassword`
 - **Imports**: `uploadImport`, `getStoreImports`, `getImportPreview`, `confirmImport`, `getMapping`, `saveMapping`, `deleteMapping`, `mapImport`, `testImport`, `verifyImport`, `rejectImport`
 - **Promotions**: `getStorePromotions`, `getPromotion`, `createPromotion`, `updatePromotion`, `deletePromotion`, `getBanner`, `getOffers`
 - **Discounts**: `getDiscounts`, `getDiscount`, `createDiscount`, `updateDiscount`, `deleteDiscount`
+- **Analytics**: `getAnalytics`, `exportAnalytics`
+- **Team**: `getTeam`, `createAssociate`, `deleteAssociate`
+- **Audit**: `getAuditLog`
+- **Upload**: `uploadImage`
 - **Cf-Access**: `cfAccessLogin` (admin only, behind Cloudflare Access)
 
 ### Differences Between API Clients
@@ -70,6 +74,9 @@ The **admin** API client (`admin/js/api.js`) has additional methods not in the d
 - `del()` — direct DELETE passthrough for custom paths
 - `getOffers()`
 - `cfAccessLogin()`
+- `getRegistrations()`, `approveRegistration()`, `rejectRegistration()`
+- `getPlatformAnalytics()`, `exportAnalytics()`
+- `setUserPassword()`
 
 ## Scanner App API Calls
 

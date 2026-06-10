@@ -168,7 +168,7 @@
 
     const result = await Scanner.init();
     if (!result.ok) {
-      camName.textContent = 'Camera unavailable';
+      camName.textContent = result.error;
       camName.classList.add('hint');
       return;
     }
@@ -179,7 +179,7 @@
     camFeed.addEventListener('click', async () => {
       camName.textContent = 'Restarting camera…';
       const r = await Scanner.restart(video, onBarcode);
-      camName.textContent = r.ok ? 'Camera ready' : 'Camera unavailable';
+      camName.textContent = r.ok ? 'Camera ready' : r.error;
       if (r.ok) showToast('Camera refreshed');
     });
   }

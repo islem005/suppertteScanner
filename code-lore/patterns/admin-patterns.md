@@ -15,7 +15,7 @@ The admin panel SPA (`admin/index.html`, `admin/js/app.js`) is the platform admi
 - On logout: redirects to login view (not /auth/)
 
 ### Sidebar Navigation
-- 8 nav items: Overview, Stores, Users, Promotions, Discounts, Branding, Activity, Profile
+- 10 nav items: Overview, Analytics, Stores, Registrations, Users, Promotions, Discounts, Branding, Activity, Profile
 - Nav built dynamically from `navItems` array with Feather icons
 - Active nav item via left border accent
 - Sidebar toggle on mobile
@@ -35,6 +35,20 @@ The admin panel SPA (`admin/index.html`, `admin/js/app.js`) is the platform admi
 - Platform-wide stat cards: Stores, Users, Products, Today's Scans, All Scans
 - Store stats table: Store name, slug, products count, scans count, users count
 - Data from: `API.getAdminStats()`
+- Quick-link card: Pending Registrations → switches to Registrations view
+
+### Analytics
+- Platform-wide analytics dashboard
+- Chart/table of top stores by scan activity
+- Date range filtering
+- Export CSV button
+- Data from: `API.getPlatformAnalytics()`, `API.exportAnalytics()`
+
+### Registrations
+- Pending store sign-up requests table
+- Each row: store name, slug, requestor email, date
+- **Approve** / **Reject** buttons with confirmation
+- Data from: `API.getRegistrations()`, `API.approveRegistration()`, `API.rejectRegistration()`
 
 ### Stores
 - Store table: name, slug, created date, Explore + Delete buttons
