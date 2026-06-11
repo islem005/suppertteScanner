@@ -4,6 +4,7 @@ name = "scanner-api"
 main = "src/index.js"
 compatibility_date = "2025-12-01"
 compatibility_flags = ["nodejs_compat"]
+workers_dev = true
 
 # Routes that connect the Worker to the custom domains
 routes = [
