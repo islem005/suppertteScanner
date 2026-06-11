@@ -75,9 +75,11 @@ jobs:
       - name: Warm up — wait for health check
         run: |
           for i in $(seq 1 24); do
-            CODE=$(curl -s -o /dev/null -w "%{http_code}" ${{ env.API_BASE }}/health) && \
+            CODE=$(curl -sL -o /tmp/health-resp.txt -w "%{http_code}" ${{ env.API_BASE }}/health)
             if [ "$CODE" = "200" ]; then echo "API ready"; exit 0; fi
-            echo "Waiting... ($i/24)"
+            echo "Attempt $i/24: HTTP $CODE"
+            head -c 200 /tmp/health-resp.txt 2>/dev/null || true
+            echo ""
             sleep 10
           done
           echo "API not ready after 240s"
