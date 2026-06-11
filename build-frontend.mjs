@@ -5,12 +5,12 @@ import { existsSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { join } from 'node:path'
 
-const ROOT = new URL('.', import.meta.url).pathname.replace(/^\//, '').replace(/\//g, '\\')
+const ROOT = new URL('.', import.meta.url).pathname.replace(/^[/\\]/, '')
 const DIST = join(ROOT, 'dist')
 const PUBLIC = join(ROOT, 'frontend-worker', 'public')
 
 console.log('[1/3] Building frontend...')
-execSync('npm run build', { cwd: ROOT, stdio: 'inherit', shell: 'cmd.exe' })
+execSync('npm run build', { cwd: ROOT, stdio: 'inherit' })
 
 console.log('[2/3] Cleaning public/...')
 if (existsSync(PUBLIC)) await rm(PUBLIC, { recursive: true })
