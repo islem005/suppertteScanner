@@ -35,7 +35,7 @@ router.post('/send', async (c) => {
 
     const payload = {
       sender: { email: fromAddress, name: fromAddress.split('@')[0] },
-      to: [{ email: to, name: '' }],
+      to: [{ email: to, name: to }],
       subject,
     }
 

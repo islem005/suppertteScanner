@@ -3,9 +3,10 @@
 import { copyFile, mkdir, rm, readdir, stat } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { execSync } from 'node:child_process'
-import { join } from 'node:path'
+import { join, dirname } from 'node:path'
+import { fileURLToPath } from 'node:url'
 
-const ROOT = new URL('.', import.meta.url).pathname.replace(/^[/\\]/, '')
+const ROOT = dirname(fileURLToPath(import.meta.url))
 const DIST = join(ROOT, 'dist')
 const PUBLIC = join(ROOT, 'frontend-worker', 'public')
 
