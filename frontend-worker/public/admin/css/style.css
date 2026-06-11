@@ -422,6 +422,29 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
 }
 #crop-actions { display: flex; gap: var(--space-2); }
 
+/* ═══ CROP RECTANGLE (movable/resizable) ═══ */
+#crop-rect {
+  position: absolute;
+  border: 2px solid #fff;
+  box-shadow: 0 0 0 9999px rgba(0,0,0,0.55);
+  cursor: move;
+  border-radius: var(--radius-sm);
+  pointer-events: auto;
+}
+.crop-handle {
+  position: absolute;
+  width: 22px; height: 22px;
+  background: #fff;
+  border: 2px solid var(--color-primary);
+  border-radius: 50%;
+  z-index: 2;
+  pointer-events: auto;
+}
+.crop-handle-tl { top: -11px; left: -11px; cursor: nwse-resize; }
+.crop-handle-tr { top: -11px; right: -11px; cursor: nesw-resize; }
+.crop-handle-bl { bottom: -11px; left: -11px; cursor: nesw-resize; }
+.crop-handle-br { bottom: -11px; right: -11px; cursor: nwse-resize; }
+
 /* ═══ EMAIL FORM ═══ */
 .email-form-wrap { max-width: 600px; }
 .email-form { display: flex; flex-direction: column; gap: var(--space-4); }
@@ -446,6 +469,29 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
 }
 .offer-thumb-empty {
   background: var(--bg-hover);
+}
+
+/* ═══ DISCOUNT THUMBNAIL (3:4 ratio) ═══ */
+.discount-thumb {
+  width: 32px; height: 42px;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  display: block;
+}
+.discount-thumb-empty {
+  background: var(--bg-hover);
+}
+
+/* ═══ DISCOUNT PREVIEW (modal) ═══ */
+.discount-preview {
+  max-height: 160px;
+  width: auto;
+  aspect-ratio: 3 / 4;
+  object-fit: cover;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border-subtle);
+  display: block;
 }
 
 

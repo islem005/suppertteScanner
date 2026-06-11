@@ -1716,7 +1716,7 @@
       html += '<div class="table-wrap"><table><thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Featured</th><th>Active</th><th></th></tr></thead><tbody>'
       for (const d of items) {
         const discImg = d.image_url || d.image_data
-    const thumb = discImg ? `<img src="${esc(discImg)}" class="offer-thumb" alt="">` : '<span class="offer-thumb offer-thumb-empty"></span>'
+    const thumb = discImg ? `<img src="${esc(discImg)}" class="discount-thumb" alt="">` : '<span class="discount-thumb discount-thumb-empty"></span>'
         const priceHtml = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-xs)">${parseFloat(d.original_price).toFixed(2)}</span> <strong style="color:var(--color-success)">${parseFloat(d.new_price).toFixed(2)}</strong>`
         // a11y: color-only indicators for featured (★/—) and active (✓/○) status
         html += `<tr>
@@ -1778,7 +1778,7 @@
             </div>
             <input type="file" id="mod-disc-gallery-input" accept="image/png,image/jpeg,image/webp" style="display:none">
             <input type="hidden" id="mod-disc-image" value="${esc(existingImage)}">
-            <img id="mod-disc-image-preview" class="logo-preview ${existingImage ? '' : 'hidden'}" src="${esc(existingImage)}">
+            <img id="mod-disc-image-preview" class="discount-preview ${existingImage ? '' : 'hidden'}" src="${esc(existingImage)}">
             <button id="mod-disc-image-remove" class="btn small ${existingImage ? '' : 'hidden'}" type="button">Remove</button>
           </div>
         </div>

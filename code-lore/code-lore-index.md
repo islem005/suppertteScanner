@@ -23,6 +23,9 @@ Permanent project memory for SKANER by ivond. This index maps every lore file to
 | **Patterns** | `patterns/tool-preferences.md` | MCP-first tool usage rule |
 | **Patterns** | `patterns/email-sending.md` | Email sending via Workers binding, department addresses, attachment handling |
 | **Security** | `security/protocols.md` | Better Auth, middleware chain, role enforcement, Cloudflare Access |
+| **Security** | `security/csrf-protection.md` | CSRF middleware, origin/referer checking, token validation, exempted public paths |
+| **Patterns** | `patterns/rate-limiting.md` | In-memory sliding window rate limiter, middleware usage, per-endpoint limits |
+| **Patterns** | `patterns/input-validation.md` | Server-side validation helpers, schema-based body validation, all validators |
 | **Infrastructure** | `infrastructure/cloudflare-setup.md` | Workers-only architecture (scanner-frontend + scanner-api), D1, R2, deployment flow, CI/CD, dynamic CORS, cross-subdomain auth, auto-subdomain registration, known issues |
 | **Infrastructure** | `infrastructure/pwa-setup.md` | Service Worker cache-first strategy, web manifest, PWA registration flow |
 | **Infrastructure** | `infrastructure/r2-file-storage.md` | R2 bucket, upload/serve endpoints, cache strategy, path convention, frontend upload helpers, migration, display priority |

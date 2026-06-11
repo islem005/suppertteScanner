@@ -25,6 +25,10 @@ window.cropImage = function(dataUrl, aspectRatio, targetW, targetH) {
       var existing = document.getElementById('crop-overlay');
       if (existing) existing.remove();
 
+      var imgW = img.naturalWidth;
+      var imgH = img.naturalHeight;
+
+      // ── Build DOM ──
       var overlay = document.createElement('div');
       overlay.id = 'crop-overlay';
 
@@ -37,13 +41,32 @@ window.cropImage = function(dataUrl, aspectRatio, targetW, targetH) {
       stage.style.userSelect = 'none';
       stage.style.webkitUserSelect = 'none';
 
-      var cropImg = document.createElement('div');
-      cropImg.id = 'crop-image';
-      cropImg.style.backgroundImage = "url('" + dataUrl.replace(/'/g, '%27') + "')";
+      var imageEl = document.createElement('div');
+      imageEl.id = 'crop-image';
+      imageEl.style.backgroundImage = "url('" + dataUrl.replace(/'/g, '%27') + "')";
+      imageEl.style.backgroundRepeat = 'no-repeat';
+      imageEl.style.backgroundSize = 'contain';
+      imageEl.style.backgroundPosition = 'center';
+      imageEl.style.width = '100%';
+      imageEl.style.height = '100%';
+      imageEl.style.pointerEvents = 'auto';
 
       var frame = document.createElement('div');
-      frame.id = 'crop-frame';
-      frame.style.aspectRatio = String(aspectRatio);
+      frame.id = 'crop-rect';
+
+      // Corner handles
+      var handleData = [
+        { cls: 'crop-handle crop-handle-tl', pos: 'tl' },
+        { cls: 'crop-handle crop-handle-tr', pos: 'tr' },
+        { cls: 'crop-handle crop-handle-bl', pos: 'bl' },
+        { cls: 'crop-handle crop-handle-br', pos: 'br' }
+      ];
+      var handles = handleData.map(function(h) {
+        var el = document.createElement('div');
+        el.className = h.cls;
+        frame.appendChild(el);
+        return el;
+      });
 
       var bottom = document.createElement('div');
       bottom.id = 'crop-bottom';
@@ -64,153 +87,245 @@ window.cropImage = function(dataUrl, aspectRatio, targetW, targetH) {
       actions.appendChild(btnCancel);
       actions.appendChild(btnApply);
       bottom.appendChild(actions);
-      stage.appendChild(cropImg);
+      stage.appendChild(imageEl);
       stage.appendChild(frame);
       box.appendChild(stage);
       box.appendChild(bottom);
       overlay.appendChild(box);
       document.body.appendChild(overlay);
 
-      var imgW = img.naturalWidth;
-      var imgH = img.naturalHeight;
-
-      var offX = 0, offY = 0;
-      var maxOffX = 0, maxOffY = 0;
+      // ── State ──
+      var stageW = 0, stageH = 0;
       var fitScale = 1;
       var zoomScale = 1;
-      var firstCalc = true;
+      var panX = 0, panY = 0;
+      var maxPanX = 0, maxPanY = 0;
 
-      function recalc() {
-        var rect = stage.getBoundingClientRect();
-        var W = rect.width - 40;
-        var H = rect.height - 40;
-        if (W <= 0 || H <= 0) return;
-        var fw = W / imgW, fh = H / imgH;
-        fitScale = fw > fh ? fw : fh;
-        var s = fitScale * zoomScale;
-        var scaledW = imgW * s;
-        var scaledH = imgH * s;
-        maxOffX = Math.max(0, scaledW - W);
-        maxOffY = Math.max(0, scaledH - H);
-        if (firstCalc) {
-          offX = maxOffX / 2;
-          offY = maxOffY / 2;
-          firstCalc = false;
-        }
-        clampOff();
-        cropImg.style.width = scaledW + 'px';
-        cropImg.style.height = scaledH + 'px';
-        updatePos();
-      }
+      var rectX, rectY, rectW, rectH;
+      var MIN_RECT = 40;
 
-      function clampOff() {
-        if (offX > maxOffX) offX = maxOffX;
-        if (offY > maxOffY) offY = maxOffY;
-        if (offX < 0) offX = 0;
-        if (offY < 0) offY = 0;
-      }
+      var dragMode = null;
+      var startX, startY;
+      var startPanX, startPanY;
+      var startRectX, startRectY, startRectW, startRectH;
+      var activeHandle = null;
 
-      function updatePos() {
-        clampOff();
-        cropImg.style.transform = 'translate(' + (-offX) + 'px,' + (-offY) + 'px)';
-      }
-
-      var raf = null;
-      requestAnimationFrame(function() { recalc(); raf = null; });
-
-      // ─── Pan (drag) ───
-      var isDragging = false;
-      var startX, startY, startOffX, startOffY;
-
-      function onPointerDown(e) {
-        if (e.touches && e.touches.length > 1) return;
-        isDragging = true;
-        var pt = e.touches ? e.touches[0] : e;
-        startX = pt.clientX;
-        startY = pt.clientY;
-        startOffX = offX;
-        startOffY = offY;
-        stage.style.cursor = 'grabbing';
-        e.preventDefault();
-      }
-
-      function onPointerMove(e) {
-        if (e.touches) {
-          if (e.touches.length === 2) { onPinchMove(e); return; }
-          if (!isDragging) return;
-        } else if (!isDragging) {
-          return;
-        }
-        var pt = e.touches ? e.touches[0] : e;
-        offX = startOffX - (pt.clientX - startX);
-        offY = startOffY - (pt.clientY - startY);
-        updatePos();
-        e.preventDefault();
-      }
-
-      function onPointerUp() {
-        isDragging = false;
-        isPinching = false;
-        stage.style.cursor = '';
-      }
-
-      // ─── Pinch Zoom ───
       var isPinching = false;
       var pinchStartDist = 0;
       var pinchStartZoom = 1;
 
-      function onPinchMove(e) {
-        if (e.touches.length !== 2) return;
-        var dx = e.touches[0].clientX - e.touches[1].clientX;
-        var dy = e.touches[0].clientY - e.touches[1].clientY;
-        var dist = Math.sqrt(dx * dx + dy * dy);
-        if (!isPinching) {
-          isPinching = true;
-          isDragging = false;
-          pinchStartDist = dist;
-          pinchStartZoom = zoomScale;
+      var raf = null;
+
+      // ── Layout ──
+      function layout() {
+        var sr = stage.getBoundingClientRect();
+        stageW = sr.width;
+        stageH = sr.height;
+        if (stageW <= 0 || stageH <= 0) return;
+
+        fitScale = Math.min(stageW / imgW, stageH / imgH);
+
+        if (rectX === undefined) {
+          var mw = stageW * 0.85;
+          var mh = stageH * 0.85;
+          rectW = Math.min(mw, stageH * 0.6 * aspectRatio);
+          rectH = rectW / aspectRatio;
+          if (rectH > mh) { rectH = mh; rectW = rectH * aspectRatio; }
+          if (rectW > mw) { rectW = mw; rectH = rectW / aspectRatio; }
+          rectX = (stageW - rectW) / 2;
+          rectY = (stageH - rectH) / 2;
         }
-        if (pinchStartDist < 5) return;
-        zoomScale = Math.max(0.5, Math.min(5, pinchStartZoom * (dist / pinchStartDist)));
-        recalc();
+
+        updateImage();
+        updateRect();
+      }
+
+      function updateImage() {
+        var s = fitScale * zoomScale;
+        var dw = imgW * s;
+        var dh = imgH * s;
+        var bx = (stageW - dw) / 2;
+        var by = (stageH - dh) / 2;
+
+        maxPanX = dw > stageW ? (dw - stageW) / 2 : 0;
+        maxPanY = dh > stageH ? (dh - stageH) / 2 : 0;
+
+        if (panX > maxPanX) panX = maxPanX;
+        if (panX < -maxPanX) panX = -maxPanX;
+        if (panY > maxPanY) panY = maxPanY;
+        if (panY < -maxPanY) panY = -maxPanY;
+
+        imageEl.style.backgroundSize = dw + 'px ' + dh + 'px';
+        imageEl.style.backgroundPosition = (bx + panX) + 'px ' + (by + panY) + 'px';
+      }
+
+      function updateRect() {
+        frame.style.left = rectX + 'px';
+        frame.style.top = rectY + 'px';
+        frame.style.width = rectW + 'px';
+        frame.style.height = rectH + 'px';
+      }
+
+      // ── Pointers ──
+      function getPt(e) {
+        return e.touches ? e.touches[0] : e;
+      }
+
+      function onPointerDown(e) {
+        if (e.touches && e.touches.length === 2) {
+          isPinching = true;
+          dragMode = null;
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          pinchStartDist = Math.sqrt(dx * dx + dy * dy);
+          pinchStartZoom = zoomScale;
+          e.preventDefault();
+          return;
+        }
+
+        var t = e.target;
+        var pt = getPt(e);
+
+        if (t.classList.contains('crop-handle')) {
+          dragMode = 'resize';
+          activeHandle = t;
+          startX = pt.clientX;
+          startY = pt.clientY;
+          startRectX = rectX;
+          startRectY = rectY;
+          startRectW = rectW;
+          startRectH = rectH;
+          e.preventDefault();
+          return;
+        }
+
+        if (t === frame || t.closest('#crop-rect')) {
+          dragMode = 'rect';
+          startX = pt.clientX;
+          startY = pt.clientY;
+          startRectX = rectX;
+          startRectY = rectY;
+          e.preventDefault();
+          return;
+        }
+
+        if (maxPanX > 0 || maxPanY > 0) {
+          dragMode = 'image';
+          startX = pt.clientX;
+          startY = pt.clientY;
+          startPanX = panX;
+          startPanY = panY;
+          e.preventDefault();
+        }
+      }
+
+      function onPointerMove(e) {
+        if (e.touches && e.touches.length === 2 && isPinching) {
+          var dx = e.touches[0].clientX - e.touches[1].clientX;
+          var dy = e.touches[0].clientY - e.touches[1].clientY;
+          var dist = Math.sqrt(dx * dx + dy * dy);
+          if (pinchStartDist >= 5) {
+            zoomScale = Math.max(0.5, Math.min(5, pinchStartZoom * (dist / pinchStartDist)));
+            updateImage();
+          }
+          e.preventDefault();
+          return;
+        }
+
+        if (!dragMode) return;
+        var pt = getPt(e);
+        var dx = pt.clientX - startX;
+        var dy = pt.clientY - startY;
+
+        if (dragMode === 'image') {
+          panX = startPanX + dx;
+          panY = startPanY + dy;
+          updateImage();
+        } else if (dragMode === 'rect') {
+          rectX = Math.max(0, Math.min(stageW - rectW, startRectX + dx));
+          rectY = Math.max(0, Math.min(stageH - rectH, startRectY + dy));
+          updateRect();
+        } else if (dragMode === 'resize') {
+          doResize(dx, dy);
+        }
         e.preventDefault();
       }
 
+      function onPointerUp() {
+        dragMode = null;
+        isPinching = false;
+        activeHandle = null;
+      }
+
+      function doResize(dx, dy) {
+        if (!activeHandle) return;
+        var cls = activeHandle.className;
+        var isLeft = cls.includes('tl') || cls.includes('bl');
+        var isRight = cls.includes('tr') || cls.includes('br');
+        var isTop = cls.includes('tl') || cls.includes('tr');
+        var isBottom = cls.includes('bl') || cls.includes('br');
+
+        var nw = isRight ? Math.max(MIN_RECT, startRectW + dx)
+                         : Math.max(MIN_RECT, startRectW - dx);
+        var nh = nw / aspectRatio;
+
+        if (nh > stageH - 10) { nh = stageH - 10; nw = nh * aspectRatio; }
+        if (nw > stageW - 10) { nw = stageW - 10; nh = nw / aspectRatio; }
+        if (nw < MIN_RECT) { nw = MIN_RECT; nh = nw / aspectRatio; }
+        if (nh < MIN_RECT) { nh = MIN_RECT; nw = nh * aspectRatio; }
+
+        var nx = isLeft ? startRectX + (startRectW - nw) : startRectX;
+        var ny = isTop ? startRectY + (startRectH - nh) : startRectY;
+
+        if (nx < 0) nx = 0;
+        if (ny < 0) ny = 0;
+        if (nx + nw > stageW) nx = stageW - nw;
+        if (ny + nh > stageH) ny = stageH - nh;
+
+        rectW = nw; rectH = nh; rectX = nx; rectY = ny;
+        updateRect();
+      }
+
+      // ── Wheel zoom ──
+      stage.addEventListener('wheel', function(e) {
+        e.preventDefault();
+        var d = -e.deltaY * 0.001;
+        zoomScale = Math.max(0.5, Math.min(5, zoomScale + d));
+        if (raf) cancelAnimationFrame(raf);
+        raf = requestAnimationFrame(function() { updateImage(); raf = null; });
+      }, { passive: false });
+
+      // ── Events ──
       stage.addEventListener('mousedown', onPointerDown);
+      stage.addEventListener('touchstart', onPointerDown, { passive: false });
       window.addEventListener('mousemove', onPointerMove);
       window.addEventListener('mouseup', onPointerUp);
-      stage.addEventListener('touchstart', onPointerDown, { passive: false });
       window.addEventListener('touchmove', onPointerMove, { passive: false });
       window.addEventListener('touchend', onPointerUp);
+      window.addEventListener('touchcancel', onPointerUp);
 
       window.addEventListener('resize', function() {
         if (raf) cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(function() { recalc(); raf = null; });
+        raf = requestAnimationFrame(function() { layout(); raf = null; });
       });
 
-      // ─── Mouse wheel zoom ───
-      stage.addEventListener('wheel', function(e) {
-        e.preventDefault();
-        var delta = -e.deltaY * 0.001;
-        zoomScale = Math.max(0.5, Math.min(5, zoomScale + delta));
-        if (raf) cancelAnimationFrame(raf);
-        raf = requestAnimationFrame(function() { recalc(); raf = null; });
-      }, { passive: false });
-
+      // ── Buttons ──
       btnCancel.onclick = function() {
         overlay.remove();
         reject(new Error('cancelled'));
       };
 
       btnApply.onclick = function() {
-        var rect = stage.getBoundingClientRect();
-        var W = rect.width - 40;
-        var H = rect.height - 40;
         var s = fitScale * zoomScale;
-        var srcX = offX / s;
-        var srcY = offY / s;
-        var srcW = W / s;
-        var srcH = H / s;
+        var dw = imgW * s;
+        var dh = imgH * s;
+        var bx = (stageW - dw) / 2 + panX;
+        var by = (stageH - dh) / 2 + panY;
+
+        var sx = Math.max(0, (rectX - bx) / s);
+        var sy = Math.max(0, (rectY - by) / s);
+        var sw = Math.min(rectW / s, imgW - sx);
+        var sh = Math.min(rectH / s, imgH - sy);
 
         var canvas = document.createElement('canvas');
         canvas.width = targetW;
@@ -218,10 +333,13 @@ window.cropImage = function(dataUrl, aspectRatio, targetW, targetH) {
         var ctx = canvas.getContext('2d');
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = 'high';
-        ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, targetW, targetH);
+        ctx.drawImage(img, sx, sy, sw, sh, 0, 0, targetW, targetH);
         overlay.remove();
         resolve(canvas.toDataURL('image/webp', 0.92));
       };
+
+      // ── Init ──
+      requestAnimationFrame(function() { layout(); raf = null; });
     };
     img.onerror = function() { reject(new Error('Image load failed')); };
     img.src = dataUrl;

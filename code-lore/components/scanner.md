@@ -2,7 +2,11 @@
 
 ## Overview
 
-The scanner app (`js/app.js`, `js/scanner.js`, `scanner.html`) is a PWA that runs at `/{slug}` or `{store}.ivond.com`. It provides continuous barcode scanning using the `BarcodeDetector` API.
+The scanner app (`js/app.js`, `js/scanner.js`, `js/scanner-core.js`, `scanner.html`) is a PWA that runs at `/{slug}` or `{store}.ivond.com`. It provides continuous barcode scanning.
+
+- `js/scanner-core.js` — Shared camera + barcode detection logic (exposed as `window.scannerCore`)
+- `js/scanner.js` — Scanner UI module wrapping scannerCore with app-specific behavior
+- `offline.html` — Fallback page shown when the device is offline
 
 ---
 

@@ -33,8 +33,11 @@ router.post('/send', async (c) => {
       return c.json({ error: 'Invalid from address. Use a department or valid @ivond.com address' }, 400)
     }
 
+    const senderName = fromAddress.split('@')[0]
+    const displayName = senderName.charAt(0).toUpperCase() + senderName.slice(1)
+
     const payload = {
-      sender: { email: fromAddress, name: fromAddress.split('@')[0] },
+      sender: { email: fromAddress, name: 'SKANER via ' + displayName },
       to: [{ email: to, name: to }],
       subject,
     }
@@ -42,8 +45,9 @@ router.post('/send', async (c) => {
     if (type === 'text') {
       payload.textContent = body
     } else {
-      payload.htmlContent = body
-      payload.textContent = body.replace(/<[^>]*>/g, '')
+      const cleanText = body.replace(/<[^>]*>/g, '')
+      payload.htmlContent = `<!DOCTYPE html><html><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head><body style="font-family:Arial,sans-serif;padding:24px;background:#f5f5f5"><div style="max-width:480px;margin:0 auto;background:#fff;border-radius:8px;padding:32px">${cleanText}</div></body></html>`
+      payload.textContent = cleanText
     }
 
     if (attachments && Array.isArray(attachments) && attachments.length > 0) {

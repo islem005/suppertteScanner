@@ -754,7 +754,7 @@
       let html = '<table><thead><tr><th>' + I18N.t('image') + '</th><th>' + I18N.t('tableName') + '</th><th>' + I18N.t('tableCategory') + '</th><th>' + I18N.t('tablePrice') + '</th><th>' + I18N.t('featured') + '</th><th>' + I18N.t('active') + '</th><th></th></tr></thead><tbody>'
       for (const d of items) {
         const discImg = d.image_url || d.image_data
-        const thumb = discImg ? `<img src="${esc(discImg)}" class="offer-thumb" alt="">` : '<span class="offer-thumb offer-thumb-empty"></span>'
+        const thumb = discImg ? `<img src="${esc(discImg)}" class="discount-thumb" alt="">` : '<span class="discount-thumb discount-thumb-empty"></span>'
         const priceHtml = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-xs)">${parseFloat(d.original_price).toFixed(2)}</span> <strong style="color:var(--color-success)">${parseFloat(d.new_price).toFixed(2)}</strong>`
         // a11y: color-only indicators for featured (★/—) and active (✓/○) status
         html += `<tr>
@@ -814,7 +814,7 @@
             </div>
             <input type="file" id="mod-disc-gallery-input" accept="image/png,image/jpeg,image/webp" style="display:none">
             <input type="hidden" id="mod-disc-image" value="${esc(existingImage)}">
-            <img id="mod-disc-image-preview" class="logo-preview ${existingImage ? '' : 'hidden'}" src="${esc(existingImage)}">
+            <img id="mod-disc-image-preview" class="discount-preview ${existingImage ? '' : 'hidden'}" src="${esc(existingImage)}">
             <button id="mod-disc-image-remove" class="btn small ${existingImage ? '' : 'hidden'}" type="button">${I18N.t('removeImage')}</button>
           </div>
         </div>
