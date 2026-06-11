@@ -34,7 +34,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: '22'
           cache: 'npm'
 
       - name: Install dependencies
@@ -53,6 +53,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           command: deploy
           workingDirectory: frontend-worker
+          wranglerVersion: 4
 
       # ── Deploy Backend to Cloudflare Workers ──
       - name: Install API dependencies
@@ -65,6 +66,7 @@ jobs:
           apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           command: deploy --config wrangler.prod.toml
           workingDirectory: api
+          wranglerVersion: 4
 
       # ── Security Audit ──
       - name: Security audit

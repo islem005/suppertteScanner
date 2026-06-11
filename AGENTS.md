@@ -65,6 +65,7 @@ Subagents available:
 - `@ui-rules` — UI design system enforcer
 - `@tester` — Test runner and output analysis
 - `@debugger` — Debugging specialist (isolate, reproduce, diagnose across the full stack)
+- `@lore` — Lore specialist (audit, create, update, flag code-lore patterns)
 
 **All subagents (build agent, plan agent, etc.) must read `code-lore/code-lore-index.md` before starting any work.** This applies to every agent invoked, not just the initial session agent.
 
