@@ -7,6 +7,7 @@ import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate, adminOnly } from '../middleware.js'
 import { createAuth } from '../auth/index.js'
+import { generateStoreQR } from '../qr.js'
 
 const router = new Hono()
 
@@ -178,6 +179,9 @@ router.post('/:id/approve', authenticate, adminOnly, async (c) => {
      VALUES (?, ?, '#6366f1', '#10b981')`,
     [storeId, reg.store_name]
   )
+
+  // Generate QR code for the new store (fire-and-forget)
+  generateStoreQR(c.env, slug).catch(() => {})
 
   // Update registration status
   await execute(db,

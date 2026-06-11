@@ -1,10 +1,11 @@
-// ─── Scanner Frontend Worker v3 ──────────────────────────────────────
+// ─── Scanner Frontend Worker v4 ──────────────────────────────────────
 // Serves the static frontend for *.ivond.com and ivond.com
-// v3: Adds no-cache headers to fix stale Cloudflare edge cache issues
+// v4: Desktop User-Agent → scanner-qr.html (QR code interstitial)
+// v3: Added no-cache headers to fix stale Cloudflare edge cache issues
 // ─────────────────────────────────────────────────────────────────────
 
 const securityHeaders = {
-  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://ivond.com https://*.ivond.com https://unpkg.com; manifest-src 'self' https://ivond.com https://*.ivond.com",
+  'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://ivond.com https://*.ivond.com https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; manifest-src 'self' https://ivond.com https://*.ivond.com",
   'X-Content-Type-Options': 'nosniff',
   'X-Frame-Options': 'DENY',
   'Strict-Transport-Security': 'max-age=31536000; includeSubDomains',
@@ -46,7 +47,7 @@ export default {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0',
-      'X-Worker-Version': 'v3'
+      'X-Worker-Version': 'v4'
     }
 
     // ── Admin subdomain → admin panel
@@ -69,13 +70,16 @@ export default {
       return addSecurityToResponse(Response.redirect(canonical.toString(), 301))
     }
 
-    // ── Store subdomains — ALWAYS serve scanner.html
+    // ── Store subdomains — serve scanner.html (mobile) or scanner-qr.html (desktop)
     if (host.endsWith('.ivond.com') && host !== 'ivond.com' && !host.startsWith('admin.')) {
       if (isAsset) return addSecurityToResponse(await env.ASSETS.fetch(request))
-      const resp = await env.ASSETS.fetch(new URL('/scanner.html', request.url))
+      const ua = (request.headers.get('User-Agent') || '').toLowerCase()
+      const isMobile = /mobile|android|iphone|ipad|ipod/i.test(ua)
+      const page = isMobile ? '/scanner.html' : '/scanner-qr.html'
+      const resp = await env.ASSETS.fetch(new URL(page, request.url))
       const newResp = new Response(resp.body, {
         status: resp.status,
-        headers: { ...Object.fromEntries(resp.headers), ...noCacheHeaders, 'X-Worker-Version': 'v3-subdomain' }
+        headers: { ...Object.fromEntries(resp.headers), ...noCacheHeaders, 'X-Worker-Version': 'v4-subdomain' }
       })
       return addSecurityToResponse(newResp)
     }
@@ -85,7 +89,7 @@ export default {
     const resp = await env.ASSETS.fetch(request)
     const newResp = new Response(resp.body, {
       status: resp.status,
-      headers: { ...Object.fromEntries(resp.headers), ...noCacheHeaders, 'X-Worker-Version': 'v3-apex' }
+      headers: { ...Object.fromEntries(resp.headers), ...noCacheHeaders, 'X-Worker-Version': 'v4-apex' }
     })
     return addSecurityToResponse(newResp)
   }

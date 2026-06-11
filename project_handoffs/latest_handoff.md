@@ -21,6 +21,7 @@ P0-P6 review-driven overhaul: CSRF protection, rate limiting, server-side valida
 - **Email** — Switched from Workers `send_email` binding (requires Paid plan) to BREVO API (`BREVO_API_KEY` secret)
 - **ESLint + Prettier** configs added
 - **Build scripts** — Fixed `build-frontend.mjs` for cross-platform CI (removed `cmd.exe` dependency)
+- **CI/CD upgrades** — Node.js 20→22, `wranglerVersion: 4` pinned, workers.dev URL for test/WAF bypass, health check path `/api/health`, security audit step, rollback on test failure
 
 ### Admin/Dashboard
 - 66+ unit tests across CSRF, rate-limit, validation, middleware, discounts, promotions, products, page-views, scanner
@@ -33,6 +34,7 @@ P0-P6 review-driven overhaul: CSRF protection, rate limiting, server-side valida
 - `patterns/input-validation.md` — All validators, schema-based `validateBody()`
 - `components/scanner.md` — Updated entry points to include `scanner-core.js` and `offline.html`
 - `code-lore-index.md` — Added 3 new entries (CSRF, rate limiting, input validation)
+- `infrastructure/cloudflare-setup.md` — Updated CI/CD steps: Node.js 22, wrangler 4, workers.dev WAF bypass, security audit, rollback
 
 ## Next Tasks
 1. Run full test suite post-deploy against production

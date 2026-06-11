@@ -1,0 +1,190 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="theme-color" content="#0c0c0d">
+  <meta name="description" content="SKANER by ivond — Scan this QR code with your phone to visit this store.">
+  <meta property="og:title" content="SKANER by ivond">
+  <meta property="og:description" content="SKANER by ivond — Scan this QR code with your phone to visit this store.">
+  <title>SKANER</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/tokens.css">
+  <style>
+    html, body {
+      height: 100%;
+      margin: 0;
+      background: var(--bg-base);
+      color: var(--text-primary);
+      font-family: var(--font-sans);
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    #app {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      min-height: 100vh;
+      padding: 2rem 1.5rem;
+      text-align: center;
+    }
+
+    .qr-logo {
+      width: 72px;
+      height: 72px;
+      border-radius: 50%;
+      object-fit: cover;
+      display: block;
+      margin-bottom: 0.75rem;
+      border: 2px solid var(--border-subtle);
+    }
+
+    .qr-logo.hidden { display: none; }
+
+    .qr-store-name {
+      font-size: 1.5rem;
+      font-weight: 700;
+      margin-bottom: 0.25rem;
+    }
+
+    .qr-store-name.hidden { display: none; }
+
+    .qr-subtitle {
+      font-size: var(--text-sm);
+      color: var(--text-tertiary);
+      margin-bottom: 2rem;
+      max-width: 320px;
+    }
+
+    .qr-image-wrap {
+      background: #fff;
+      padding: 12px;
+      border-radius: var(--radius-xl);
+      display: inline-block;
+      margin-bottom: 1.5rem;
+      box-shadow: var(--shadow-lg);
+    }
+
+    #qr-image {
+      display: block;
+      width: 200px;
+      height: 200px;
+    }
+
+    #qr-image.hidden { display: none; }
+
+    #qr-image.fallback {
+      object-fit: contain;
+      padding: 20px;
+      box-sizing: border-box;
+      opacity: 0.4;
+    }
+
+    .qr-instruction {
+      font-size: var(--text-base);
+      font-weight: 500;
+      color: var(--text-secondary);
+      margin-bottom: 0.5rem;
+      max-width: 320px;
+      line-height: 1.5;
+    }
+
+    .qr-url {
+      font-size: var(--text-xs);
+      color: var(--text-tertiary);
+      word-break: break-all;
+      max-width: 320px;
+    }
+
+    .qr-brand {
+      margin-top: 2.5rem;
+      font-size: 0.625rem;
+      color: var(--text-tertiary);
+      opacity: 0.4;
+      text-decoration: none;
+    }
+
+    .qr-brand:hover { opacity: 1; }
+
+    @media (prefers-reduced-motion: reduce) {
+      *, *::before, *::after {
+        animation-duration: 0.01ms !important;
+        transition-duration: 0.01ms !important;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div id="app">
+    <img id="qr-logo" class="qr-logo hidden" src="" alt="Store logo">
+    <div id="qr-store-name" class="qr-store-name hidden"></div>
+    <div class="qr-subtitle">SKANER by ivond</div>
+    <div class="qr-image-wrap">
+      <img id="qr-image" class="hidden" width="200" height="200" alt="QR Code">
+    </div>
+    <div class="qr-instruction">Scan this QR code with your phone to visit our store</div>
+    <div class="qr-url" id="qr-url"></div>
+    <a class="qr-brand" href="https://ivond.com" target="_blank" rel="noopener">SKANER by ivond</a>
+  </div>
+
+  <script>
+    (function() {
+      var host = location.hostname;
+      var storeSlug = null;
+      if (host.endsWith('.ivond.com') && host !== 'ivond.com' && !host.startsWith('admin.') && !host.startsWith('www.')) {
+        storeSlug = host.split('.')[0];
+      } else {
+        var path = location.pathname.replace(/\/+$/, '');
+        var reserved = ['', '/', '/index.html', '/scanner.html', '/dashboard', '/dashboard/', '/admin', '/admin/'];
+        if (path && !reserved.includes(path) && !path.startsWith('/dashboard')) {
+          storeSlug = path.replace(/^\//, '');
+        }
+      }
+
+      var storeUrl = location.protocol + '//' + host;
+      var urlEl = document.getElementById('qr-url');
+      urlEl.textContent = storeUrl;
+
+      var qrImg = document.getElementById('qr-image');
+
+      if (storeSlug) {
+        qrImg.src = '/api/files/qr/' + encodeURIComponent(storeSlug) + '.svg';
+        qrImg.classList.remove('hidden');
+        qrImg.onerror = function() {
+          qrImg.classList.add('fallback');
+          qrImg.alt = 'QR Code unavailable';
+        };
+
+        var apiBase = '/api';
+        fetch(apiBase + '/stores/slug/' + encodeURIComponent(storeSlug))
+          .then(function(r) { if (!r.ok) throw new Error(); return r.json(); })
+          .then(function(store) {
+            var nameEl = document.getElementById('qr-store-name');
+            nameEl.textContent = store.name;
+            nameEl.classList.remove('hidden');
+            document.title = store.name;
+
+            return fetch(apiBase + '/branding/' + store.id);
+          })
+          .then(function(br) { if (!br.ok) throw new Error(); return br.json(); })
+          .then(function(brand) {
+            var logoEl = document.getElementById('qr-logo');
+            if (brand.logo_url) {
+              logoEl.src = brand.logo_url;
+              logoEl.classList.remove('hidden');
+            }
+            var nameEl = document.getElementById('qr-store-name');
+            if (brand.display_name) {
+              nameEl.textContent = brand.display_name;
+            }
+          })
+          .catch(function() {});
+      }
+    })();
+  </script>
+</body>
+</html>

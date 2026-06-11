@@ -7,6 +7,7 @@ import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate, adminOnly } from '../middleware.js'
 import { createAuth } from '../auth/index.js'
 import { validateBody, validateName, validateEmail } from '../validate.js'
+import { generateStoreQR, deleteStoreQR } from '../qr.js'
 
 const router = new Hono()
 router.use('*', authenticate, adminOnly)
@@ -229,6 +230,21 @@ router.get('/activity', async (c) => {
   }))
 
   return c.json(activity)
+})
+
+// ─── QR Backfill ─────────────────────────────────────────────────
+router.post('/qr/backfill', async (c) => {
+  const stores = await queryAll(c.env.DB, 'SELECT slug FROM organization')
+  const results = { total: stores.length, generated: 0, errors: 0 }
+  for (const store of stores) {
+    try {
+      await generateStoreQR(c.env, store.slug)
+      results.generated++
+    } catch {
+      results.errors++
+    }
+  }
+  return c.json(results)
 })
 
 export { router as adminRouter }

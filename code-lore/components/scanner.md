@@ -136,6 +136,57 @@ See `code-lore/infrastructure/pwa-setup.md` for full details.
 
 ---
 
+---
+
+## Desktop QR Interstitial (`scanner-qr.html`)
+
+When a store subdomain (`*.ivond.com`) is opened on a desktop/laptop, the frontend Worker (`frontend-worker/src/index.js`) serves `scanner-qr.html` instead of the scanner PWA.
+
+### Detection in the Worker
+
+```js
+const ua = (request.headers.get('User-Agent') || '').toLowerCase()
+const isMobile = /mobile|android|iphone|ipad|ipod/i.test(ua)
+const page = isMobile ? '/scanner.html' : '/scanner-qr.html'
+```
+
+- Tablets (iPad) are treated as mobile — the scanner works on them
+- Desktop/laptop users see a QR code they can scan with their phone
+
+### Page Structure
+
+- Minimal page (~5.6 kB built, ~2 kB gzipped)
+- No camera init, no Swiper, no feather-icons, no service worker, no CDN dependencies
+- QR code is generated server-side (via `api/src/qr.js` using the `qrcode` npm package), stored in R2 at `qr/{slug}.svg`
+- The page loads the QR from `<img src="/api/files/qr/{slug}.svg">` — the API Worker auto-generates it on first request if missing
+- Fetches store branding (`/api/stores/slug/{slug}` + `/api/branding/{id}`) to display store name + logo
+- Shows a centered QR image wrapped in a white card, with "Scan this QR code with your phone to visit our store" instruction text
+- Clickable "SKANER by ivond" branding link at the bottom
+
+### QR Generation (`api/src/qr.js`)
+
+```js
+import QRCode from 'qrcode'
+export async function generateStoreQR(env, slug) /* -> R2 at qr/{slug}.svg */
+export async function deleteStoreQR(env, slug)   /* -> deletes from R2 */
+```
+
+Triggered automatically:
+- On store creation (`POST /api/stores` in `stores.js`, registration approval in `registrations.js`)
+- On slug change (`PUT /api/stores/:id` in `stores.js` — old QR deleted, new one generated)
+- On first request via files route fallback (`api/src/routes/files.js` — if `qr/{slug}.svg` not found in R2, generates it on the fly)
+- Admin can bulk backfill via `POST /api/admin/qr/backfill`
+
+### Key Files
+
+- `scanner-qr.html` — the QR interstitial page
+- `frontend-worker/src/index.js` — handles desktop/mobile routing for store subdomains
+- `api/src/qr.js` — QR generation helper (SVG → R2)
+- `api/src/routes/files.js` — on-the-fly QR generation fallback
+- `api/src/routes/stores.js` — QR gen on store create/slug change
+- `api/src/routes/registrations.js` — QR gen on registration approval
+- `api/src/routes/admin.js` — QR backfill endpoint
+
 ## Scanner HTML Structure (`scanner.html`)
 
 Key elements referenced by the scanner app:

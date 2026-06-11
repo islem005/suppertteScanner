@@ -11,7 +11,7 @@ Permanent project memory for SKANER by ivond. This index maps every lore file to
 | **Styles** | `styles/layout-patterns.md` | Spacing scale, border radii, shadows, transitions, component patterns |
 | **Components** | `components/headers.md` | Scanner top-bar, dashboard sidebar header, admin sidebar |
 | **Components** | `components/footers.md` | Scanner footer, sidebar footer section |
-| **Components** | `components/scanner.md` | Scanner engine (BarcodeDetector), features (torch, cam switch), UX flow |
+| **Components** | `components/scanner.md` | Scanner engine (BarcodeDetector), features (torch, cam switch), UX flow, desktop QR interstitial |
 | **Components** | `components/scanner-storage.md` | IndexedDB schema, scan history CRUD, localStorage usage |
 | **Patterns** | `patterns/api-call-patterns.md` | API client structure, cookie-based auth, error handling |
 | **Patterns** | `patterns/error-handling.md` | Toast notifications, modal errors, unhandled rejection handling |

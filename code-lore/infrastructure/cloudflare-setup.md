@@ -159,26 +159,27 @@ cd api && wrangler deploy --config wrangler.prod.toml && cd ..
 Triggers on push to `main` branch or via `workflow_dispatch`. Uses concurrency gating (cancels in-flight runs for same branch).
 
 **Environment:**
-| Env var | Source | Default |
-|---|---|---|
-| `CLOUDFLARE_API_TOKEN` | GitHub secret (required) | — |
-| `API_BASE` | GitHub secret | `https://ivond.com/api` |
-| `ADMIN_EMAIL` | GitHub secret | `admin@store.com` |
-| `ADMIN_PASS` | GitHub secret | `admin123` |
-| `ORIGIN` | GitHub secret | `https://ivond.com` |
+| Env var | Source | Default | Notes |
+|---|---|---|---|
+| `CLOUDFLARE_API_TOKEN` | GitHub secret (required) | — | |
+| `API_BASE` | GitHub secret | `https://ivond.com/api` | Overridden in test step to workers.dev URL |
+| `ADMIN_EMAIL` | GitHub secret | `admin@store.com` | |
+| `ADMIN_PASS` | GitHub secret | `admin123` | |
+| `ORIGIN` | GitHub secret | `https://ivond.com` | |
 
 **Steps (timeout: 15min):**
-1. **Checkout + Setup Node.js 20** with npm cache
+1. **Checkout + Setup Node.js 22** with npm cache
 2. **Install dependencies** (`npm ci`)
 3. **Build frontend** (`npm run build` → `dist/`)
 4. **Copy assets to frontend-worker/public/**
-5. **Deploy frontend Worker** via `cloudflare/wrangler-action@v3` in `frontend-worker/`
+5. **Deploy frontend Worker** via `cloudflare/wrangler-action@v3` with `wranglerVersion: 4` in `frontend-worker/`
 6. **Install API dependencies** (`cd api && npm ci`)
-7. **Deploy backend Worker** via `cloudflare/wrangler-action@v3`:
-   `wrangler deploy --config wrangler.prod.toml`
-8. **Warm-up** — polls `API_BASE/health` every 5s up to 60s until 200 OK
-9. **Run full test suite** (`npx vitest run --reporter=verbose`) against live deployed URL
-10. **Notify on failure** — prints `::error::` annotation if tests fail post-deploy
+7. **Deploy backend Worker** via `cloudflare/wrangler-action@v3` with `wranglerVersion: 4`: `wrangler deploy --config wrangler.prod.toml`
+8. **Security audit** — `npm audit --audit-level=high` (continue-on-error)
+9. **Warm-up** — polls workers.dev URL (`https://scanner-api.islemhassini.workers.dev/api/health`) every 10s for up to ~120s until 200 OK. Uses workers.dev to bypass Cloudflare WAF challenges on CI runners.
+10. **Run full test suite** (`npx vitest run --reporter=verbose`) against workers.dev URL (overrides `API_BASE` to `https://scanner-api.islemhassini.workers.dev/api` for WAF bypass)
+11. **Rollback on failure** — if tests fail, exits with error code (prevents green pipeline on broken deploy)
+12. **Notify on failure** — prints `::error::` annotation if tests fail post-deploy
 
 ---
 

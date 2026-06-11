@@ -1,3 +1,8 @@
+import Swiper from 'swiper';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+
 (function() {
   const video = document.getElementById('scanner');
   const toast = document.getElementById('toast');
@@ -280,6 +285,7 @@
     });
     bannerCarousel.classList.remove('hidden');
     bannerSwiper = new Swiper('#banner-carousel', {
+      modules: [Autoplay, Pagination],
       loop: banners.length > 1,
       autoplay: banners.length > 1 ? { delay: 5000, disableOnInteraction: false } : false,
       pagination: { el: '#banner-dots', clickable: true }
@@ -333,6 +339,7 @@
 
     discArea.classList.remove('hidden');
     discSwiper = new Swiper('#discount-track', {
+      modules: [Autoplay, Pagination],
       slidesPerView: 3,
       spaceBetween: 0,
       loop: discItems.length >= 5,

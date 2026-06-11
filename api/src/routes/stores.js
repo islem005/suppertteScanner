@@ -8,6 +8,7 @@ import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 import { validateBody, validateName, validateSlug } from '../validate.js'
 import { getStoreLimits, countAlwaysShowOffers, countActiveOffers, countFeaturedDiscounts, countActiveDiscounts } from '../limits.js'
+import { generateStoreQR, deleteStoreQR } from '../qr.js'
 
 // ─── Auto-register store subdomain as Pages custom domain ──────────
 // Called after store creation — fires and forgets.
@@ -108,6 +109,8 @@ router.post('/', async (c) => {
 
   // Auto-register {slug}.ivond.com as a Pages custom domain (fire-and-forget)
   registerStoreSubdomain(c, cleanSlug).catch(() => {})
+  // Generate QR code for the store
+  generateStoreQR(c.env, cleanSlug).catch(() => {})
 
   const store = await queryOne(c.env.DB,
     'SELECT * FROM organization WHERE id = ?', [id]
@@ -173,6 +176,12 @@ router.put('/:id', async (c) => {
   if (!store) return c.json({ error: 'Store not found' }, 404)
   const newName = name || store.name
   const newSlug = cleanSlug || store.slug
+
+  // If slug changed, regenerate QR and delete old one
+  if (newSlug !== store.slug) {
+    generateStoreQR(c.env, newSlug).catch(() => {})
+    deleteStoreQR(c.env, store.slug).catch(() => {})
+  }
 
   let metadata = store.metadata || '{}'
   if (limits !== undefined) {

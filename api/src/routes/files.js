@@ -4,6 +4,7 @@
 // ────────────────────────────────────────────────────────────────────────
 
 import { Hono } from 'hono'
+import { generateStoreQR } from '../qr.js'
 
 const router = new Hono()
 
@@ -48,7 +49,16 @@ router.get('/*', async (c) => {
   }
 
   try {
-    const object = await c.env.CATALOGS.get(key)
+    let object = await c.env.CATALOGS.get(key)
+    if (!object && key.startsWith('qr/') && key.endsWith('.svg')) {
+      const slug = key.replace('qr/', '').replace('.svg', '')
+      if (/^[a-z0-9]+(-[a-z0-9]+)*$/.test(slug)) {
+        try {
+          await generateStoreQR(c.env, slug)
+          object = await c.env.CATALOGS.get(key)
+        } catch {}
+      }
+    }
     if (!object) {
       return c.json({ error: 'File not found' }, 404)
     }
