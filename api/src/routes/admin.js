@@ -6,6 +6,7 @@ import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate, adminOnly } from '../middleware.js'
 import { createAuth } from '../auth/index.js'
+import { validateBody, validateName, validateEmail } from '../validate.js'
 
 const router = new Hono()
 router.use('*', authenticate, adminOnly)
@@ -61,17 +62,36 @@ router.get('/stats', async (c) => {
 })
 
 router.get('/users', async (c) => {
-  const users = await queryAll(c.env.DB,
+  const db = c.env.DB
+  const page = parseInt(c.req.query('page')) || null
+  const perPage = parseInt(c.req.query('per_page')) || 20
+
+  if (page) {
+    const offset = (page - 1) * perPage
+    const total = (await queryOne(db, 'SELECT COUNT(*) as total FROM user')).total
+    const users = await queryAll(db,
+      'SELECT id, email, display_name, role, store_id, createdAt FROM user ORDER BY createdAt DESC LIMIT ? OFFSET ?',
+      [perPage, offset]
+    )
+    return c.json({ data: users, total, page, perPage })
+  }
+
+  const users = await queryAll(db,
     'SELECT id, email, display_name, role, store_id, createdAt FROM user ORDER BY createdAt DESC'
   )
   return c.json(users)
 })
 
 router.post('/users', async (c) => {
-  const { email, password, displayName, storeId, role } = await c.req.json()
-  if (!email || !password || !displayName) {
-    return c.json({ error: 'email, password, displayName required' }, 400)
-  }
+  const body = await c.req.json()
+  const { email, password, displayName, storeId, role } = body
+
+  const { valid, errors } = validateBody(body, {
+    email: { required: true, validate: v => validateEmail(v) },
+    displayName: { required: true, validate: v => validateName(v, 'Display name') }
+  })
+  if (!valid) return c.json({ error: errors.join(', ') }, 400)
+  if (!password) return c.json({ error: 'password is required' }, 400)
 
   // Use Better Auth to create user (role is input:false, set separately)
   const auth = createAuth(c.env)
@@ -106,6 +126,41 @@ router.post('/users', async (c) => {
     [result.user.id]
   )
   return c.json(created)
+})
+
+router.put('/users/:id', async (c) => {
+  const body = await c.req.json()
+  const { displayName, role, storeId } = body
+
+  const { valid, errors } = validateBody(body, {
+    displayName: { required: false, validate: v => validateName(v, 'Display name') },
+    email: { required: false, validate: v => validateEmail(v) }
+  })
+  if (!valid) return c.json({ error: errors.join(', ') }, 400)
+  if (!displayName && !role && storeId === undefined) {
+    return c.json({ error: 'At least one field required' }, 400)
+  }
+
+  const user = await queryOne(c.env.DB, 'SELECT id FROM user WHERE id = ?', [c.req.param('id')])
+  if (!user) return c.json({ error: 'User not found' }, 404)
+
+  const updates = {}
+  if (displayName) updates.display_name = displayName
+  if (role) updates.role = role
+  if (storeId !== undefined) updates.store_id = storeId || null
+  updates.updatedAt = new Date().toISOString()
+
+  const setClauses = Object.keys(updates).map(k => `${k} = ?`).join(', ')
+  await execute(c.env.DB,
+    `UPDATE user SET ${setClauses} WHERE id = ?`,
+    [...Object.values(updates), c.req.param('id')]
+  )
+
+  const updated = await queryOne(c.env.DB,
+    'SELECT id, email, name, display_name, role, store_id FROM user WHERE id = ?',
+    [c.req.param('id')]
+  )
+  return c.json(updated)
 })
 
 router.delete('/users/:id', async (c) => {

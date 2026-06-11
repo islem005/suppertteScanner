@@ -22,6 +22,7 @@
   <link rel="stylesheet" href="css/style.css">
 </head>
 <body>
+  <a href="#app" class="skip-link" style="position:absolute;top:-999px;left:0;padding:8px 16px;background:#6366f1;color:#fff;z-index:99999;text-decoration:none">Skip to content</a>
   <div id="app">
 
     <!-- Profile bar -->
@@ -68,6 +69,12 @@
       </div>
     </div>
 
+    <!-- Manual barcode entry (shown when camera or decoder unavailable) -->
+    <div id="manual-entry" class="hidden">
+      <input type="text" id="manual-barcode" inputmode="numeric" placeholder="Enter barcode number" autocomplete="off">
+      <button id="btn-manual-submit" aria-label="Look up"><i data-feather="search"></i></button>
+    </div>
+
     <!-- Promo card (image + torch) -->
     <div id="promo-card">
       <div id="promo-content" class="hidden">
@@ -87,7 +94,7 @@
 
   </div>
 
-  <div id="toast"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -97,6 +104,7 @@
     }
   </script>
   <script src="js/shared.js"></script>
+  <script src="js/scanner-core.js"></script>
   <script src="js/scanner.js"></script>
   <script src="js/app.js"></script>
 </body>

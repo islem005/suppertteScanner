@@ -8,23 +8,28 @@ The scanner app (`js/app.js`, `js/scanner.js`, `scanner.html`) is a PWA that run
 
 ## Scanner Engine (`js/scanner.js`)
 
-A singleton `Scanner` module that wraps the native `BarcodeDetector` API with a **zbar-wasm fallback** for Firefox.
+A singleton `Scanner` module with multi-layer fallback:
+1. **Native `BarcodeDetector`** (Chrome, Edge, Samsung, Safari 16.4+)
+2. **zbar-wasm** (Firefox, Safari 14.5+, any WASM-capable browser)
+3. **Manual barcode input** — always available as a fallback in the UI
 
 ### Init
 ```js
 const result = await Scanner.init()
+// => { ok: bool, hasDecoder: bool, error?: string }
 ```
-- If `'BarcodeDetector' in window` — creates native detector with formats: `qr_code, ean_13, ean_8, code_128, code_39, code_93, codabar, itf, upc_a, upc_e, data_matrix, aztec, pdf417`
-- Otherwise — dynamically imports `zbar-wasm` from CDN, creates a hidden canvas for frame capture
-- Requests camera via `getUserMedia` with `facingMode: 'environment'`, resolution `1280x720`
-- Returns `{ ok: false, error }` if both decoder and camera fail
+- Tries native `BarcodeDetector` first, then zbar-wasm dynamically from CDN
+- If both decoders fail, `hasDecoder: false` — camera still starts for preview
+- Always requests camera via `getUserMedia` (facingMode: environment, 1280x720)
+- Returns `{ ok: false, error }` only if camera itself fails
 
 ### Start / Stop
 ```js
 Scanner.start(videoElement, onBarcodeCallback)
 Scanner.stop()
 ```
-- `start()` sets the video source, plays it, and begins the detection loop
+- `start()` sets the video source, plays it; only begins the detection loop if a decoder exists
+- Without a decoder, `start()` shows the camera feed but never calls `scheduleDetect()`
 - `stop()` clears the timeout, stops all tracks, resets state
 
 ### Detection Loop (`scheduleDetect`)
@@ -116,14 +121,14 @@ See `code-lore/infrastructure/pwa-setup.md` for full details.
   - **Prompt available:** fires `deferredPrompt.prompt()`
 
 ### Camera View States
-| State | `#cam-name` text | Class |
-|---|---|---|
-| Loading | "Starting camera…" | — |
-| Camera available | "Camera ready" | — |
-| Camera unavailable | "Camera unavailable" | `.hint` |
-| Product found | Product name | — |
-| Product not found | "Unknown product" | `.hint` |
-| Restarting | "Restarting camera…" | — |
+| State | `#cam-name` text | `#camera-feed` | `#manual-entry` |
+|---|---|---|---|
+| Camera + decoder OK | "Point camera at barcode" | visible | hidden |
+| Camera OK, no decoder | "Auto-scan unavailable — enter barcode below" | visible | visible |
+| Camera unavailable | `result.error` (e.g. "Camera not available.") | hidden | visible |
+| Product found | Product name | visible | hidden |
+| Product not found | "Unknown product" | visible | hidden |
+| Restarting | "Restarting camera…" | visible | — |
 
 ---
 
@@ -131,9 +136,12 @@ See `code-lore/infrastructure/pwa-setup.md` for full details.
 
 Key elements referenced by the scanner app:
 - `#camera-feed` — video element for camera preview
+- `#cam-name` / `#cam-price` — scan result text
+- `#manual-entry` — manual barcode input bar (shown when camera/decoder unavailable)
+- `#manual-barcode` — text input for manual barcode entry
+- `#btn-manual-submit` — submit button for manual entry
 - `#scan-frame` — corner-bracket overlay
 - `#scan-line` — animated scan line
-- `#cam-name` / `#cam-price` — scan result text
 - `#btn-torch` — torch toggle
 - `#btn-install` — PWA install button
 - `#btn-menu` / `#panel-overlay` / `#results-panel` — slide-up results panel

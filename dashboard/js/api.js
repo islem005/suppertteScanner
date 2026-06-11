@@ -2,7 +2,7 @@ const API = (() => {
   const BASE = localStorage.getItem('api_base') || '/api'
 
   async function req(method, path, body) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' }
+    const opts = { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token' }, credentials: 'include' }
     if (body) opts.body = JSON.stringify(body)
     const res = await fetch(`${BASE}${path}`, opts)
     if (res.status === 401) { localStorage.removeItem('user'); window.location.href = '/auth/' }
@@ -44,9 +44,13 @@ const API = (() => {
     getStoreBySlug: (slug) => get(`/stores/slug/${slug}`),
 
     // Products
-    getProducts: (storeId) => get(`/products?store_id=${storeId}`),
+    getProducts: (storeId, page, perPage) => {
+      let path = `/products?store_id=${storeId}`
+      if (page) path += `&page=${page}&per_page=${perPage || 20}`
+      return get(path)
+    },
     getProductByBarcode: (storeId, barcode) => get(`/products/lookup/${storeId}?barcode=${encodeURIComponent(barcode)}`),
-    uploadCsv: (csv, storeId) => post('/products/upload', { csv }),
+    createProduct: (data) => post('/products', data),
     deleteProduct: (id) => del(`/products/${id}`),
 
     // Scans
@@ -73,7 +77,11 @@ const API = (() => {
     getMapping: (storeId) => get(`/imports/mapping/${storeId}`),
 
     // Promotions
-    getStorePromotions: (storeId) => get(`/promotions/store/${storeId}`),
+    getStorePromotions: (storeId, page, perPage) => {
+      let path = `/promotions/store/${storeId}`
+      if (page) path += `?page=${page}&per_page=${perPage || 20}`
+      return get(path)
+    },
     getPromotion: (id) => get(`/promotions/single/${id}`),
     createPromotion: (data) => post('/promotions', data),
     updatePromotion: (id, data) => put(`/promotions/${id}`, data),
@@ -81,7 +89,11 @@ const API = (() => {
     getBanner: (storeId) => get(`/promotions/banners/${storeId}`),
 
     // Discounts
-    getDiscounts: (storeId) => get(`/discounts/store/${storeId}`),
+    getDiscounts: (storeId, page, perPage) => {
+      let path = `/discounts/store/${storeId}`
+      if (page) path += `?page=${page}&per_page=${perPage || 20}`
+      return get(path)
+    },
     getDiscount: (id) => get(`/discounts/item/${id}`),
     createDiscount: (data) => post('/discounts', data),
     updateDiscount: (id, data) => put(`/discounts/${id}`, data),
@@ -99,12 +111,19 @@ const API = (() => {
     },
 
     // Team management
-    getTeam: (storeId) => get(`/team/${storeId}`),
+    getTeam: (storeId, page, perPage) => {
+      let path = `/team/${storeId}`
+      if (page) path += `?page=${page}&per_page=${perPage || 50}`
+      return get(path)
+    },
     createAssociate: (storeId, data) => post(`/team/${storeId}`, data),
     deleteAssociate: (storeId, userId) => del(`/team/${storeId}/${userId}`),
 
     // Audit log
     getAuditLog: (storeId, limit, offset) => get(`/audit/${storeId}?limit=${limit || 50}&offset=${offset || 0}`),
+
+    // Auth
+    changePassword: (currentPassword, newPassword) => post('/auth/change-password', { currentPassword, newPassword }),
 
     // File upload to R2
     /**
@@ -131,6 +150,7 @@ const API = (() => {
       const res = await fetch(`${BASE}/upload`, {
         method: 'POST',
         credentials: 'include',
+        headers: { 'X-CSRF-Token': 'skaner-csrf-token' },
         body: formData
       })
       const data = await res.json()

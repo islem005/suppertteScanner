@@ -1,5 +1,4 @@
 (function() {
-  if (typeof feather !== 'undefined') feather.replace()
   let user = null, stores = []
 
   function getNavItems(role) {
@@ -46,7 +45,7 @@
     return false
   }
   function logout() {
-    fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {})
+    fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': 'skaner-csrf-token' } }).catch(() => {})
     localStorage.removeItem('user')
     user = null
     window.location.href = '/auth/'
@@ -67,6 +66,7 @@
     else if (id === 'team') loadTeam()
     else if (id === 'audit') loadAuditLog()
     else if (id === 'profile') loadProfile()
+    window.scrollTo(0, 0)
   }
   function navigateTo(id) {
     if (location.hash !== '#' + id) location.hash = id
@@ -107,7 +107,29 @@
 
   // ─── Branding ───
   async function loadBranding() {
-    if (user.store_id) loadBrandingForm(user.store_id)
+    if (user.store_id) {
+      loadBrandingForm(user.store_id)
+      generateStoreQR()
+    }
+  }
+
+  async function generateStoreQR() {
+    const canvas = $('dash-qr-canvas')
+    const urlEl = $('dash-qr-url')
+    const btn = $('btn-dash-download-qr')
+    if (!canvas || !user.store_id) return
+    try {
+      const store = await API.getStore(user.store_id)
+      const url = 'https://' + store.slug + '.ivond.com'
+      urlEl.textContent = url
+      await QRCode.toCanvas(canvas, url, { width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
+      btn.onclick = function() {
+        var link = document.createElement('a')
+        link.download = store.slug + '-qr.png'
+        link.href = canvas.toDataURL('image/png')
+        link.click()
+      }
+    } catch { urlEl.textContent = I18N.t('couldNotLoad') }
   }
 
   async function loadBrandingForm(storeId) {
@@ -258,6 +280,7 @@
 
   // ─── Activity ───
   async function loadActivity() {
+    $('activity-list').innerHTML = '<div class="loading-spinner">' + I18N.t('loading') + '</div>'
     try {
       const stats = await API.getScanStats(user.store_id)
       const items = stats.topProducts || []
@@ -267,12 +290,13 @@
       $('activity-list').innerHTML = items.map(p =>
         `<div class="activity-item"><span class="act-barcode">${esc(p.barcode)}</span><span class="meta">${p.count} ${I18N.t('scans')}</span></div>`
       ).join('')
-    } catch { $('activity-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoadActivity') + '</div>' }
+    } catch { $('activity-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoadActivity') + ' <button class="btn small" onclick="loadActivity()">' + I18N.t('retry') + '</button></div>' }
   }
 
   // ─── Analytics ───
   async function loadAnalytics() {
     const days = ($('an-days-filter') && $('an-days-filter').value) || 30
+    $('an-cards').innerHTML = '<div class="loading-spinner">' + I18N.t('loading') + '</div>'
     try {
       const data = await API.getAnalytics(days)
       const p = data.platform
@@ -289,7 +313,7 @@
       renderTrendChart('an-trend-chart', data.dailyTrend)
       renderTopProducts('an-top-products', data.topProducts)
     } catch (err) {
-      $('an-cards').innerHTML = '<div class="empty-state">Could not load analytics: ' + esc(err.message) + '</div>'
+      $('an-cards').innerHTML = '<div class="empty-state">Could not load analytics: ' + esc(err.message) + ' <button class="btn small" onclick="loadAnalytics()">' + I18N.t('retry') + '</button></div>'
     }
   }
 
@@ -307,25 +331,25 @@
     let svg = `<svg viewBox="0 0 ${chartW} ${chartH}" style="width:100%;max-height:140px" xmlns="http://www.w3.org/2000/svg">`
     for (let i = 0; i <= 4; i++) {
       const y = padT + (innerH / 4) * i
-      svg += `<line x1="${padL}" y1="${y}" x2="${chartW - padR}" y2="${y}" stroke="#2a2a3e" stroke-width="1"/>`
+      svg += `<line x1="${padL}" y1="${y}" x2="${chartW - padR}" y2="${y}" stroke="var(--border-strong)" stroke-width="1"/>`
     }
     data.forEach((d, i) => {
       const x = padL + i * (barWidth + 4)
       const vH = (d.visits / maxVal) * innerH
       const sH = (d.scans / maxVal) * innerH
-      svg += `<rect x="${x}" y="${padT + innerH - vH}" width="${barWidth}" height="${vH}" fill="#6366f1" rx="2" opacity="0.8"><title>${d.date}: ${d.visits} visits</title></rect>`
+      svg += `<rect x="${x}" y="${padT + innerH - vH}" width="${barWidth}" height="${vH}" fill="var(--color-primary)" rx="2" opacity="0.8"><title>${d.date}: ${d.visits} visits</title></rect>`
       const sx = x + barWidth * 0.5
       const sw = Math.max(4, barWidth * 0.4)
-      svg += `<rect x="${sx}" y="${padT + innerH - sH}" width="${sw}" height="${sH}" fill="#10b981" rx="2" opacity="0.8"><title>${d.date}: ${d.scans} scans</title></rect>`
+      svg += `<rect x="${sx}" y="${padT + innerH - sH}" width="${sw}" height="${sH}" fill="var(--color-success)" rx="2" opacity="0.8"><title>${d.date}: ${d.scans} scans</title></rect>`
     })
     const step = Math.max(1, Math.floor(data.length / 8))
     data.forEach((d, i) => {
       if (i % step === 0 || i === data.length - 1) {
-        svg += `<text x="${padL + i * (barWidth + 4) + barWidth / 2}" y="${chartH - 4}" text-anchor="middle" fill="#6b7280" font-size="9">${d.date.slice(5)}</text>`
+        svg += `<text x="${padL + i * (barWidth + 4) + barWidth / 2}" y="${chartH - 4}" text-anchor="middle" fill="var(--text-tertiary)" font-size="9">${d.date.slice(5)}</text>`
       }
     })
-    svg += `<rect x="${chartW - 80}" y="2" width="8" height="8" fill="#6366f1" rx="1"/><text x="${chartW - 68}" y="9" fill="#9ca3af" font-size="9">Visits</text>`
-    svg += `<rect x="${chartW - 40}" y="2" width="8" height="8" fill="#10b981" rx="1"/><text x="${chartW - 28}" y="9" fill="#9ca3af" font-size="9">Scans</text>`
+    svg += `<rect x="${chartW - 80}" y="2" width="8" height="8" fill="var(--color-primary)" rx="1"/><text x="${chartW - 68}" y="9" fill="var(--text-secondary)" font-size="9">Visits</text>`
+    svg += `<rect x="${chartW - 40}" y="2" width="8" height="8" fill="var(--color-success)" rx="1"/><text x="${chartW - 28}" y="9" fill="var(--text-secondary)" font-size="9">Scans</text>`
     svg += '</svg>'
     el.innerHTML = svg
   }
@@ -364,6 +388,24 @@
     location.reload()
   }))
 
+  $('btn-change-pass').addEventListener('click', async () => {
+    const form = $('view-profile')
+    clearFieldErrors(form)
+    const current = $('prof-current-pass').value
+    const password = $('prof-new-pass').value
+    const msg = $('prof-pass-msg')
+    let hasError = false
+    if (!current) { showFieldError($('prof-current-pass'), 'Current password is required'); hasError = true }
+    if (!password) { showFieldError($('prof-new-pass'), 'New password is required'); hasError = true }
+    if (hasError) return
+    if (password.length < 6) { showFieldError($('prof-new-pass'), 'Password must be at least 6 characters'); return }
+    try {
+      await API.changePassword(current, password)
+      msg.textContent = 'Password updated successfully'; msg.style.color = '#00c875'
+      $('prof-current-pass').value = ''; $('prof-new-pass').value = ''
+    } catch (err) { msg.textContent = err.message; msg.style.color = '#ff4444' }
+  })
+
   // ══════════════════════════════════════════════
   //  MANAGER VIEWS
   // ══════════════════════════════════════════════
@@ -374,16 +416,18 @@
       $('ov-store-table').innerHTML = ''
       return
     }
+    $('ov-cards').innerHTML = '<div class="loading-spinner">' + I18N.t('loading') + '</div>'
+    $('ov-store-table').innerHTML = ''
     try {
       const store = await API.getStore(user.store_id)
       const s = await API.getScanStats(user.store_id)
-      const products = await API.getProducts(user.store_id)
+      const products = await API.getProducts(user.store_id, 1, 1)
 
       $('ov-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
       $('ov-cards').innerHTML = `
         <div class="stat-card"><span class="num">${s.total}</span><span class="label">${I18N.t('totalLabel')}</span></div>
         <div class="stat-card"><span class="num">${s.today}</span><span class="label">${I18N.t('todayLabel')}</span></div>
-        <div class="stat-card"><span class="num">${products.length}</span><span class="label">${I18N.t('productsLabel')}</span></div>
+        <div class="stat-card"><span class="num">${products.total}</span><span class="label">${I18N.t('productsLabel')}</span></div>
         <div class="stat-card"><span class="num">${s.visitsToday || 0}</span><span class="label">Visits Today</span></div>
         <div class="stat-card"><span class="num">${s.hitRate || 0}%</span><span class="label">Hit Rate</span></div>
         <div class="stat-card"><span class="num">${s.devices || 0}</span><span class="label">Devices</span></div>
@@ -391,40 +435,44 @@
       const topHtml = (s.topProducts || []).map(p => `<div class="activity-item"><span class="act-barcode">${esc(p.barcode)}</span><span class="meta">${p.count} ${I18N.t('scanCount')}</span></div>`).join('')
       $('ov-store-table').innerHTML = `<header class="view-header" style="margin-top:16px"><h3 style="font-size:16px">${I18N.t('topProducts')}</h3><a href="https://${esc(store.slug)}.ivond.com" target="_blank" class="btn small">${I18N.t('publicLink')} ↗</a></header>` +
         (topHtml || '<div class="empty-state">' + I18N.t('noScans') + '</div>')
-    } catch { $('ov-cards').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoadOverview') + '</div>' }
+    } catch { $('ov-cards').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoadOverview') + ' <button class="btn small" onclick="loadManagerOverview()">' + I18N.t('retry') + '</button></div>' }
   }
 
   // ─── Products (manager) ───
-  let allProducts = []
+  let productsPage = 1, productsTotal = 0
+  let productsList = []
+  const PRODUCTS_PER_PAGE = 20
 
   async function loadManagerProducts() {
-    allProducts = await API.getProducts(user.store_id)
-    renderProducts(allProducts)
+    const q = $('product-search').value.trim()
+    $('product-list').innerHTML = '<div class="loading-spinner">' + I18N.t('loading') + '</div>'
+    try {
+      const res = await API.getProducts(user.store_id, productsPage, PRODUCTS_PER_PAGE, q)
+      productsTotal = res.total
+      productsList = res.products || []
+      renderProducts(productsList)
+    } catch {
+      $('product-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + ' <button class="btn small" onclick="loadManagerProducts()">' + I18N.t('retry') + '</button></div>'
+    }
   }
 
   function renderProducts(list) {
-    if (list.length === 0 && allProducts.length === 0) { $('product-list').innerHTML = '<div class="empty-state">' + I18N.t('noProducts') + '</div>'; return }
+    if (productsTotal === 0) { $('product-list').innerHTML = '<div class="empty-state">' + I18N.t('noProducts') + '</div>'; return }
     if (list.length === 0) { $('product-list').innerHTML = '<div class="empty-state">' + I18N.t('noProductsMatch') + '</div>'; return }
     let html = '<table><thead><tr><th>' + I18N.t('tableBarcode') + '</th><th>' + I18N.t('tableName') + '</th><th>' + I18N.t('tablePrice') + '</th><th>' + I18N.t('tableCategory') + '</th><th></th></tr></thead><tbody>'
-    for (const p of list) html += `<tr><td data-label="${I18N.t('tableBarcode')}" class="meta" style="font-family:monospace">${esc(p.barcode)}</td><td data-label="${I18N.t('tableName')}"><strong>${esc(p.name)}</strong></td><td data-label="${I18N.t('tablePrice')}">${parseFloat(p.price).toFixed(2)} DA</td><td data-label="${I18N.t('tableCategory')}" class="meta">${esc(p.category||'—')}</td><td class="actions-cell"><button class="btn small danger" onclick="deleteProduct('${p.id}')">✕</button></td></tr>`
-    $('product-list').innerHTML = html + '</tbody></table>'
+    for (const p of list) html += `<tr><td data-label="${I18N.t('tableBarcode')}" class="meta" style="font-family:monospace">${esc(p.barcode)}</td><td data-label="${I18N.t('tableName')}"><strong>${esc(p.name)}</strong></td><td data-label="${I18N.t('tablePrice')}">${parseFloat(p.price).toFixed(2)} DA</td><td data-label="${I18N.t('tableCategory')}" class="meta">${esc(p.category||'—')}</td><td class="actions-cell"><button class="btn small" onclick="editProduct('${p.id}')">${I18N.t('edit')}</button><button class="btn small danger" onclick="deleteProduct('${p.id}')">${I18N.t('delete')}</button></td></tr>`
+    html += '</tbody></table>'
+    html += paginationHtml(productsPage, productsTotal, PRODUCTS_PER_PAGE, "goToProducts")
+    $('product-list').innerHTML = html
   }
 
+  let productsSearchTimer
   $('product-search').oninput = () => {
-    const q = $('product-search').value.toLowerCase().trim()
-    if (!q) return renderProducts(allProducts)
-    renderProducts(allProducts.filter(p =>
-      (p.barcode && p.barcode.toLowerCase().includes(q)) ||
-      (p.name && p.name.toLowerCase().includes(q))
-    ))
-  }
-
-  // ─── Upload Data (imports) ───
-  async function checkMappingAndPrompt() {
-    try {
-      const mapping = await API.getMapping(user.store_id)
-      return mapping
-    } catch { return null }
+    clearTimeout(productsSearchTimer)
+    productsSearchTimer = setTimeout(() => {
+      productsPage = 1
+      loadManagerProducts()
+    }, 300)
   }
 
   function readFileAsBase64(file) {
@@ -492,19 +540,94 @@
     e.target.value = ''
   }
 
+  $('btn-add-product').onclick = () => openProductModal(null)
+
+  function openProductModal(existing) {
+    const isEdit = !!existing
+    const barcode = existing ? existing.barcode || '' : ''
+    const name = existing ? existing.name || '' : ''
+    const price = existing ? existing.price || '' : ''
+    const category = existing ? existing.category || '' : ''
+
+    showModal(isEdit ? I18N.t('editProduct') : I18N.t('addProduct'), `
+      <div class="form">
+        <div class="form-row">
+          <label>${I18N.t('tableBarcode')}</label>
+          <input id="mod-prod-barcode" class="form-input" value="${esc(barcode)}" placeholder="e.g. 5901234123457">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('tableName')}</label>
+          <input id="mod-prod-name" class="form-input" value="${esc(name)}" placeholder="e.g. Organic Honey">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('tablePrice')}</label>
+          <input id="mod-prod-price" type="number" step="0.01" min="0" class="form-input" value="${esc(price)}" placeholder="e.g. 12.99">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('tableCategory')}</label>
+          <input id="mod-prod-category" class="form-input" value="${esc(category)}" placeholder="e.g. Beverages">
+        </div>
+      </div>
+    `, async () => {
+      const form = $('modal-body')
+      clearFieldErrors(form)
+      const barcode = $('mod-prod-barcode').value.trim()
+      const name = $('mod-prod-name').value.trim()
+      const price = $('mod-prod-price').value.trim()
+      let hasError = false
+      if (!barcode) { showFieldError($('mod-prod-barcode'), 'Barcode is required'); hasError = true }
+      if (!name) { showFieldError($('mod-prod-name'), 'Name is required'); hasError = true }
+      if (!price || isNaN(parseFloat(price))) { showFieldError($('mod-prod-price'), 'Valid price is required'); hasError = true }
+      if (hasError) return
+
+      const data = {
+        store_id: user.store_id,
+        barcode: barcode,
+        name: name,
+        price: parseFloat(price),
+        category: $('mod-prod-category').value.trim() || null
+      }
+      try {
+        await API.createProduct(data)
+        closeModal()
+        await loadManagerProducts()
+        showToast(isEdit ? I18N.t('productUpdated') : I18N.t('productCreated'))
+      } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
+    })
+    $('modal-confirm').textContent = isEdit ? I18N.t('save') : I18N.t('addProduct')
+  }
+
+  window.editProduct = async (id) => {
+    const p = productsList.find(x => x.id === id)
+    if (p) openProductModal(p)
+  }
+
   window.deleteProduct = async (id) => {
-    await API.deleteProduct(id); loadManagerProducts()
+    showModal(I18N.t('deleteProduct'), I18N.t('deleteProductConfirm'), async () => {
+      await API.deleteProduct(id)
+      closeModal()
+      loadManagerProducts()
+    }, true)
   }
 
   // ══════════════════════════════════════════════
   //  OFFERS (Scan Promotions)
   // ══════════════════════════════════════════════
 
+  let offersPage = 1, offersTotal = 0
+  const OFFERS_PER_PAGE = 20
+
   async function loadOffers() {
     if (!user.store_id) { $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('noStoreText') + '</div>'; return }
+    $('offers-list').innerHTML = '<div class="loading-spinner">' + I18N.t('loading') + '</div>'
     try {
-      const promos = await API.getStorePromotions(user.store_id)
+      const res = await API.getStorePromotions(user.store_id, offersPage, OFFERS_PER_PAGE)
+      const promos = res.promotions || []
       const offers = promos.filter(p => p.type === 'offer')
+      offersTotal = res.total
+      if (offers.length === 0 && offersTotal === 0) {
+        $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('noOffers') + '</div>'; return
+      }
       if (offers.length === 0) {
         $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('noOffers') + '</div>'; return
       }
@@ -515,19 +638,22 @@
         const thumb = offerImg
           ? `<img src="${esc(offerImg)}" class="offer-thumb" alt="">`
           : '<span class="offer-thumb offer-thumb-empty"></span>'
+        // a11y: color-only indicator for active status (✓/○ without text label)
         html += `<tr>
           <td data-label="${I18N.t('image')}">${thumb}</td>
           <td data-label="${I18N.t('title')}"><strong>${esc(o.title || 'Untitled')}</strong></td>
           <td data-label="${I18N.t('trigger')}" class="meta">${esc(trigger)}</td>
-          <td data-label="${I18N.t('active')}">${o.active ? '<span style="color:#00c875">✓</span>' : '<span style="color:#ffc107">○</span>'}</td>
+          <td data-label="${I18N.t('active')}">${o.active ? '<span style="color:var(--color-success)" aria-label="Active">✓</span>' : '<span style="color:var(--color-warning)" aria-label="Inactive">○</span>'}</td>
           <td class="actions-cell">
             <button class="btn small" onclick="editOffer('${o.id}')">${I18N.t('edit')}</button>
             <button class="btn small danger" onclick="deleteOffer('${o.id}')">${I18N.t('delete')}</button>
           </td>
         </tr>`
       }
-      $('offers-list').innerHTML = html + '</tbody></table>'
-    } catch { $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + '</div>' }
+      html += '</tbody></table>'
+      html += paginationHtml(offersPage, offersTotal, OFFERS_PER_PAGE, "goToOffers")
+      $('offers-list').innerHTML = html
+    } catch { $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + ' <button class="btn small" onclick="loadOffers()">' + I18N.t('retry') + '</button></div>' }
   }
 
   $('btn-add-offer').onclick = () => openOfferModal(null)
@@ -574,17 +700,23 @@
         </div>
       </div>
     `, async () => {
+      const form = $('modal-body')
+      clearFieldErrors(form)
+      const title = $('mod-offer-title').value.trim()
+      let hasError = false
+      if (!title) { showFieldError($('mod-offer-title'), 'Title is required'); hasError = true }
+      if (hasError) return
+
       const imageVal = $('mod-offer-image').value
       const isDataUrl = imageVal && imageVal.startsWith('data:')
       const data = {
         store_id: user.store_id,
         type: 'offer',
-        title: $('mod-offer-title').value,
+        title: title,
         trigger_type: $('mod-offer-trigger-type').value || null,
         trigger_value: $('mod-offer-trigger-value').value || null,
         active: $('mod-offer-active').checked
       }
-      // Send R2 URL or base64 — whichever the image field holds
       if (isDataUrl) {
         data.image_data = imageVal
         data.image_url = null
@@ -650,10 +782,19 @@
   }
 
   // ─── Discount Items ───
+  let discountsPage = 1, discountsTotal = 0
+  const DISCOUNTS_PER_PAGE = 20
+
   async function loadDiscounts() {
     if (!user.store_id) { $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noStoreText') + '</div>'; return }
+    $('discount-list').innerHTML = '<div class="loading-spinner">' + I18N.t('loading') + '</div>'
     try {
-      const items = await API.getDiscounts(user.store_id)
+      const res = await API.getDiscounts(user.store_id, discountsPage, DISCOUNTS_PER_PAGE)
+      const items = res.discounts || []
+      discountsTotal = res.total
+      if (items.length === 0 && discountsTotal === 0) {
+        $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noDiscounts') + '</div>'; return
+      }
       if (items.length === 0) {
         $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noDiscounts') + '</div>'; return
       }
@@ -662,21 +803,24 @@
         const discImg = d.image_url || d.image_data
         const thumb = discImg ? `<img src="${esc(discImg)}" class="offer-thumb" alt="">` : '<span class="offer-thumb offer-thumb-empty"></span>'
         const priceHtml = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-xs)">${parseFloat(d.original_price).toFixed(2)}</span> <strong style="color:var(--color-success)">${parseFloat(d.new_price).toFixed(2)}</strong>`
+        // a11y: color-only indicators for featured (★/—) and active (✓/○) status
         html += `<tr>
           <td data-label="${I18N.t('image')}">${thumb}</td>
           <td data-label="${I18N.t('tableName')}"><strong>${esc(d.name)}</strong>${d.barcode ? '<br><span class="meta" style="font-size:11px">' + esc(d.barcode) + '</span>' : ''}</td>
           <td data-label="${I18N.t('tableCategory')}" class="meta">${esc(d.category || '—')}</td>
           <td data-label="${I18N.t('tablePrice')}" style="white-space:nowrap">${priceHtml}${d.discount_percent ? ' <span class="tag danger" style="font-size:10px">-' + d.discount_percent + '%</span>' : ''}</td>
-          <td data-label="${I18N.t('featured')}">${d.featured ? '<span style="color:var(--color-warning)">★</span>' : '—'}</td>
-          <td data-label="${I18N.t('active')}">${d.active ? '<span style="color:var(--color-success)">✓</span>' : '<span style="color:var(--text-disabled)">○</span>'}</td>
+          <td data-label="${I18N.t('featured')}">${d.featured ? '<span style="color:var(--color-warning)" aria-label="Featured">★</span>' : '<span aria-label="Not featured">—</span>'}</td>
+          <td data-label="${I18N.t('active')}">${d.active ? '<span style="color:var(--color-success)" aria-label="Active">✓</span>' : '<span style="color:var(--text-disabled)" aria-label="Inactive">○</span>'}</td>
           <td class="actions-cell">
             <button class="btn small" onclick="editDiscount('${d.id}')">${I18N.t('edit')}</button>
             <button class="btn small danger" onclick="deleteDiscount('${d.id}')">${I18N.t('delete')}</button>
           </td>
         </tr>`
       }
-      $('discount-list').innerHTML = html + '</tbody></table>'
-    } catch { $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + '</div>' }
+      html += '</tbody></table>'
+      html += paginationHtml(discountsPage, discountsTotal, DISCOUNTS_PER_PAGE, "goToDiscounts")
+      $('discount-list').innerHTML = html
+    } catch { $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + ' <button class="btn small" onclick="loadDiscounts()">' + I18N.t('retry') + '</button></div>' }
   }
 
   $('btn-add-discount').onclick = () => openDiscountModal(null)
@@ -757,6 +901,13 @@
         </div>
       </div>
     `, async () => {
+      const form = $('modal-body')
+      clearFieldErrors(form)
+      const discName = $('mod-disc-name').value.trim()
+      let hasError = false
+      if (!discName) { showFieldError($('mod-disc-name'), 'Product name is required'); hasError = true }
+      if (hasError) return
+
       const origPriceVal = parseFloat($('mod-disc-orig-price').value)
       const discTypeVal = $('mod-disc-type').value
       let newPriceVal, discPercentVal
@@ -1039,10 +1190,19 @@
   //  TEAM (Manager: CRUD associates)
   // ══════════════════════════════════════════════
 
+  let teamPage = 1, teamTotal = 0
+  const TEAM_PER_PAGE = 50
+
   async function loadTeam() {
     if (!user.store_id) { $('team-list').innerHTML = '<div class="empty-state">' + I18N.t('noStoreAssigned') + '</div>'; return }
+    $('team-list').innerHTML = '<div class="loading-spinner">' + I18N.t('loading') + '</div>'
     try {
-      const members = await API.getTeam(user.store_id)
+      const res = await API.getTeam(user.store_id, teamPage, TEAM_PER_PAGE)
+      const members = res.members || []
+      teamTotal = res.total
+      if (members.length === 0 && teamTotal === 0) {
+        $('team-list').innerHTML = '<div class="empty-state">' + I18N.t('noAssociates') + '</div>'; return
+      }
       if (members.length === 0) {
         $('team-list').innerHTML = '<div class="empty-state">' + I18N.t('noAssociates') + '</div>'; return
       }
@@ -1055,8 +1215,10 @@
           '<td class="actions-cell"><button class="btn small danger" onclick="deleteAssociate(\'' + m.id + '\')">' + I18N.t('delete') + '</button></td>' +
           '</tr>'
       }
-      $('team-list').innerHTML = html + '</tbody></table>'
-    } catch { $('team-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + '</div>' }
+      html += '</tbody></table>'
+      html += paginationHtml(teamPage, teamTotal, TEAM_PER_PAGE, "goToTeam")
+      $('team-list').innerHTML = html
+    } catch { $('team-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + ' <button class="btn small" onclick="loadTeam()">' + I18N.t('retry') + '</button></div>' }
   }
 
   $('btn-add-associate') && $('btn-add-associate').addEventListener('click', () => {
@@ -1067,10 +1229,16 @@
         <div class="form-row"><label>${I18N.t('associatePassword')}</label><input id="mod-assoc-pass" type="password" class="form-input" placeholder="Min 6 characters"></div>
       </div>
     `, async () => {
-      const name = $('mod-assoc-name').value
-      const email = $('mod-assoc-email').value
+      const form = $('modal-body')
+      clearFieldErrors(form)
+      const name = $('mod-assoc-name').value.trim()
+      const email = $('mod-assoc-email').value.trim()
       const password = $('mod-assoc-pass').value
-      if (!name || !email || !password) { showToast(I18N.t('errorPrefix') + 'All fields required'); return }
+      let hasError = false
+      if (!name) { showFieldError($('mod-assoc-name'), 'Name is required'); hasError = true }
+      if (!email) { showFieldError($('mod-assoc-email'), 'Email is required'); hasError = true }
+      if (!password) { showFieldError($('mod-assoc-pass'), 'Password is required'); hasError = true }
+      if (hasError) return
       try {
         await API.createAssociate(user.store_id, { displayName: name, email, password })
         closeModal(); await loadTeam(); showToast(I18N.t('associateCreated'))
@@ -1090,11 +1258,20 @@
   //  AUDIT LOG (Manager: view associate activity)
   // ══════════════════════════════════════════════
 
+  let auditPage = 1, auditTotal = 0
+  const AUDIT_PER_PAGE = 50
+
   async function loadAuditLog() {
     if (!user.store_id) { $('audit-list').innerHTML = '<div class="empty-state">' + I18N.t('noStoreAssigned') + '</div>'; return }
+    $('audit-list').innerHTML = '<div class="loading-spinner">' + I18N.t('loading') + '</div>'
     try {
-      const data = await API.getAuditLog(user.store_id, 100, 0)
+      const offset = (auditPage - 1) * AUDIT_PER_PAGE
+      const data = await API.getAuditLog(user.store_id, AUDIT_PER_PAGE, offset)
       const logs = data.logs || []
+      auditTotal = data.total || 0
+      if (logs.length === 0 && auditTotal === 0) {
+        $('audit-list').innerHTML = '<div class="empty-state">' + I18N.t('auditNoLogs') + '</div>'; return
+      }
       if (logs.length === 0) {
         $('audit-list').innerHTML = '<div class="empty-state">' + I18N.t('auditNoLogs') + '</div>'; return
       }
@@ -1110,9 +1287,35 @@
           '<td data-label="' + I18N.t('auditDetails') + '" class="meta" style="font-size:11px;max-width:200px;overflow:hidden;text-overflow:ellipsis">' + esc(details) + '</td>' +
           '</tr>'
       }
-      $('audit-list').innerHTML = html + '</tbody></table>'
-    } catch { $('audit-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + '</div>' }
+      html += '</tbody></table>'
+      html += paginationHtml(auditPage, auditTotal, AUDIT_PER_PAGE, "goToAudit")
+      $('audit-list').innerHTML = html
+    } catch { $('audit-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + ' <button class="btn small" onclick="loadAuditLog()">' + I18N.t('retry') + '</button></div>' }
   }
+
+  // ══════════════════════════════════════════════
+  //  PAGINATION
+  // ══════════════════════════════════════════════
+
+  function paginationHtml(current, total, perPage, goToFnName) {
+    const totalPages = Math.ceil(total / perPage)
+    if (totalPages <= 1) return ''
+    const prevDisabled = current <= 1
+    const nextDisabled = current >= totalPages
+    const prevAttr = prevDisabled ? ' disabled' : ' onclick="' + goToFnName + '(' + (current - 1) + ')"'
+    const nextAttr = nextDisabled ? ' disabled' : ' onclick="' + goToFnName + '(' + (current + 1) + ')"'
+    return '<div class="pagination">' +
+      '<button class="btn small" data-prev' + prevAttr + '>&larr; Previous</button>' +
+      '<span class="pagination-info">Page ' + current + ' of ' + totalPages + '</span>' +
+      '<button class="btn small" data-next' + nextAttr + '>Next &rarr;</button>' +
+      '</div>'
+  }
+
+  window.goToProducts = function(p) { productsPage = p; loadManagerProducts() }
+  window.goToOffers = function(p) { offersPage = p; loadOffers() }
+  window.goToDiscounts = function(p) { discountsPage = p; loadDiscounts() }
+  window.goToTeam = function(p) { teamPage = p; loadTeam() }
+  window.goToAudit = function(p) { auditPage = p; loadAuditLog() }
 
   // ══════════════════════════════════════════════
   //  MODAL
@@ -1131,7 +1334,7 @@
   }
 
   window.closeModal = (e) => {
-    if (e && e.target !== $('modal-overlay') && e.target !== $('modal-overlay')) return
+    if (e && e.target !== $('modal-overlay')) return
     $('modal-overlay').classList.add('hidden'); modalCallback = null
   }
 
@@ -1140,7 +1343,24 @@
   });
 
   // ─── Helpers ───
-  function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML }
+
+  function showFieldError(inputEl, message) {
+    const parent = inputEl.parentElement
+    let errorEl = parent.querySelector('.form-error')
+    if (!errorEl) {
+      errorEl = document.createElement('div')
+      errorEl.className = 'form-error'
+      parent.appendChild(errorEl)
+    }
+    errorEl.textContent = message
+    errorEl.classList.add('visible')
+    inputEl.classList.add('error')
+  }
+
+  function clearFieldErrors(form) {
+    form.querySelectorAll('.form-error.visible').forEach(function(el) { el.classList.remove('visible') })
+    form.querySelectorAll('.form-input.error').forEach(function(el) { el.classList.remove('error') })
+  }
 
   function showToast(msg) {
     let el = document.getElementById('toast')
@@ -1185,6 +1405,25 @@
         if (user) {
           API.getStores().then(s => { stores = s }).catch(() => {})
           routeDash()
+
+          // Auto-refresh every 30s for live data
+          let refreshInterval = setInterval(() => {
+            loadManagerOverview()
+            loadActivity()
+          }, 30000)
+
+          document.addEventListener('visibilitychange', () => {
+            if (document.hidden) {
+              clearInterval(refreshInterval)
+              refreshInterval = null
+            } else if (!refreshInterval) {
+              refreshInterval = setInterval(() => {
+                loadManagerOverview()
+                loadActivity()
+              }, 30000)
+            }
+          })
+
           return
         }
       }

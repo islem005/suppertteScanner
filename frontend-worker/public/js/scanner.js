@@ -17,12 +17,16 @@ const Scanner = (() => {
 
   async function init() {
     if ('BarcodeDetector' in window) {
-      detector = new BarcodeDetector({ formats: [
-        'qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39',
-        'code_93', 'codabar', 'itf', 'upc_a', 'upc_e',
-        'data_matrix', 'aztec', 'pdf417'
-      ]});
-    } else {
+      try {
+        detector = new BarcodeDetector({ formats: [
+          'qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39',
+          'code_93', 'codabar', 'itf', 'upc_a', 'upc_e',
+          'data_matrix', 'aztec', 'pdf417'
+        ]});
+      } catch (_) {}
+    }
+
+    if (!detector) {
       try {
         const zbar = await import('https://cdn.jsdelivr.net/npm/zbar-wasm@2/dist/zbar-wasm.js');
         fallbackCanvas = document.createElement('canvas');
@@ -37,31 +41,28 @@ const Scanner = (() => {
           const symbols = await zbar.scanImageData(imageData);
           return symbols.map(s => ({ rawValue: s.decode, format: s.typeName }));
         };
-      } catch (_) {
-        return { ok: false, error: 'Barcode decoder failed to load. Use Chrome on Android.' };
-      }
+      } catch (_) {}
     }
 
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
-      });
-      return { ok: true };
+      stream = await scannerCore.startCamera(null, { facingMode });
+      return { ok: true, hasDecoder: !!(detector || fallbackDetect) };
     } catch (e) {
-      return { ok: false, error: 'Camera access denied. Allow camera permissions.' };
+      return { ok: false, error: 'Camera not available.', hasDecoder: false };
     }
   }
 
   function start(video, callback) {
-    if (!stream || (!detector && !fallbackDetect)) return;
+    if (!stream) return;
     if (active) return;
     active = true;
     onDetect = callback;
     videoEl = video;
     videoEl.srcObject = stream;
     videoEl.play();
-    scheduleDetect();
+    if (detector || fallbackDetect) {
+      scheduleDetect();
+    }
   }
 
   async function scheduleDetect() {
@@ -105,10 +106,8 @@ const Scanner = (() => {
   function stop() {
     active = false;
     if (loopId) { clearTimeout(loopId); loopId = null; }
-    if (stream) {
-      stream.getTracks().forEach(t => t.stop());
-      stream = null;
-    }
+    scannerCore.stopCamera(stream);
+    stream = null;
     lastResults = [];
     lastResultTime = 0;
     videoEl = null;
@@ -116,11 +115,12 @@ const Scanner = (() => {
 
   async function toggleTorch() {
     if (!stream) return false;
-    const track = stream.getVideoTracks()[0];
-    const capabilities = track.getCapabilities?.();
-    if (!capabilities?.torch) return false;
     torchOn = !torchOn;
-    await track.applyConstraints({ advanced: [{ torch: torchOn }] });
+    const ok = scannerCore.toggleTorch(stream, torchOn);
+    if (!ok) {
+      torchOn = !torchOn;
+      return false;
+    }
     return torchOn;
   }
 
@@ -132,22 +132,15 @@ const Scanner = (() => {
   }
 
   async function restart(video, callback) {
-    // Stop current camera + detection loop
     active = false;
     if (loopId) { clearTimeout(loopId); loopId = null; }
-    if (stream) {
-      stream.getTracks().forEach(t => t.stop());
-      stream = null;
-    }
+    scannerCore.stopCamera(stream);
+    stream = null;
     lastResults = [];
     lastResultTime = 0;
 
-    // Re-init camera
     try {
-      stream = await navigator.mediaDevices.getUserMedia({
-        video: { facingMode, width: { ideal: 1280 }, height: { ideal: 720 } },
-        audio: false
-      });
+      stream = await scannerCore.startCamera(null, { facingMode });
     } catch (e) {
       return { ok: false, error: 'Camera access denied.' };
     }
@@ -158,7 +151,9 @@ const Scanner = (() => {
     videoEl = video;
     videoEl.srcObject = stream;
     videoEl.play();
-    scheduleDetect();
+    if (detector || fallbackDetect) {
+      scheduleDetect();
+    }
     return { ok: true };
   }
 

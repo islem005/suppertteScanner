@@ -99,3 +99,5 @@ try {
 2. **Always wrap in try/catch** with user-facing error messages via `showToast()` or inline error elements
 3. **Never use inline `fetch()` in dashboard/admin** — always go through the `API` module
 4. **The `del` method name** avoids conflict with the `delete` keyword; it's `del` in both API clients
+5. **DELETE is idempotent** — deleting a nonexistent resource returns `{ ok: true }` (200), not 404. The desired state is already achieved.
+6. **Audit logging** — manager/associate mutations on products, promotions, discounts should call `logAudit()` with the actor's details and the action performed

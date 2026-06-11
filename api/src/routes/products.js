@@ -7,27 +7,53 @@ import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 import { parse } from 'csv-parse/sync'
 import { logAudit } from './audit.js'
+import { validateBody, validateBarcode, validateName, validatePrice } from '../validate.js'
 
 const router = new Hono()
 
 router.get('/', authenticate, async (c) => {
   const user = c.get('user')
   const storeId = c.req.query('store_id') || user.store_id
+  const page = Math.max(1, parseInt(c.req.query('page')) || 1)
+  const perPage = Math.min(100, Math.max(1, parseInt(c.req.query('per_page')) || 20))
+  const q = (c.req.query('q') || '').trim()
+  const offset = (page - 1) * perPage
 
-  const products = await queryAll(c.env.DB,
-    'SELECT * FROM product WHERE store_id = ? ORDER BY name',
-    [storeId]
-  )
-  return c.json(products)
+  let sql = 'SELECT * FROM product WHERE store_id = ?'
+  let countSql = 'SELECT COUNT(*) as c FROM product WHERE store_id = ?'
+  const params = [storeId]
+
+  if (q) {
+    const like = `%${q}%`
+    sql += ' AND (barcode LIKE ? OR name LIKE ?)'
+    countSql += ' AND (barcode LIKE ? OR name LIKE ?)'
+    params.push(like, like)
+  }
+
+  sql += ' ORDER BY name LIMIT ? OFFSET ?'
+
+  const products = await queryAll(c.env.DB, sql, [...params, perPage, offset])
+  const totalRow = await c.env.DB.prepare(countSql).bind(...params).first()
+
+  return c.json({
+    products: products || [],
+    total: totalRow?.c || 0,
+    page,
+    perPage
+  })
 })
 
 router.post('/', authenticate, async (c) => {
   const user = c.get('user')
-  const { barcode, name, price, category, store_id } = await c.req.json()
+  const body = await c.req.json()
+  const { barcode, name, price, category, store_id } = body
 
-  if (!barcode || !name || price === undefined) {
-    return c.json({ error: 'Barcode, name, and price required' }, 400)
-  }
+  const { valid, errors } = validateBody(body, {
+    barcode: { required: true, validate: v => validateBarcode(v) },
+    name: { required: true, validate: v => validateName(v) },
+    price: { required: true, validate: v => validatePrice(v) }
+  })
+  if (!valid) return c.json({ error: errors.join(', ') }, 400)
 
   // Use store_id from body if provided (admins may manage multiple stores),
   // otherwise fall back to the user's own store_id

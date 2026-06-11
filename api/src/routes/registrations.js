@@ -73,15 +73,32 @@ router.post('/', async (c) => {
 
 // ─── Admin: List all registrations ───────────────────────────────────
 router.get('/', authenticate, adminOnly, async (c) => {
-  const status = c.req.query('status') // optional filter: pending, approved, rejected
+  const status = c.req.query('status')
+  const page = parseInt(c.req.query('page')) || null
+  const perPage = parseInt(c.req.query('per_page')) || 20
+  const db = c.env.DB
+
+  if (page) {
+    const offset = (page - 1) * perPage
+    let total, rows
+    if (status && ['pending', 'approved', 'rejected'].includes(status)) {
+      total = (await queryOne(db, 'SELECT COUNT(*) as total FROM store_registration WHERE status = ?', [status])).total
+      rows = await queryAll(db, 'SELECT * FROM store_registration WHERE status = ? ORDER BY created_at DESC LIMIT ? OFFSET ?', [status, perPage, offset])
+    } else {
+      total = (await queryOne(db, 'SELECT COUNT(*) as total FROM store_registration')).total
+      rows = await queryAll(db, 'SELECT * FROM store_registration ORDER BY created_at DESC LIMIT ? OFFSET ?', [perPage, offset])
+    }
+    return c.json({ data: rows, total, page, perPage })
+  }
+
   let rows
   if (status && ['pending', 'approved', 'rejected'].includes(status)) {
-    rows = await queryAll(c.env.DB,
+    rows = await queryAll(db,
       'SELECT * FROM store_registration WHERE status = ? ORDER BY created_at DESC',
       [status]
     )
   } else {
-    rows = await queryAll(c.env.DB,
+    rows = await queryAll(db,
       'SELECT * FROM store_registration ORDER BY created_at DESC'
     )
   }
@@ -208,9 +225,11 @@ router.post('/:id/reject', authenticate, adminOnly, async (c) => {
 // ─── Helper: Generate a random 12-char password ─────────────────────
 function generatePassword() {
   const chars = 'ABCDEFGHJKLMNPQRSTUVWXYZabcdefghjkmnpqrstuvwxyz23456789!@#$'
+  const array = new Uint8Array(12)
+  crypto.getRandomValues(array)
   let password = ''
   for (let i = 0; i < 12; i++) {
-    password += chars.charAt(Math.floor(Math.random() * chars.length))
+    password += chars.charAt(array[i] % chars.length)
   }
   return password
 }

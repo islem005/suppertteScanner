@@ -7,16 +7,32 @@ import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 import { logAudit } from './audit.js'
+import { validateBody, validateBarcode, validateName, validatePrice } from '../validate.js'
 
 const router = new Hono()
 
 // ── Admin/dashboard: list all discounts for a store ──
 router.get('/store/:storeId', authenticate, async (c) => {
-  const data = await queryAll(c.env.DB,
-    'SELECT * FROM discount_item WHERE store_id = ? ORDER BY priority',
-    [c.req.param('storeId')]
+  const storeId = c.req.param('storeId')
+  const page = Math.max(1, parseInt(c.req.query('page')) || 1)
+  const perPage = Math.min(100, Math.max(1, parseInt(c.req.query('per_page')) || 20))
+  const offset = (page - 1) * perPage
+
+  const discounts = await queryAll(c.env.DB,
+    'SELECT * FROM discount_item WHERE store_id = ? ORDER BY priority LIMIT ? OFFSET ?',
+    [storeId, perPage, offset]
   )
-  return c.json(data)
+
+  const totalRow = await c.env.DB.prepare(
+    'SELECT COUNT(*) as c FROM discount_item WHERE store_id = ?'
+  ).bind(storeId).first()
+
+  return c.json({
+    discounts: discounts || [],
+    total: totalRow?.c || 0,
+    page,
+    perPage
+  })
 })
 
 // ── Admin/dashboard: get single discount item ──
@@ -76,6 +92,14 @@ router.post('/', authenticate, async (c) => {
     return c.json({ error: 'store_id and name required' }, 400)
   }
 
+  const { valid, errors } = validateBody(body, {
+    barcode: { required: false, validate: v => validateBarcode(v) },
+    name: { required: true, validate: v => validateName(v) },
+    original_price: { required: false, validate: v => validatePrice(v) },
+    new_price: { required: false, validate: v => validatePrice(v) }
+  })
+  if (!valid) return c.json({ error: errors.join(', ') }, 400)
+
   const id = uuid()
   await execute(c.env.DB,
     `INSERT INTO discount_item (id, store_id, barcode, name, image_data, image_url, category,
@@ -103,6 +127,14 @@ router.put('/:id', authenticate, async (c) => {
   const user = c.get('user')
   const body = await c.req.json()
   const id = c.req.param('id')
+
+  const { valid, errors } = validateBody(body, {
+    barcode: { required: false, validate: v => validateBarcode(v) },
+    name: { required: false, validate: v => validateName(v) },
+    original_price: { required: false, validate: v => validatePrice(v) },
+    new_price: { required: false, validate: v => validatePrice(v) }
+  })
+  if (!valid) return c.json({ error: errors.join(', ') }, 400)
 
   const allowed = ['store_id', 'barcode', 'name', 'image_data', 'image_url', 'category',
     'original_price', 'new_price', 'discount_percent', 'featured', 'active', 'priority']

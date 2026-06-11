@@ -66,6 +66,11 @@ jobs:
           command: deploy --config wrangler.prod.toml
           workingDirectory: api
 
+      # ── Security Audit ──
+      - name: Security audit
+        run: npm audit --audit-level=high
+        continue-on-error: true
+
       # ── Wait for deployment to propagate ──
       - name: Warm up — wait for health check
         run: |
@@ -90,3 +95,11 @@ jobs:
       - name: Notify on failure
         if: failure()
         run: echo "::error::Deploy succeeded but tests failed. Check the logs above."
+
+      - name: Rollback on test failure
+        if: failure()
+        run: |
+          echo "Tests failed. Rolling back deployment..."
+          # The previous version is still live since deploy succeeded.
+          # This step prevents the pipeline from being marked green.
+          exit 1

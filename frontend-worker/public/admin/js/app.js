@@ -1,18 +1,19 @@
 (function() {
-  if (typeof feather !== 'undefined') feather.replace()
   let user = null, stores = []
+  const PER_PAGE = 20
+  let storesPage = 1, usersPage = 1, regsPage = 1
 
   const navItems = [
-    { id: 'overview',      icon: 'bar-chart-2', label: 'Overview' },
-    { id: 'analytics',     icon: 'trending-up', label: 'Analytics' },
-    { id: 'stores',        icon: 'home', label: 'Stores' },
-    { id: 'registrations', icon: 'user-plus', label: 'Registrations' },
-    { id: 'users',         icon: 'users', label: 'Users' },
-    { id: 'promotions',    icon: 'gift', label: 'Promotions' },
-    { id: 'discounts',     icon: 'tag', label: 'Discounts' },
-    { id: 'branding',      icon: 'droplet', label: 'Branding' },
-    { id: 'activity',      icon: 'clock', label: 'Activity' },
-    { id: 'profile',       icon: 'user', label: 'Profile' },
+    { id: 'overview',      icon: 'bar-chart-2', labelKey: 'navOverview' },
+    { id: 'analytics',     icon: 'trending-up', labelKey: 'navAnalytics' },
+    { id: 'stores',        icon: 'home', labelKey: 'navStores' },
+    { id: 'registrations', icon: 'user-plus', labelKey: 'navRegistrations' },
+    { id: 'users',         icon: 'users', labelKey: 'navUsers' },
+    { id: 'promotions',    icon: 'gift', labelKey: 'navPromotions' },
+    { id: 'discounts',     icon: 'tag', labelKey: 'navDiscounts' },
+    { id: 'branding',      icon: 'droplet', labelKey: 'navBranding' },
+    { id: 'activity',      icon: 'clock', labelKey: 'navActivity' },
+    { id: 'profile',       icon: 'user', labelKey: 'navProfile' },
   ]
 
   const $ = (id)     => { if (typeof document === 'undefined' || typeof document.getElementById !== 'function') { console.error('DOM not available'); return null }; const e = document.getElementById(id); if (!e) console.warn('Missing #'+id); return e }
@@ -38,7 +39,7 @@
     return false
   }
   function logout() {
-    fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include' }).catch(() => {})
+    fetch('/api/auth/sign-out', { method: 'POST', credentials: 'include', headers: { 'X-CSRF-Token': 'skaner-csrf-token' } }).catch(() => {})
     localStorage.removeItem('user')
     user = null
     showLoginView()
@@ -51,7 +52,6 @@
     const loginView = document.getElementById('view-login')
     loginView.style.display = 'flex'
     loginView.classList.add('active')
-    if (typeof feather !== 'undefined') feather.replace()
   }
 
   // ─── Admin Login Form ───
@@ -60,14 +60,14 @@
     adminLoginForm.addEventListener('submit', async (e) => {
       e.preventDefault()
       const btn = adminLoginForm.querySelector('button[type="submit"]')
-      btn.disabled = true; btn.textContent = 'Signing in...'
+      btn.disabled = true; btn.textContent = typeof I18N !== 'undefined' ? I18N.t('signingIn') : 'Signing in...'
       const errorEl = document.getElementById('admin-login-error')
       errorEl.textContent = ''
 
       try {
         const res = await fetch('/api/auth/sign-in/email', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token' },
           body: JSON.stringify({
             email: document.getElementById('admin-email').value,
             password: document.getElementById('admin-password').value
@@ -109,6 +109,7 @@
     else if (id === 'discounts') loadDiscounts()
     else if (id === 'activity') loadActivity()
     else if (id === 'profile') loadProfile()
+    window.scrollTo(0, 0)
   }
   function navigateTo(id) {
     if (location.hash !== '#' + id) location.hash = id
@@ -124,7 +125,7 @@
     items.forEach(item => {
       const btn = document.createElement('button')
       btn.className = 'nav-item'; btn.dataset.view = item.id
-      btn.innerHTML = `<i data-feather="${item.icon}"></i> ${item.label}`
+      btn.innerHTML = `<i data-feather="${item.icon}"></i> ${item.labelKey ? I18N.t(item.labelKey) : item.label}`
       btn.onclick = () => navigateTo(item.id)
       nav.appendChild(btn)
     })
@@ -138,6 +139,7 @@
     document.getElementById('view-login').style.display = ''
     buildNav(navItems)
     $('sidebar-username').textContent = user.display_name || user.email
+    if (typeof I18N !== 'undefined') I18N.applyHtml()
     const initial = location.hash.replace('#', '') || 'overview'
     if (navItems.some(i => i.id === initial)) showDashView(initial)
     else showDashView('overview')
@@ -146,42 +148,51 @@
   $('btn-logout').addEventListener('click', logout)
 
   async function loadAdminOverview() {
-    const s = await API.getAdminStats()
-    $('ov-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
-    $('ov-cards').innerHTML = `
-      <div class="stat-card"><span class="num">${s.totalStores}</span><span class="label">Stores</span></div>
-      <div class="stat-card"><span class="num">${s.totalUsers}</span><span class="label">Users</span></div>
-      <div class="stat-card"><span class="num">${s.totalProducts}</span><span class="label">Products</span></div>
-      <div class="stat-card"><span class="num">${s.todayScans}</span><span class="label">Today's Scans</span></div>
-      <div class="stat-card"><span class="num">${s.totalScans}</span><span class="label">All Scans</span></div>
-      <div class="stat-card"><span class="num">${s.totalVisits || 0}</span><span class="label">Total Visits</span></div>
-      <div class="stat-card"><span class="num">${s.totalDevices || 0}</span><span class="label">Devices</span></div>
-    `
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    $('ov-cards').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
+    $('ov-attention').innerHTML = ''
+    $('ov-store-table').innerHTML = ''
+    try {
+      const s = await API.getAdminStats()
+      $('ov-date').textContent = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })
+      $('ov-cards').innerHTML = `
+        <div class="stat-card"><span class="num">${s.totalStores}</span><span class="label">${t('totalStores')}</span></div>
+        <div class="stat-card"><span class="num">${s.totalUsers}</span><span class="label">${t('totalUsers')}</span></div>
+        <div class="stat-card"><span class="num">${s.totalProducts}</span><span class="label">${t('totalProducts')}</span></div>
+        <div class="stat-card"><span class="num">${s.todayScans}</span><span class="label">${t('scansToday')}</span></div>
+        <div class="stat-card"><span class="num">${s.totalScans}</span><span class="label">${t('totalScans')}</span></div>
+        <div class="stat-card"><span class="num">${s.totalVisits || 0}</span><span class="label">${t('totalVisits')}</span></div>
+        <div class="stat-card"><span class="num">${s.totalDevices || 0}</span><span class="label">${t('totalDevices')}</span></div>
+      `
 
-    // Attention cards — only shown when > 0
-    const attentionItems = [
-      { key: 'pendingRegistrations', label: 'Pending Registrations', view: 'registrations' },
-      { key: 'pendingImports', label: 'Pending Imports', view: 'stores' },
-      { key: 'storesWithoutBranding', label: 'Stores Without Branding', view: 'branding' },
-      { key: 'storesWithoutMapping', label: 'Stores Without Mapping', view: 'stores' },
-      { key: 'storesWithZeroProducts', label: 'Inactive Stores (No Products)', view: 'stores' },
-    ]
-    const cards = attentionItems.filter(i => s[i.key] > 0).map(i =>
-      `<div class="stat-card attention" onclick="navigateTo('${i.view}')">
-        <span class="num">${s[i.key]}</span>
-        <span class="label">${i.label}</span>
-        <span class="attention-link">View →</span>
-      </div>`
-    ).join('')
-    $('ov-attention').innerHTML = cards ? `<div class="stats-row">${cards}</div>` : ''
+      // Attention cards — only shown when > 0
+      const attentionItems = [
+        { key: 'pendingRegistrations', labelKey: 'pendingRegistrations', view: 'registrations' },
+        { key: 'pendingImports', labelKey: 'pendingImports', view: 'stores' },
+        { key: 'storesWithoutBranding', labelKey: 'storesWithoutBranding', view: 'branding' },
+        { key: 'storesWithoutMapping', labelKey: 'storesWithoutMapping', view: 'stores' },
+        { key: 'storesWithZeroProducts', labelKey: 'inactiveStores', view: 'stores' },
+      ]
+      const cards = attentionItems.filter(i => s[i.key] > 0).map(i =>
+        `<div class="stat-card attention" onclick="navigateTo('${i.view}')">
+          <span class="num">${s[i.key]}</span>
+          <span class="label">${t(i.labelKey)}</span>
+          <span class="attention-link">${t('explore')} →</span>
+        </div>`
+      ).join('')
+      $('ov-attention').innerHTML = cards ? `<div class="stats-row">${cards}</div>` : ''
 
-    if (!s.storeStats || s.storeStats.length === 0) {
-      $('ov-store-table').innerHTML = '<div class="empty-state">No stores yet. Create one in Stores.</div>'
-      return
+      if (!s.storeStats || s.storeStats.length === 0) {
+        $('ov-store-table').innerHTML = '<div class="empty-state">' + t('noData') + '</div>'
+        return
+      }
+      let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('totalProducts') + '</th><th>' + t('totalScans') + '</th><th>' + t('totalUsers') + '</th></tr></thead><tbody>'
+      for (const st of s.storeStats) html += `<tr><td><strong>${esc(st.name)}</strong></td><td><span class="meta">/${esc(st.slug)}</span></td><td>${st.products}</td><td>${st.scans}</td><td>${st.users}</td></tr>`
+      $('ov-store-table').innerHTML = html + '</tbody></table>'
+      if (typeof I18N !== 'undefined') I18N.applyHtml()
+    } catch {
+      $('ov-cards').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ' <button class="btn small" onclick="loadAdminOverview()">' + t('retry') + '</button></div>'
     }
-    let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Products</th><th>Scans</th><th>Users</th></tr></thead><tbody>'
-    for (const st of s.storeStats) html += `<tr><td><strong>${esc(st.name)}</strong></td><td><span class="meta">/${esc(st.slug)}</span></td><td>${st.products}</td><td>${st.scans}</td><td>${st.users}</td></tr>`
-    $('ov-store-table').innerHTML = html + '</tbody></table>'
   }
 
   // ─── Analytics ───
@@ -191,6 +202,9 @@
     const days = $('an-days-filter').value || 30
     const storeFilter = $('an-store-filter').value || ''
     _anStoreId = storeFilter || null
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+
+    $('an-cards').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
 
     try {
       const data = await API.getPlatformAnalytics(_anStoreId, days)
@@ -198,14 +212,14 @@
       // Stat cards
       const p = data.platform
       $('an-cards').innerHTML = `
-        <div class="stat-card"><span class="num">${p.totalDevices}</span><span class="label">Total Devices</span></div>
-        <div class="stat-card"><span class="num">${p.devicesToday}</span><span class="label">Active Today</span></div>
-        <div class="stat-card"><span class="num">${p.totalVisits}</span><span class="label">Total Visits</span></div>
-        <div class="stat-card"><span class="num">${p.visitsToday}</span><span class="label">Visits Today</span></div>
-        <div class="stat-card"><span class="num">${p.totalScans}</span><span class="label">Total Scans</span></div>
-        <div class="stat-card"><span class="num">${p.scansToday}</span><span class="label">Scans Today</span></div>
-        <div class="stat-card"><span class="num">${p.hitRate}%</span><span class="label">Hit Rate</span></div>
-        <div class="stat-card"><span class="num">${p.avgScansPerVisit}</span><span class="label">Scans/Visit</span></div>
+        <div class="stat-card"><span class="num">${p.totalDevices}</span><span class="label">${t('totalDevices')}</span></div>
+        <div class="stat-card"><span class="num">${p.devicesToday}</span><span class="label">${t('activeToday')}</span></div>
+        <div class="stat-card"><span class="num">${p.totalVisits}</span><span class="label">${t('totalVisits')}</span></div>
+        <div class="stat-card"><span class="num">${p.visitsToday}</span><span class="label">${t('visitsToday')}</span></div>
+        <div class="stat-card"><span class="num">${p.totalScans}</span><span class="label">${t('totalScans')}</span></div>
+        <div class="stat-card"><span class="num">${p.scansToday}</span><span class="label">${t('scansToday')}</span></div>
+        <div class="stat-card"><span class="num">${p.hitRate}%</span><span class="label">${t('hitRate')}</span></div>
+        <div class="stat-card"><span class="num">${p.avgScansPerVisit}</span><span class="label">${t('scansPerVisit')}</span></div>
       `
 
       // Daily trend chart
@@ -230,7 +244,7 @@
         }
       }
     } catch (err) {
-      $('an-cards').innerHTML = '<div class="empty-state">Could not load analytics: ' + esc(err.message) + '</div>'
+      $('an-cards').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ': ' + esc(err.message) + ' <button class="btn small" onclick="loadAnalytics()">' + t('retry') + '</button></div>'
     }
   }
 
@@ -289,6 +303,7 @@
 
     const total = data.reduce((s, d) => s + d.count, 0)
     const colors = { mobile: '#6366f1', desktop: '#10b981', tablet: '#f59e0b' }
+    // Note: inline SVG fill doesn't support CSS vars in attribute context
     const labels = { mobile: 'Mobile', desktop: 'Desktop', tablet: 'Tablet' }
 
     let html = '<div style="display:flex;flex-direction:column;gap:var(--space-3)">'
@@ -357,14 +372,18 @@
   // ─── Registrations ───
   async function loadRegistrations() {
     const status = $('reg-filter').value === 'all' ? '' : $('reg-filter').value
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    $('registration-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
-      const regs = await API.getRegistrations(status)
+      const result = await API.getRegistrations(status, regsPage, PER_PAGE)
+      const regs = result.data || result
+      const total = result.total || regs.length
       const table = $('registration-table')
       if (regs.length === 0) {
-        table.innerHTML = '<div class="empty-state">No registration requests.</div>'
+        table.innerHTML = '<div class="empty-state">' + t('noRegistrations') + '</div>'
         return
       }
-      let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Contact</th><th>Email</th><th>Date</th><th>Status</th><th></th></tr></thead><tbody>'
+      let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('contactName') + '</th><th>' + t('registrationEmail') + '</th><th>' + t('registrationDate') + '</th><th>' + t('status') + '</th><th>' + t('registrationActions') + '</th></tr></thead><tbody>'
       for (const r of regs) {
         const statusClass = r.status === 'approved' ? 'tag success' : r.status === 'rejected' ? 'tag danger' : 'tag'
         html += `<tr>
@@ -375,24 +394,25 @@
           <td class="meta">${new Date(r.created_at).toLocaleDateString()}</td>
           <td><span class="${statusClass}">${r.status}</span></td>
           <td class="actions-cell" style="display:flex;gap:4px">
-            <button class="btn small" onclick="viewRegistration('${r.id}')">View</button>
+            <button class="btn small" onclick="viewRegistration('${r.id}')">${t('view')}</button>
             ${r.status === 'pending' ? `
-              <button class="btn small" onclick="approveRegistration('${r.id}')">Approve</button>
-              <button class="btn small danger" onclick="rejectRegistration('${r.id}')">Reject</button>
+              <button class="btn small" onclick="approveRegistration('${r.id}')">${t('approve')}</button>
+              <button class="btn small danger" onclick="rejectRegistration('${r.id}')">${t('reject')}</button>
             ` : ''}
           </td>
         </tr>`
       }
-      table.innerHTML = html + '</tbody></table>'
-      if (typeof feather !== 'undefined') feather.replace()
+      html += '</tbody></table>' + renderPagination(regsPage, Math.ceil(total / PER_PAGE))
+      table.innerHTML = html
+      if (typeof I18N !== 'undefined') I18N.applyHtml()
     } catch (err) {
-      $('registration-table').innerHTML = '<div class="empty-state">Could not load registrations: ' + esc(err.message) + '</div>'
+      $('registration-table').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ': ' + esc(err.message) + ' <button class="btn small" onclick="loadRegistrations()">' + t('retry') + '</button></div>'
     }
   }
 
   // ─── Filter change ───
-  $('reg-filter').addEventListener('change', loadRegistrations)
-  $('btn-refresh-reg').addEventListener('click', loadRegistrations)
+  $('reg-filter').addEventListener('change', () => { regsPage = 1; loadRegistrations() })
+  $('btn-refresh-reg').addEventListener('click', () => { regsPage = 1; loadRegistrations() })
 
   // ─── View Registration Detail ───
   window.viewRegistration = async (id) => {
@@ -465,11 +485,45 @@
   }
 
   async function loadStores() {
-    stores = await API.getStores()
-    if (stores.length === 0) { $('store-table').innerHTML = '<div class="empty-state">No stores. Click "+ New Store".</div>'; return }
-    let html = '<table><thead><tr><th>Name</th><th>Slug</th><th>Created</th><th></th></tr></thead><tbody>'
-    for (const s of stores) html += `<tr><td><strong>${esc(s.name)}</strong></td><td><span class="meta">/${esc(s.slug)}</span></td><td class="meta">${(s.created_at||'').slice(0,10)}</td><td class="actions-cell" style="display:flex;gap:4px"><button class="btn small" onclick="showStoreDetail('${s.id}')">Explore</button><button class="btn small danger" onclick="deleteStore('${s.id}','${esc(s.name)}')">Delete</button></td></tr>`
-    $('store-table').innerHTML = html + '</tbody></table>'
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    $('store-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
+    try {
+      const result = await API.getStores(storesPage, PER_PAGE)
+      stores = result.data || result
+      const total = result.total || stores.length
+    } catch {
+      $('store-table').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ' <button class="btn small" onclick="loadStores()">' + t('retry') + '</button></div>'
+      return
+    }
+    if (stores.length === 0) { $('store-table').innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return }
+    let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('storeCreated') + '</th><th>' + t('storeActions') + '</th></tr></thead><tbody>'
+    for (const s of stores) html += `<tr><td><strong>${esc(s.name)}</strong></td><td><span class="meta">/${esc(s.slug)}</span></td><td class="meta">${(s.created_at||'').slice(0,10)}</td><td class="actions-cell" style="display:flex;gap:4px"><button class="btn small" onclick="showStoreDetail('${s.id}')">${t('explore')}</button><button class="btn small" onclick="openStoreEditModal('${s.id}')">${t('edit')}</button><button class="btn small danger" onclick="deleteStore('${s.id}','${esc(s.name)}')">${t('delete')}</button></td></tr>`
+    $('store-table').innerHTML = html + '</tbody></table>' + renderPagination(storesPage, Math.ceil(total / PER_PAGE))
+    if (typeof I18N !== 'undefined') I18N.applyHtml()
+  }
+
+  window.openStoreEditModal = async (storeId) => {
+    const s = stores.find(st => st.id === storeId)
+    if (!s) return
+    showModal('Edit Store', `
+      <div class="form">
+        <div class="form-row"><label>Store Name</label><input id="mod-store-edit-name" class="form-input" value="${esc(s.name)}"></div>
+        <div class="form-row"><label>Slug</label><input id="mod-store-edit-slug" class="form-input" value="${esc(s.slug)}" placeholder="e.g. my-store" oninput="document.getElementById('store-edit-url-preview').textContent='ivond.com/'+this.value.replace(/\\s+/g,'-').toLowerCase()"></div>
+        <div id="store-edit-url-preview" style="font-size:var(--text-sm);color:var(--text-secondary);padding:var(--space-1) var(--space-4) 0">ivond.com/${esc(s.slug)}</div>
+      </div>
+    `, async () => {
+      const form = $('modal-body')
+      clearFieldErrors(form)
+      const name = $('mod-store-edit-name').value.trim()
+      const slug = $('mod-store-edit-slug').value.trim()
+      let hasError = false
+      if (!name && !slug) { showToast('Name or slug required'); hasError = true }
+      if (!slug) { showFieldError($('mod-store-edit-slug'), 'Slug is required'); hasError = true }
+      if (hasError) return
+      await API.updateStore(storeId, { name, slug })
+      closeModal(); await loadStores(); showToast('Store updated')
+    })
+    $('modal-confirm').textContent = 'Save'
   }
 
   $('btn-add-store').onclick = () => {
@@ -523,24 +577,45 @@
       loadPendingImports(),
       loadImportHistory()
     ])
+
+    generateStoreQR(store)
+  }
+
+  function generateStoreQR(store) {
+    const canvas = $('sd-qr-canvas')
+    const urlEl = $('sd-qr-url')
+    const btn = $('btn-sd-download-qr')
+    if (!canvas || !store) return
+    const url = 'https://' + store.slug + '.ivond.com'
+    urlEl.textContent = url
+    QRCode.toCanvas(canvas, url, { width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } }).catch(function() {})
+    btn.onclick = function() {
+      var link = document.createElement('a')
+      link.download = store.slug + '-qr.png'
+      link.href = canvas.toDataURL('image/png')
+      link.click()
+    }
   }
 
   async function loadStoreStats() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    $('sd-stats').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
       const s = await API.getAdminStats()
       const st = (s.storeStats || []).find(st => st.id === currentStoreId)
       if (!st) { $('sd-stats').innerHTML = ''; return }
       $('sd-stats').innerHTML = `
-        <div class="stat-card"><span class="num">${st.products}</span><span class="label">Products</span></div>
-        <div class="stat-card"><span class="num">${st.scans}</span><span class="label">Scans</span></div>
-        <div class="stat-card"><span class="num">${st.users}</span><span class="label">Users</span></div>
+        <div class="stat-card"><span class="num">${st.products}</span><span class="label">${t('totalProducts')}</span></div>
+        <div class="stat-card"><span class="num">${st.scans}</span><span class="label">${t('totalScans')}</span></div>
+        <div class="stat-card"><span class="num">${st.users}</span><span class="label">${t('totalUsers')}</span></div>
       `
-    } catch { $('sd-stats').innerHTML = '' }
+    } catch { $('sd-stats').innerHTML = '<div class="empty-state">' + t('errorOccurred') + '</div>' }
   }
 
   async function loadMappingCard() {
     const body = $('sd-mapping-body')
     const badge = $('sd-mapping-badge')
+    body.innerHTML = '<div class="loading-spinner">Loading...</div>'
 
     try {
       const mapping = await API.getMapping(currentStoreId)
@@ -578,6 +653,7 @@
 
   async function loadPendingImports() {
     const list = $('sd-pending-list')
+    list.innerHTML = '<div class="loading-spinner">Loading...</div>'
     try {
       const data = await API.getStoreImports(currentStoreId)
       const pending = (data.imports || []).filter(i => i.status === 'pending' || i.status === 'auto-mapped')
@@ -605,6 +681,7 @@
 
   async function loadImportHistory() {
     const list = $('sd-history-list')
+    list.innerHTML = '<div class="loading-spinner">Loading...</div>'
     try {
       const data = await API.getStoreImports(currentStoreId)
       const history = (data.imports || []).filter(i => i.status === 'imported' || i.status === 'rejected')
@@ -829,18 +906,82 @@
     return str.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
   }
 
+  // ─── Pagination ───
+  function renderPagination(current, totalPages) {
+    if (totalPages <= 1) return ''
+    return '<div class="pagination"><button class="btn small" data-prev' + (current <= 1 ? ' disabled' : '') + '>&larr; Previous</button><span class="pagination-info">Page ' + current + ' of ' + totalPages + '</span><button class="btn small" data-next' + (current >= totalPages ? ' disabled' : '') + '>Next &rarr;</button></div>'
+  }
+
+  document.addEventListener('click', function(e) {
+    var btn = e.target.closest('[data-prev],[data-next]')
+    if (!btn) return
+    var pag = btn.closest('.pagination')
+    if (!pag) return
+    var tbl = pag.parentElement
+    if (tbl.id === 'store-table') {
+      storesPage += btn.hasAttribute('data-prev') ? -1 : 1
+      loadStores()
+    } else if (tbl.id === 'user-table') {
+      usersPage += btn.hasAttribute('data-prev') ? -1 : 1
+      loadUsers()
+    } else if (tbl.id === 'registration-table') {
+      regsPage += btn.hasAttribute('data-prev') ? -1 : 1
+      loadRegistrations()
+    }
+  })
+
   async function loadUsers() {
-    const users = await API.getAdminUsers()
-    stores = await API.getStores()
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    $('user-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
+    try {
+      const result = await API.getAdminUsers(usersPage, PER_PAGE)
+      var users = result.data || result
+      const total = result.total || users.length
+      stores = await API.getStores()
+    } catch {
+      $('user-table').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ' <button class="btn small" onclick="loadUsers()">' + t('retry') + '</button></div>'
+      return
+    }
     const storeMap = {}; stores.forEach(s => storeMap[s.id] = s.name)
 
-    if (users.length === 0) { $('user-table').innerHTML = '<div class="empty-state">No users yet.</div>'; return }
-    let html = '<table><thead><tr><th>Name</th><th>Email</th><th>Role</th><th>Store</th><th>Password</th><th></th></tr></thead><tbody>'
+    if (users.length === 0) { $('user-table').innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return }
+    let html = '<table><thead><tr><th>' + t('userDisplayName') + '</th><th>' + t('userEmail') + '</th><th>' + t('role') + '</th><th>' + t('userStore') + '</th><th>Password</th><th>' + t('userActions') + '</th></tr></thead><tbody>'
     for (const u of users) {
       const storeName = u.store_id ? (storeMap[u.store_id] || '—') : '—'
-      html += `<tr><td>${esc(u.display_name)}</td><td class="meta">${esc(u.email)}</td><td><span class="tag ${u.role}">${u.role}</span></td><td class="meta">${esc(storeName)}</td><td><span class="meta" style="letter-spacing:2px">••••••</span> <button class="btn small" onclick="setPassword('${u.id}','${esc(u.display_name)}')">Change</button></td><td class="actions-cell">${u.role !== 'admin' ? `<button class="btn small danger" onclick="deleteUser('${u.id}','${esc(u.display_name)}')">Delete</button>` : ''}</td></tr>`
+      html += `<tr><td>${esc(u.display_name)}</td><td class="meta">${esc(u.email)}</td><td><span class="tag ${u.role}">${u.role}</span></td><td class="meta">${esc(storeName)}</td><td><span class="meta" style="letter-spacing:2px">••••••</span> <button class="btn small" onclick="setPassword('${u.id}','${esc(u.display_name)}')">${t('changePassword')}</button></td><td class="actions-cell"><button class="btn small" onclick="openUserEditModal('${u.id}')">${t('edit')}</button>${u.role !== 'admin' ? `<button class="btn small danger" onclick="deleteUser('${u.id}','${esc(u.display_name)}')">${t('delete')}</button>` : ''}</td></tr>`
     }
-    $('user-table').innerHTML = html + '</tbody></table>'
+    $('user-table').innerHTML = html + '</tbody></table>' + renderPagination(usersPage, Math.ceil(total / PER_PAGE))
+    if (typeof I18N !== 'undefined') I18N.applyHtml()
+  }
+
+  window.openUserEditModal = async (userId) => {
+    const u = (await API.getAdminUsers()).find(x => x.id === userId)
+    if (!u) return
+    const storeOpts = stores.map(s => `<option value="${s.id}" ${s.id === u.store_id ? 'selected' : ''}>${esc(s.name)}</option>`).join('')
+    showModal('Edit User', `
+      <div class="form">
+        <div class="form-row"><label>Display Name</label><input id="mod-user-edit-name" class="form-input" value="${esc(u.display_name || '')}"></div>
+        <div class="form-row"><label>Role</label>
+          <select id="mod-user-edit-role" class="form-input">
+            <option value="staff" ${u.role === 'staff' ? 'selected' : ''}>Staff</option>
+            <option value="associate" ${u.role === 'associate' ? 'selected' : ''}>Associate</option>
+            <option value="manager" ${u.role === 'manager' ? 'selected' : ''}>Manager</option>
+            <option value="admin" ${u.role === 'admin' ? 'selected' : ''}>Admin</option>
+          </select>
+        </div>
+        <div class="form-row"><label>Store</label>
+          <select id="mod-user-edit-store" class="form-input"><option value="">— No store —</option>${storeOpts}</select>
+        </div>
+      </div>
+    `, async () => {
+      const displayName = $('mod-user-edit-name').value.trim()
+      const role = $('mod-user-edit-role').value
+      const storeId = $('mod-user-edit-store').value || null
+      if (!displayName) { showToast('Display name required'); return }
+      await API.updateUser(userId, { displayName, role, storeId })
+      closeModal(); await loadUsers(); showToast('User updated')
+    })
+    $('modal-confirm').textContent = 'Save'
   }
 
   $('btn-add-user').onclick = () => {
@@ -895,6 +1036,8 @@
   let _editingStoreId = null
 
   async function loadBranding() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    $('brand-stores-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
       stores = await API.getStores()
     } catch { stores = [] }
@@ -902,10 +1045,10 @@
     $('brand-editor').classList.add('hidden')
 
     if (stores.length === 0) {
-      $('brand-stores-table').innerHTML = '<div class="empty-state">No stores yet.</div>'
+      $('brand-stores-table').innerHTML = '<div class="empty-state">' + t('noData') + '</div>'
       return
     }
-    let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Status</th><th></th></tr></thead><tbody>'
+    let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('status') + '</th><th>' + t('storeActions') + '</th></tr></thead><tbody>'
     for (const s of stores) {
       let status = ''
       try {
@@ -913,9 +1056,10 @@
         if (b.display_name || b.logo_url) status = '<span style="color:#00c875;font-size:12px">✓ Configured</span>'
         else status = '<span style="color:#ffc107;font-size:12px">○ Default</span>'
       } catch { status = '<span style="color:#ff4444;font-size:12px">✗ Error</span>' }
-      html += `<tr><td><strong>${esc(s.name)}</strong></td><td class="meta">/${esc(s.slug)}</td><td>${status}</td><td class="actions-cell"><button class="btn small" onclick="openBrandingEditor('${s.id}')">Modify Branding</button></td></tr>`
+      html += `<tr><td><strong>${esc(s.name)}</strong></td><td class="meta">/${esc(s.slug)}</td><td>${status}</td><td class="actions-cell"><button class="btn small" onclick="openBrandingEditor('${s.id}')">${t('manage')}</button></td></tr>`
     }
     $('brand-stores-table').innerHTML = html + '</tbody></table>'
+    if (typeof I18N !== 'undefined') I18N.applyHtml()
   }
 
   window.openBrandingEditor = async (storeId) => {
@@ -1074,24 +1218,27 @@
         twitter_url: $('brand-twitter').value,
         youtube_url: $('brand-youtube').value
       })
-      $('brand-msg').textContent = 'Branding saved!'
+      $('brand-msg').textContent = (typeof I18N !== 'undefined' ? I18N.t('brandingSaved') : 'Branding saved!')
       setTimeout(() => $('brand-msg').textContent = '', 2000)
-    } catch (err) { $('brand-msg').textContent = 'Error: ' + err.message; $('brand-msg').style.color = '#ff4444' }
+    } catch (err) { $('brand-msg').textContent = (typeof I18N !== 'undefined' ? I18N.t('errorPrefix') : 'Error: ') + err.message; $('brand-msg').style.color = '#ff4444' }
   })
 
   async function loadActivity() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    $('activity-list').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
       const activity = await API.getAdminActivity(50)
       if (!activity || activity.length === 0) {
-        $('activity-list').innerHTML = '<div class="empty-state">No activity yet.</div>'; return
+        $('activity-list').innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return
       }
-      let html = '<div class="table-wrap"><table><thead><tr><th>Store</th><th>Slug</th><th>Products</th><th>Scans</th><th>Users</th><th>Created</th></tr></thead><tbody>'
+      let html = '<div class="table-wrap"><table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('totalProducts') + '</th><th>' + t('totalScans') + '</th><th>' + t('totalUsers') + '</th><th>' + t('userCreated') + '</th></tr></thead><tbody>'
       for (const a of activity) {
         const time = new Date(a.created_at).toLocaleDateString()
         html += `<tr><td><strong>${esc(a.store_name)}</strong></td><td>${esc(a.store_slug)}</td><td>${a.products}</td><td>${a.scans}</td><td>${a.users}</td><td>${time}</td></tr>`
       }
       $('activity-list').innerHTML = html + '</tbody></table></div>'
-    } catch { $('activity-list').innerHTML = '<div class="empty-state">Could not load activity.</div>' }
+      if (typeof I18N !== 'undefined') I18N.applyHtml()
+    } catch { $('activity-list').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ' <button class="btn small" onclick="loadActivity()">' + t('retry') + '</button></div>' }
   }
 
   // ══════════════════════════════════════════════
@@ -1103,6 +1250,7 @@
   async function loadPromotions() {
     _promoStoreId = null
     $('promo-banner-editor').classList.add('hidden')
+    $('promo-stores-table').innerHTML = '<div class="loading-spinner">Loading...</div>'
     try {
       stores = await API.getStores()
     } catch { stores = [] }
@@ -1132,7 +1280,8 @@
     $('promo-stores-table').innerHTML = html + '</tbody></table>'
   }
 
-  $('btn-promo-refresh').onclick = loadPromotions
+  const btnPromoRefresh = $('btn-promo-refresh')
+  if (btnPromoRefresh) btnPromoRefresh.onclick = loadPromotions
 
   window.openPromoEditor = async (storeId) => {
     _promoStoreId = storeId
@@ -1144,7 +1293,8 @@
     loadPromoOffersList(storeId)
   }
 
-  $('promo-banner-back').onclick = () => {
+  const promoBannerBack = $('promo-banner-back')
+  if (promoBannerBack) promoBannerBack.onclick = () => {
     _promoStoreId = null
     $('promo-banner-editor').classList.add('hidden')
     $('promo-stores-table').style.display = ''
@@ -1154,6 +1304,7 @@
   // ─── Banners List + Editor ───
   async function loadBannerForm(storeId) {
     const wrap = $('promo-banner-form-wrap')
+    wrap.innerHTML = '<div class="loading-spinner">Loading...</div>'
     try {
       let banners
       try { banners = await API.getBanner(storeId) } catch { banners = [] }
@@ -1171,6 +1322,7 @@
       } else {
         html += '<div class="table-wrap"><table><thead><tr><th style="width:60px">Image</th><th>Title</th><th style="width:60px">Active</th><th style="width:120px"></th></tr></thead><tbody>'
         for (const b of banners) {
+          // a11y: color-only indicator for active status (✓/—)
           html += `<tr>
             <td>${(b.image_url || b.image_data) ? '<img src="' + esc(b.image_url || b.image_data) + '" style="width:48px;height:18px;object-fit:cover;border-radius:var(--radius-sm);display:block">' : '<span class="meta">—</span>'}</td>
             <td>${esc(b.title || '')}</td>
@@ -1295,6 +1447,7 @@
   // ─── Offers List ───
   async function loadPromoOffersList(storeId) {
     const list = $('promo-offers-list')
+    list.innerHTML = '<div class="loading-spinner">Loading...</div>'
     try {
       const promos = await API.getStorePromotions(storeId)
       const offers = promos.filter(p => p.type === 'offer')
@@ -1309,6 +1462,7 @@
         const thumb = offerImg
           ? `<img src="${esc(offerImg)}" class="offer-thumb" alt="">`
           : '<span class="offer-thumb offer-thumb-empty"></span>'
+        // a11y: color-only indicator for active status (✓/○)
         html += `<tr>
           <td>${thumb}</td>
           <td><strong>${esc(o.title || 'Untitled')}</strong></td>
@@ -1452,6 +1606,7 @@
   async function loadDiscounts() {
     _discStoreId = null
     $('disc-editor').classList.add('hidden')
+    $('disc-stores-table').innerHTML = '<div class="loading-spinner">Loading...</div>'
     try { stores = await API.getStores() } catch { stores = [] }
     if (stores.length === 0) { $('disc-stores-table').innerHTML = '<div class="empty-state">No stores yet.</div>'; return }
     let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Items</th><th></th></tr></thead><tbody>'
@@ -1486,6 +1641,7 @@
 
   async function loadDiscountItemsList(storeId) {
     const list = $('disc-list')
+    list.innerHTML = '<div class="loading-spinner">Loading...</div>'
     try {
       const items = await API.getDiscounts(storeId)
       if (items.length === 0) { list.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="empty-state">No discount items yet.</div><button id="btn-disc-add-first" class="btn small">+ New Discount</button></div>'; wireDiscAddFirst(); return }
@@ -1495,6 +1651,7 @@
         const discImg = d.image_url || d.image_data
     const thumb = discImg ? `<img src="${esc(discImg)}" class="offer-thumb" alt="">` : '<span class="offer-thumb offer-thumb-empty"></span>'
         const priceHtml = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-xs)">${parseFloat(d.original_price).toFixed(2)}</span> <strong style="color:var(--color-success)">${parseFloat(d.new_price).toFixed(2)}</strong>`
+        // a11y: color-only indicators for featured (★/—) and active (✓/○) status
         html += `<tr>
           <td>${thumb}</td>
           <td><strong>${esc(d.name)}</strong>${d.barcode ? '<br><span class="meta" style="font-size:11px">' + esc(d.barcode) + '</span>' : ''}</td>
@@ -1896,15 +2053,33 @@
   }
 
   window.closeModal = (e) => {
-    if (e && e.target !== $('modal-overlay') && e.target !== $('modal-overlay')) return
+    if (e && e.target !== $('modal-overlay')) return
     $('modal-overlay').classList.add('hidden'); modalCallback = null
   }
 
-  function esc(str) { const d = document.createElement('div'); d.textContent = str; return d.innerHTML }
+
 
   window.addEventListener('unhandledrejection', e => {
     console.warn('Unhandled:', e.reason);
   });
+
+  function showFieldError(inputEl, message) {
+    const parent = inputEl.parentElement
+    let errorEl = parent.querySelector('.form-error')
+    if (!errorEl) {
+      errorEl = document.createElement('div')
+      errorEl.className = 'form-error'
+      parent.appendChild(errorEl)
+    }
+    errorEl.textContent = message
+    errorEl.classList.add('visible')
+    inputEl.classList.add('error')
+  }
+
+  function clearFieldErrors(form) {
+    form.querySelectorAll('.form-error.visible').forEach(function(el) { el.classList.remove('visible') })
+    form.querySelectorAll('.form-input.error').forEach(function(el) { el.classList.remove('error') })
+  }
 
   function showToast(msg) {
     let el = document.getElementById('toast')
@@ -1937,6 +2112,17 @@
 
   // ─── Bootstrap: check session, fall back to login ──
   ;(async function init() {
+    // Initialize i18n
+    if (typeof I18N !== 'undefined') {
+      document.querySelectorAll('.lang-btn').forEach(b => {
+        b.classList.toggle('active', b.dataset.lang === I18N.getLang())
+        b.addEventListener('click', () => {
+          I18N.setLang(b.dataset.lang)
+          location.reload()
+        })
+      })
+    }
+
     // Load user from localStorage
     loadUser()
 
@@ -1951,6 +2137,25 @@
         }
         API.getStores().then(s => { stores = s }).catch(() => {})
         routeDash()
+
+        // Auto-refresh every 30s for live data
+        let refreshInterval = setInterval(() => {
+          loadAdminOverview()
+          loadActivity()
+        }, 30000)
+
+        document.addEventListener('visibilitychange', () => {
+          if (document.hidden) {
+            clearInterval(refreshInterval)
+            refreshInterval = null
+          } else if (!refreshInterval) {
+            refreshInterval = setInterval(() => {
+              loadAdminOverview()
+              loadActivity()
+            }, 30000)
+          }
+        })
+
         return
       }
     }

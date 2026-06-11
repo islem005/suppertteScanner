@@ -2,7 +2,7 @@ const API = (() => {
   const BASE = localStorage.getItem('api_base') || '/api'
 
   async function req(method, path, body) {
-    const opts = { method, headers: { 'Content-Type': 'application/json' }, credentials: 'include' }
+    const opts = { method, headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token' }, credentials: 'include' }
     if (body) opts.body = JSON.stringify(body)
     const res = await fetch(`${BASE}${path}`, opts)
     if (res.status === 401) { localStorage.removeItem('user'); window.location.href = '/admin/' }
@@ -32,22 +32,37 @@ const API = (() => {
   return {
     login: (email, password) => post('/auth/sign-in/email', { email, password }),
     register: (fields) => post('/auth/setup', fields),
-    getStores: () => get('/stores'),
+    getStores: (page, perPage) => {
+      let path = '/stores'
+      const params = []
+      if (page) params.push('page=' + page)
+      if (perPage) params.push('per_page=' + perPage)
+      if (params.length) path += '?' + params.join('&')
+      return get(path)
+    },
     createStore: (name, slug) => post('/stores', { name, slug }),
     getStore: (id) => get(`/stores/${id}`),
     getStoreBySlug: (slug) => get(`/stores/slug/${slug}`),
     getProducts: (storeId) => get(`/products?store_id=${storeId}`),
     getProductByBarcode: (storeId, barcode) => get(`/products/lookup/${storeId}?barcode=${encodeURIComponent(barcode)}`),
-    uploadCsv: (csv, storeId) => post('/products/upload', { csv }),
     deleteProduct: (id) => del(`/products/${id}`),
     getScanStats: (storeId) => get(`/scans/stats?store_id=${storeId}`),
     getBranding: (storeId) => get(`/branding/${storeId}`),
     updateBranding: (storeId, data) => put(`/branding/${storeId}`, data),
     getAdminStats: () => get('/admin/stats'),
-    getAdminUsers: () => get('/admin/users'),
+    getAdminUsers: (page, perPage) => {
+      let path = '/admin/users'
+      const params = []
+      if (page) params.push('page=' + page)
+      if (perPage) params.push('per_page=' + perPage)
+      if (params.length) path += '?' + params.join('&')
+      return get(path)
+    },
     createUser: (fields) => post('/admin/users', fields),
+    updateUser: (id, data) => put(`/admin/users/${id}`, data),
     deleteUser: (id) => del(`/admin/users/${id}`),
     setUserPassword: (id, password) => post(`/admin/users/${id}/password`, { password }),
+    updateStore: (id, data) => put(`/stores/${id}`, data),
     getAdminActivity: (limit) => get(`/admin/activity?limit=${limit || 30}`),
 
     // Imports
@@ -67,7 +82,13 @@ const API = (() => {
     saveMapping: (storeId, cm, po) => post(`/imports/mapping/${storeId}`, { column_mapping: cm, parser_options: po }),
     deleteMapping: (storeId) => del(`/imports/mapping/${storeId}`),
     // Registrations
-    getRegistrations: (status) => get(`/registrations${status ? '?status=' + status : ''}`),
+    getRegistrations: (status, page, perPage) => {
+      const params = []
+      if (status) params.push('status=' + encodeURIComponent(status))
+      if (page) params.push('page=' + page)
+      if (perPage) params.push('per_page=' + perPage)
+      return get('/registrations?' + params.join('&'))
+    },
     getRegistration: (id) => get(`/registrations/${id}`),
     approveRegistration: (id, data) => post(`/registrations/${id}/approve`, data),
     rejectRegistration: (id, data) => post(`/registrations/${id}/reject`, data),
@@ -124,6 +145,7 @@ const API = (() => {
       const res = await fetch(`${BASE}/upload`, {
         method: 'POST',
         credentials: 'include',
+        headers: { 'X-CSRF-Token': 'skaner-csrf-token' },
         body: formData
       })
       const data = await res.json()

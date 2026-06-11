@@ -12,12 +12,16 @@
     "build": "vite build && node copy-assets.mjs",
     "preview": "vite preview --host",
     "test": "vitest run",
+    "test:api": "vitest run --reporter=verbose",
+    "test:api:watch": "vitest --reporter=verbose",
     "test:watch": "vitest --reporter=verbose",
     "test:ui": "vitest --ui",
     "test:coverage": "vitest run --coverage",
     "deploy:fe": "node build-frontend.mjs && cd frontend-worker && wrangler deploy",
     "deploy:api": "cd api && wrangler deploy --config wrangler.prod.toml",
-    "deploy:all": "node build-frontend.mjs && cd frontend-worker && wrangler deploy && cd ../api && wrangler deploy --config wrangler.prod.toml"
+    "deploy:all": "node build-frontend.mjs && cd frontend-worker && wrangler deploy && cd ../api && wrangler deploy --config wrangler.prod.toml",
+    "lint": "eslint . --ext .js,.html --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern 'frontend-worker/public'",
+    "lint:fix": "eslint . --ext .js,.html --fix --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern 'frontend-worker/public'"
   },
   "keywords": [],
   "author": "",
@@ -29,7 +33,9 @@
     "concurrently": "^9.2.1",
     "jsdom": "^29.1.1",
     "vite": "^8.0.14",
-    "vitest": "^4.1.7"
+    "vitest": "^4.1.7",
+    "eslint": "^9.0.0",
+    "prettier": "^3.2.0"
   },
   "dependencies": {
     "swiper": "^12.2.0"

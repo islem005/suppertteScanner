@@ -23,6 +23,10 @@
 
   const camName = document.getElementById('cam-name');
   const camPrice = document.getElementById('cam-price');
+  const camFeed = document.getElementById('camera-feed');
+  const manualEntry = document.getElementById('manual-entry');
+  const manualInput = document.getElementById('manual-barcode');
+  const manualBtn = document.getElementById('btn-manual-submit');
 
   const promoContent = document.getElementById('promo-content');
   const promoImage = document.getElementById('promo-image');
@@ -152,7 +156,7 @@
           /tablet|ipad/i.test(navigator.userAgent) ? 'tablet' : 'desktop';
         fetch(`${apiBase}/page-views`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token' },
           body: JSON.stringify({
             store_slug: storeSlug,
             client_id: clientId,
@@ -167,21 +171,24 @@
     }
 
     const result = await Scanner.init();
-    if (!result.ok) {
+    if (result.ok) {
+      Scanner.start(video, onBarcode);
+      if (!result.hasDecoder) {
+        camName.textContent = 'Auto-scan unavailable — enter barcode below';
+        manualEntry.classList.remove('hidden');
+      }
+      camFeed.addEventListener('click', async () => {
+        camName.textContent = 'Restarting camera…';
+        const r = await Scanner.restart(video, onBarcode);
+        camName.textContent = r.ok ? 'Camera ready' : r.error;
+        if (r.ok) showToast('Camera refreshed');
+      });
+    } else {
+      camFeed.classList.add('hidden');
+      manualEntry.classList.remove('hidden');
       camName.textContent = result.error;
       camName.classList.add('hint');
-      return;
     }
-    Scanner.start(video, onBarcode);
-
-    // Tap camera to refresh if frozen
-    const camFeed = document.getElementById('camera-feed');
-    camFeed.addEventListener('click', async () => {
-      camName.textContent = 'Restarting camera…';
-      const r = await Scanner.restart(video, onBarcode);
-      camName.textContent = r.ok ? 'Camera ready' : r.error;
-      if (r.ok) showToast('Camera refreshed');
-    });
   }
 
   async function onBarcode(code) {
@@ -196,7 +203,7 @@
 
       fetch(`${apiBase}/scans`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token' },
         body: JSON.stringify({
           store_slug: storeSlug,
           barcode: code,
@@ -373,6 +380,23 @@
     });
   } else {
     console.warn('Missing #btn-install — install button not rendered');
+  }
+
+  // ─── Manual barcode entry ───
+  function submitManualBarcode() {
+    const code = manualInput.value.trim();
+    if (!code) return;
+    manualInput.value = '';
+    onBarcode(code);
+  }
+
+  if (manualBtn) {
+    manualBtn.addEventListener('click', submitManualBarcode);
+  }
+  if (manualInput) {
+    manualInput.addEventListener('keydown', e => {
+      if (e.key === 'Enter') submitManualBarcode();
+    });
   }
 
   window.addEventListener('unhandledrejection', e => {

@@ -8,7 +8,7 @@ import { Hono } from 'hono'
 import { queryOne } from '../db.js'
 
 const DEFAULT_ICON_192 = { src: '/assets/icons/icon-192.png', sizes: '192x192', type: 'image/png' }
-const DEFAULT_ICON_512 = { src: '/assets/icons/icon-192.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
+const DEFAULT_ICON_512 = { src: '/assets/icons/icon-512.png', sizes: '512x512', type: 'image/png', purpose: 'any' }
 
 function detectMime(url) {
   if (!url) return 'image/png'

@@ -66,53 +66,12 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
 .stat-card .label { font-size: var(--text-xs); color: var(--text-tertiary); text-transform: uppercase; letter-spacing: var(--tracking-wide); margin-top: var(--space-1); }
 
 /* ═══ FORMS ═══ */
-.form input, .form select, .form-input {
-  width: 100%;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border-default);
-  border-radius: var(--radius-md);
-  background: var(--bg-inset);
-  color: var(--text-primary);
-  font-size: var(--text-sm);
-  outline: none;
-  transition: border-color var(--transition-fast), box-shadow var(--transition-fast);
-}
-.form input::placeholder, .form-input::placeholder { color: var(--text-disabled); }
-.form input:focus, .form select:focus, .form-input:focus {
-  border-color: var(--color-primary);
-  box-shadow: 0 0 0 3px var(--color-primary-muted);
-}
-.form select option { background: var(--bg-elevated); color: var(--text-primary); }
-.form-row { margin-bottom: var(--space-3); }
-.form-row label { display: block; font-size: var(--text-xs); color: var(--text-secondary); margin-bottom: var(--space-1); font-weight: 600; text-transform: uppercase; letter-spacing: var(--tracking-wide); }
+
 .color-row { display: flex; align-items: center; gap: var(--space-2); }
 .color-row input[type="color"] { width: 44px; height: 44px; border: none; border-radius: var(--radius-md); cursor: pointer; background: none; padding: 0; }
 .color-row span { font-family: var(--font-mono); font-size: var(--text-sm); color: var(--text-tertiary); }
 .branding-form { max-width: 500px; }
 .branding-form .btn { margin-top: var(--space-2); }
-
-/* ═══ MESSAGES ═══ */
-.error-msg { color: var(--color-danger); font-size: var(--text-sm); min-height: 20px; }
-.success-msg { color: var(--color-success); font-size: var(--text-sm); min-height: 20px; margin-top: var(--space-1); }
-
-/* ═══ MODAL ═══ */
-#modal-overlay {
-  position: fixed; inset: 0; background: var(--overlay-dark);
-  display: flex; align-items: center; justify-content: center; z-index: 100;
-  animation: fadeIn 150ms ease;
-}
-#modal-overlay.hidden { display: none; }
-#modal-box { background: var(--bg-elevated); border: 1px solid var(--border-default); border-radius: var(--radius-xl); padding: var(--space-6); min-width: 360px; max-width: 480px; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow-lg); animation: scaleIn 200ms ease; }
-#modal-body { margin-bottom: var(--space-4); font-size: var(--text-sm); line-height: var(--leading-normal); }
-.modal-actions { display: flex; gap: var(--space-2); justify-content: flex-end; }
-
-@keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
-@keyframes scaleIn { from { opacity: 0; transform: scale(0.95); } to { opacity: 1; transform: scale(1); } }
-
-@media (prefers-reduced-motion: reduce) {
-  #modal-overlay { animation: none; }
-  #modal-box { animation: none; }
-}
 
 /* ═══ PROFILE ═══ */
 .profile-card { background: var(--bg-surface); border: 1px solid var(--border-subtle); border-radius: var(--radius-lg); padding: var(--space-6); max-width: 500px; }
@@ -305,6 +264,13 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
   #view-branding .dash-view-inner { display: flex; gap: var(--space-8); align-items: flex-start; }
 }
 .branding-column { flex: 1; min-width: 0; }
+
+/* ═══ QR CODE ═══ */
+.qr-section { margin-top: var(--space-8); max-width: 500px; }
+.qr-card { text-align: center; }
+.qr-card h3 { text-align: left; }
+.qr-canvas-wrap { display: flex; justify-content: center; padding: var(--space-4); background: #fff; border-radius: var(--radius-lg); }
+.qr-url { display: block; font-size: var(--text-xs); color: var(--text-tertiary); word-break: break-all; margin-top: var(--space-2); }
 
 /* ═══ PHONE MOCKUP PREVIEW ═══ */
 .brand-preview {
@@ -506,6 +472,11 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
 }
 #crop-actions { display: flex; gap: var(--space-2); }
 
+/* ═══ FORM VALIDATION ═══ */
+.form-error { color: #ef4444; font-size: 12px; margin-top: 4px; display: none; }
+.form-input.error { border-color: #ef4444; }
+.form-error.visible { display: block; }
+
 /* ═══ OFFER THUMBNAIL ═══ */
 .actions-cell { display: flex; gap: 4px; }
 
@@ -519,3 +490,5 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
 .offer-thumb-empty {
   background: var(--bg-hover);
 }
+
+

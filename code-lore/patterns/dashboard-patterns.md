@@ -14,7 +14,7 @@ The dashboard SPA (`dashboard/index.html`, `dashboard/js/app.js`) is the store m
 - On logout: `POST /api/auth/sign-out`, clears localStorage, redirects to `/auth/`
 
 ### Sidebar Navigation
-- Nav items depend on user role. **Managers/admins** see: Overview, Analytics, Products, Offers, Discounts, Branding, Activity, Profile, Team, Audit Log. **Associates** see: Overview, Products, Offers, Discounts, Activity, Profile (no Analytics, Branding, Team, Audit Log).
+- Nav items depend on user role. **Managers/admins** see: Overview, Analytics, Products, Offers, Discounts, Branding, Activity, Profile, Team, Audit Log. **Associates** see: Products, Offers, Discounts, Profile only (no Overview, Analytics, Branding, Activity, Team, Audit Log).
 - Nav built dynamically from `navItems` array with Feather icons + i18n labels
 - Active nav item highlighted via left border accent
 - Sidebar toggle on mobile: `btn-toggle-sidebar` opens overlay, backdrop click closes

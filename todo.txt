@@ -1,0 +1,20 @@
+Admin Panel i18n — Todo
+
+1. ✓ Read all source files
+2. Update js/i18n.js:
+   - Add callback mechanism (onChange)
+   - Add English admin keys
+   - Add French admin keys
+   - Add Arabic admin keys
+3. Update admin/index.html:
+   - Add rtl.css link
+   - Add i18n.js script tag
+   - Add language selector
+   - Add data-i18n to static elements
+4. Update admin/js/app.js:
+   - Add i18n init at IIFE start
+   - Register I18N.onChange callback
+   - Modify navItems/buildNav for i18n
+   - Modify showModal for i18n
+   - Use I18N.t() in render functions
+   - Call I18N.applyHtml() in init

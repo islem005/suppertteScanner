@@ -6,6 +6,7 @@
 import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
+import { validateBody, validateName, validateSlug } from '../validate.js'
 
 // ─── Auto-register store subdomain as Pages custom domain ──────────
 // Called after store creation — fires and forgets.
@@ -53,8 +54,21 @@ router.get('/', async (c) => {
   const user = c.get('user')
 
   if (user.role === 'admin') {
-    // Admin sees all stores (organizations)
-    const stores = await queryAll(c.env.DB,
+    const db = c.env.DB
+    const page = parseInt(c.req.query('page')) || null
+    const perPage = parseInt(c.req.query('per_page')) || 20
+
+    if (page) {
+      const offset = (page - 1) * perPage
+      const total = (await queryOne(db, 'SELECT COUNT(*) as total FROM organization')).total
+      const stores = await queryAll(db,
+        'SELECT id, name, slug, createdAt as created_at FROM organization ORDER BY name LIMIT ? OFFSET ?',
+        [perPage, offset]
+      )
+      return c.json({ data: stores, total, page, perPage })
+    }
+
+    const stores = await queryAll(db,
       'SELECT id, name, slug, createdAt as created_at FROM organization ORDER BY name'
     )
     return c.json(stores)
@@ -72,8 +86,14 @@ router.post('/', async (c) => {
   const user = c.get('user')
   if (user.role !== 'admin') return c.json({ error: 'Admin only' }, 403)
 
-  const { name, slug } = await c.req.json()
-  if (!name || !slug) return c.json({ error: 'Name and slug required' }, 400)
+  const body = await c.req.json()
+  const { name, slug } = body
+
+  const { valid, errors } = validateBody(body, {
+    name: { required: true, validate: v => validateName(v) },
+    slug: { required: true, validate: v => validateSlug(v) }
+  })
+  if (!valid) return c.json({ error: errors.join(', ') }, 400)
 
   const id = uuid()
   const cleanSlug = slug.toLowerCase().replace(/\s+/g, '-')
@@ -103,6 +123,40 @@ router.get('/:id', async (c) => {
     return c.json({ error: 'Forbidden' }, 403)
   }
   return c.json(store)
+})
+
+router.put('/:id', async (c) => {
+  const user = c.get('user')
+  if (user.role !== 'admin') return c.json({ error: 'Admin only' }, 403)
+
+  const body = await c.req.json()
+  const { name, slug } = body
+
+  const { valid, errors } = validateBody(body, {
+    name: { required: false, validate: v => validateName(v) },
+    slug: { required: false, validate: v => validateSlug(v) }
+  })
+  if (!valid) return c.json({ error: errors.join(', ') }, 400)
+  if (!name && !slug) return c.json({ error: 'Name or slug required' }, 400)
+
+  const store = await queryOne(c.env.DB,
+    'SELECT id, name, slug FROM organization WHERE id = ?',
+    [c.req.param('id')]
+  )
+  if (!store) return c.json({ error: 'Store not found' }, 404)
+
+  const cleanSlug = slug ? slug.toLowerCase().replace(/\s+/g, '-') : store.slug
+  const newName = name || store.name
+
+  await execute(c.env.DB,
+    'UPDATE organization SET name = ?, slug = ? WHERE id = ?',
+    [newName, cleanSlug, c.req.param('id')]
+  )
+
+  const updated = await queryOne(c.env.DB,
+    'SELECT * FROM organization WHERE id = ?', [c.req.param('id')]
+  )
+  return c.json(updated)
 })
 
 router.delete('/:id', async (c) => {

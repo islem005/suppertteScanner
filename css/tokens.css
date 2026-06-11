@@ -85,8 +85,6 @@ body {
   -moz-osx-font-smoothing: grayscale;
   -webkit-tap-highlight-color: transparent;
   touch-action: manipulation;
-  user-select: none;
-  -webkit-user-select: none;
 }
 
 :focus-visible {
@@ -229,26 +227,9 @@ tbody tr:hover td { background: var(--bg-hover); }
 
 .meta { color: var(--text-tertiary); font-size: var(--text-xs); }
 
-#toast {
-  position: fixed;
-  bottom: var(--space-6);
-  left: 50%;
-  transform: translateX(-50%) translateY(10px);
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-default);
-  color: var(--text-primary);
-  padding: var(--space-3) var(--space-5);
-  border-radius: var(--radius-lg);
-  font-size: var(--text-sm);
-  font-weight: 500;
-  opacity: 0;
-  pointer-events: none;
-  z-index: 100;
-  transition: opacity var(--transition-base), transform var(--transition-base);
-  white-space: nowrap;
-  box-shadow: var(--shadow-md);
-}
-#toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+
+
+.skip-link:focus { top: 0; }
 
 .empty-state {
   display: flex;

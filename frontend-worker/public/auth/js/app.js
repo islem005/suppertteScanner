@@ -132,7 +132,7 @@
     try {
       const res = await fetch('/api/auth/sign-in/email', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token' },
         body: JSON.stringify({ email: $('login-email').value, password: $('login-password').value }),
         credentials: 'include'
       })
@@ -179,7 +179,7 @@
     try {
       const res = await fetch('/api/registrations', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token' },
         body: JSON.stringify(payload)
       })
       let data = {}

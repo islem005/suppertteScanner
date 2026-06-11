@@ -4,6 +4,19 @@
 
 When the user says **"Let's prepare for the next thread"** or any equivalent phrase signaling end of session.
 
+## Mini Handoff (Auto-Compact)
+
+When context limits are approached and a compact is necessary, do NOT skip the handoff. Run a **mini handoff** first:
+
+1. **Flush lore flags** — Note any patterns noticed this session. Ask the user if they should be documented. If yes, update lore.
+2. **Write state snapshot** — Prepend a compact note to the conversation (or write to a scratch file) with:
+   - What was accomplished so far
+   - What's in progress / next
+   - Any open questions or blockers
+3. **Proceed with compact** — Once state is captured, the compact is safe.
+
+This preserves continuity without a full archive cycle.
+
 ## Steps
 
 1. **Update lore before compacting** — Ask the user about any flagged patterns. If they agree, create/update the lore file(s), then update `code-lore/code-lore-index.md`

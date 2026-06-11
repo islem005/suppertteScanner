@@ -1,8 +1,8 @@
-# Shelf Scanner — Agent Orientation
+# SKANER by ivond — Agent Orientation
 
 ## What is this?
 
-Shelf Scanner is a SaaS barcode scanning platform that lets stores publish their product catalogs as scannable barcode lookups. Customers visit `{store}.ivond.com` on their phone, point the camera at a product barcode, and instantly see the name and price.
+SKANER is a SaaS barcode scanning platform that lets stores publish their product catalogs as scannable barcode lookups. Customers visit `{store}.ivond.com` on their phone, point the camera at a product barcode, and instantly see the name and price.
 
 **Three apps in one:**
 - **Scanner** (`{store}.ivond.com`) — Public-facing PWA for customers
@@ -27,7 +27,7 @@ Key areas:
 - **Patterns** — API call conventions, error handling strategies
 - **Security** — Auth protocols, role enforcement, credential rules
 - **Project Management** — Handoff protocol, lore management
-- **Infrastructure** — Cloudflare Pages, Workers, D1, R2 setup
+- **Infrastructure** — Cloudflare Workers (Workers Assets), D1, R2 setup
 
 If a plan requires something not covered in code-lore, stop and ask how to proceed.
 
@@ -40,7 +40,7 @@ If a plan requires something not covered in code-lore, stop and ask how to proce
 1. Make changes in api/ or frontend files
 2. npm run build          # → dist/
 3. git add -A && git commit && git push
-4. [CI/CD] Build → Deploy (Pages + Worker) → Run full test suite
+4. [CI/CD] Build → Deploy (Worker Assets + Worker) → Run full test suite
 5. Test at ivond.com / my-store.ivond.com / admin.ivond.com
 ```
 
@@ -65,6 +65,13 @@ Subagents available:
 - `@tester` — Test runner and output analysis
 
 **All subagents (build agent, plan agent, etc.) must read `code-lore/code-lore-index.md` before starting any work.** This applies to every agent invoked, not just the initial session agent.
+
+## Task Execution Protocol
+
+- **Always create a todo list** at the start of every session using `todowrite`, scoped to the current day and session. List every distinct task with `pending` status and mark one `in_progress` before starting work.
+- **Decompose large work** — If tasks are too many to complete in a single session or are very complex, break them into smaller, independently completable subtasks.
+- **Parallelize** — Once decomposed, launch subtasks as parallel sub-agents using the `task` tool where dependencies allow. Only run sequential work when steps truly depend on each other.
+- **Mini handoff before compact** — If context limits force a compact, run the mini handoff protocol first (`code-lore/project-management/thread-handoff-protocol.md` — Mini Handoff section). Never compact silently.
 
 ## Backend Source Directory
 

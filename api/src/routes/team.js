@@ -15,12 +15,25 @@ router.get('/:storeId', async (c) => {
     return c.json({ error: 'Forbidden' }, 403)
   }
 
+  const page = Math.max(1, parseInt(c.req.query('page')) || 1)
+  const perPage = Math.min(100, Math.max(1, parseInt(c.req.query('per_page')) || 50))
+  const offset = (page - 1) * perPage
+
   const members = await queryAll(c.env.DB,
-    "SELECT id, email, name, display_name, role, store_id, createdAt FROM user WHERE store_id = ? AND role = 'associate' ORDER BY name",
-    [storeId]
+    "SELECT id, email, name, display_name, role, store_id, createdAt FROM user WHERE store_id = ? AND role = 'associate' ORDER BY name LIMIT ? OFFSET ?",
+    [storeId, perPage, offset]
   )
 
-  return c.json(members)
+  const totalRow = await c.env.DB.prepare(
+    "SELECT COUNT(*) as c FROM user WHERE store_id = ? AND role = 'associate'"
+  ).bind(storeId).first()
+
+  return c.json({
+    members: members || [],
+    total: totalRow?.c || 0,
+    page,
+    perPage
+  })
 })
 
 router.post('/:storeId', async (c) => {

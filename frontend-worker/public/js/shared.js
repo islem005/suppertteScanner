@@ -3,6 +3,7 @@ window.escapeHtml = function(str) {
   d.textContent = str;
   return d.innerHTML;
 };
+window.esc = window.escapeHtml;
 
 window.showToast = function(msg) {
   let el = document.getElementById('toast');

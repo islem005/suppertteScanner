@@ -81,6 +81,7 @@ export async function loginAs(email, password) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'X-CSRF-Token': 'skaner-csrf-token',
       'Origin': ORIGIN
     },
     body: JSON.stringify({ email, password })
@@ -117,6 +118,7 @@ export async function authedPost(url, cookie, body) {
     method: 'POST',
     headers: {
       'Content-Type': 'application/json',
+      'X-CSRF-Token': 'skaner-csrf-token',
       Cookie: cookie
     },
     body: JSON.stringify(body)
@@ -131,6 +133,7 @@ export async function authedPut(url, cookie, body) {
     method: 'PUT',
     headers: {
       'Content-Type': 'application/json',
+      'X-CSRF-Token': 'skaner-csrf-token',
       Cookie: cookie
     },
     body: JSON.stringify(body)
@@ -143,7 +146,7 @@ export async function authedPut(url, cookie, body) {
 export async function authedDelete(url, cookie) {
   return fetch(url, {
     method: 'DELETE',
-    headers: { Cookie: cookie }
+    headers: { 'X-CSRF-Token': 'skaner-csrf-token', Cookie: cookie }
   })
 }
 

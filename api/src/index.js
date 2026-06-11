@@ -1,7 +1,7 @@
 import { Hono } from 'hono'
 import { cors } from 'hono/cors'
 import { createAuth } from './auth/index.js'
-import { loadSession } from './middleware.js'
+import { loadSession, adminOnly } from './middleware.js'
 import { authRouter } from './routes/auth.js'
 import { storesRouter } from './routes/stores.js'
 import { productsRouter } from './routes/products.js'
@@ -21,6 +21,9 @@ import { pageViewsRouter } from './routes/page-views.js'
 import { analyticsRouter } from './routes/analytics.js'
 import { auditRouter } from './routes/audit.js'
 import { teamRouter } from './routes/team.js'
+import { changePasswordRouter } from './routes/change-password.js'
+import { rateLimit } from './routes/rate-limit-middleware.js'
+import { csrfProtection } from './csrf.js'
 
 const app = new Hono()
 
@@ -47,16 +50,25 @@ app.use('*', cors({
     return 'https://ivond.com'
   },
   allowMethods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
-  allowHeaders: ['Content-Type', 'Authorization'],
+  allowHeaders: ['Content-Type', 'Authorization', 'X-CSRF-Token'],
   exposeHeaders: ['Content-Type'],
   credentials: true
 }))
 
-// Custom auth routes — cf-access must be mounted BEFORE authRouter's catch-all
+// CSRF protection for all API routes
+app.use('/api/*', csrfProtection())
+
+// Custom auth routes — must be mounted BEFORE authRouter's catch-all
 app.route('/api/auth/cf-access', cfAccessRouter)
+app.route('/api/auth/change-password', changePasswordRouter)
 
 // Load session for all authenticated API routes
 app.use('/api/*', loadSession)
+
+// Rate limiting for public-facing endpoints
+app.use('/api/page-views/*', rateLimit({ maxRequests: 30, windowMs: 60000 }))
+app.use('/api/registrations/*', rateLimit({ maxRequests: 10, windowMs: 60000 }))
+app.use('/api/auth/*', rateLimit({ maxRequests: 20, windowMs: 60000 }))
 
 // Also expose /api/setup as an alias for convenience
 // (authRouter's catch-all forwards unmatched /api/auth/* to Better Auth)
@@ -82,8 +94,8 @@ app.route('/api/team', teamRouter)
 
 app.get('/api/health', (c) => c.json({ ok: true }))
 
-// Debug: check what loadSession finds
-app.get('/api/debug/session', async (c) => {
+// Debug: check what loadSession finds (admin only)
+app.get('/api/debug/session', adminOnly, async (c) => {
   const rawHeaders = {}
   c.req.raw.headers.forEach((v, k) => { rawHeaders[k] = v })
   

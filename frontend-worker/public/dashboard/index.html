@@ -12,10 +12,11 @@
   <title>SKANER — Dashboard</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" crossorigin href="/assets/dashboard-DZQ6R1cv.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" crossorigin href="/assets/dashboard-C-BkBMrh.css">
+  <link rel="stylesheet" crossorigin href="/assets/components-CANKNs51.css">
   <link rel="stylesheet" crossorigin href="/assets/rtl-D3Vhemfn.css">
-  <link rel="stylesheet" crossorigin href="/assets/tokens-BJ4xS31_.css">
+  <link rel="stylesheet" crossorigin href="/assets/tokens-nn9MpcGi.css">
 </head>
 <body>
   <div id="app">
@@ -170,6 +171,19 @@
               <div class="preview-label">Live Preview</div>
             </div>
           </div>
+
+          <!-- QR Code -->
+          <div class="qr-section">
+            <div class="profile-card qr-card">
+              <h3 data-i18n="qrCode" style="margin:0 0 4px;font-size:16px">QR Code</h3>
+              <p style="margin:0 0 12px;font-size:var(--text-sm);color:var(--text-secondary)" data-i18n="qrScanToVisit">Scan to visit your store</p>
+              <div class="qr-canvas-wrap">
+                <canvas id="dash-qr-canvas" width="200" height="200"></canvas>
+              </div>
+              <span id="dash-qr-url" class="qr-url"></span>
+              <button id="btn-dash-download-qr" class="btn small" data-i18n="qrDownload" style="margin-top:12px">Download PNG</button>
+            </div>
+          </div>
         </section>
 
         <!-- ══ ADMIN: Activity ══ -->
@@ -255,6 +269,17 @@
               <div class="lang-selector">
                 <button class="lang-btn" data-lang="en" data-i18n="english">English</button>
                 <button class="lang-btn" data-lang="fr" data-i18n="french">Fran&ccedil;ais</button>
+                <button class="lang-btn" data-lang="ar" data-i18n="arabic">العربية</button>
+              </div>
+            </div>
+          </div>
+          <div class="profile-card" style="margin-top:var(--space-4)">
+            <div class="form-row"><label data-i18n="changePassword">Change Password</label>
+              <div class="password-change-form" style="display:flex;flex-direction:column;gap:8px">
+                <input type="password" id="prof-current-pass" class="form-input" placeholder="Current password">
+                <input type="password" id="prof-new-pass" class="form-input" placeholder="New password (min 6 chars)">
+                <button id="btn-change-pass" class="btn small" data-i18n="updatePassword">Update Password</button>
+                <span id="prof-pass-msg" style="font-size:var(--text-xs)"></span>
               </div>
             </div>
           </div>
@@ -265,15 +290,18 @@
 
     <!-- ═══ MODALS ═══ -->
     <div id="modal-overlay" class="hidden" onclick="closeModal(event)">
-      <div id="modal-box">
+      <div id="modal-box" role="dialog" aria-modal="true">
         <div id="modal-body"></div>
-        <div class="modal-actions"><button class="btn small" onclick="closeModal()" data-i18n="cancel">Cancel</button><button id="modal-confirm" class="btn primary" type="button" data-i18n="confirm">Confirm</button></div>
+        <div class="modal-actions"><button class="btn small" onclick="closeModal()" aria-label="Close" data-i18n="cancel">Cancel</button><button id="modal-confirm" class="btn primary" type="button" data-i18n="confirm">Confirm</button></div>
       </div>
     </div>
 
   </div>
 
+  <div id="toast" role="status" aria-live="polite"></div>
+
   <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <script src="../js/shared.js"></script>
   <script src="../js/i18n.js"></script>
   <script src="js/api.js"></script>

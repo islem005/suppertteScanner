@@ -18,10 +18,11 @@
   <link id="manifest-link" rel="manifest" href="/assets/manifest-DKDFebqv.json">
   <script>!function(){var h=location.hostname,s=location.pathname.replace(/\/+$/,'').replace(/^\//,''),link=document.getElementById('manifest-link');if(h.endsWith('.ivond.com')&&h!=='ivond.com'&&!h.startsWith('admin.')&&!h.startsWith('www.')){link.href='/api/manifest?slug='+encodeURIComponent(h.split('.')[0])}else{var r=['','index.html','scanner.html','scanner','dashboard','admin','auth'];if(!h.startsWith('www.')&&s&&!r.includes(s)&&!s.startsWith('dashboard')&&!s.startsWith('admin')&&!s.startsWith('auth'))link.href='/api/manifest?slug='+encodeURIComponent(s)}}()</script>
   <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.css">
-  <link rel="stylesheet" crossorigin href="/assets/scanner-DxNP8Hr8.css">
-  <link rel="stylesheet" crossorigin href="/assets/tokens-BJ4xS31_.css">
+  <link rel="stylesheet" crossorigin href="/assets/scanner-C_sMiCc5.css">
+  <link rel="stylesheet" crossorigin href="/assets/tokens-nn9MpcGi.css">
 </head>
 <body>
+  <a href="#app" class="skip-link" style="position:absolute;top:-999px;left:0;padding:8px 16px;background:#6366f1;color:#fff;z-index:99999;text-decoration:none">Skip to content</a>
   <div id="app">
 
     <!-- Profile bar -->
@@ -68,6 +69,12 @@
       </div>
     </div>
 
+    <!-- Manual barcode entry (shown when camera or decoder unavailable) -->
+    <div id="manual-entry" class="hidden">
+      <input type="text" id="manual-barcode" inputmode="numeric" placeholder="Enter barcode number" autocomplete="off">
+      <button id="btn-manual-submit" aria-label="Look up"><i data-feather="search"></i></button>
+    </div>
+
     <!-- Promo card (image + torch) -->
     <div id="promo-card">
       <div id="promo-content" class="hidden">
@@ -87,7 +94,7 @@
 
   </div>
 
-  <div id="toast"></div>
+  <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/swiper@11/swiper-bundle.min.js"></script>
@@ -97,6 +104,7 @@
     }
   </script>
   <script src="js/shared.js"></script>
+  <script src="js/scanner-core.js"></script>
   <script src="js/scanner.js"></script>
   <script src="js/app.js"></script>
 </body>

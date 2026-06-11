@@ -45,10 +45,12 @@ function parseCsv(text, filename) {
   }
 
   const columns = Object.keys(records[0])
+  const PRICE_COLUMN_NAMES = ['price', 'prix', 'precio', 'cost', 'unit_price', 'amount', 'new_price', 'original_price', 'prijs']
   const rows = isEuropean ? records.map(r => {
     const row = {}
     for (const [k, v] of Object.entries(r)) {
-      row[k] = v.replace(/\./g, '').replace(',', '.')
+      const isPriceCol = PRICE_COLUMN_NAMES.includes(k.toLowerCase().replace(/\s+/g, '_'))
+      row[k] = isPriceCol ? v.replace(/\./g, '').replace(',', '.') : v
     }
     return row
   }) : records

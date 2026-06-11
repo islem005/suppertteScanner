@@ -12,9 +12,11 @@
   <title>SKANER — Admin</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" crossorigin href="/assets/admin-BHnYU9eV.css">
-  <link rel="stylesheet" crossorigin href="/assets/tokens-BJ4xS31_.css">
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" crossorigin href="/assets/admin-BV1zr8g7.css">
+  <link rel="stylesheet" crossorigin href="/assets/components-CANKNs51.css">
+  <link rel="stylesheet" crossorigin href="/assets/rtl-D3Vhemfn.css">
+  <link rel="stylesheet" crossorigin href="/assets/tokens-nn9MpcGi.css">
 </head>
 <body>
   <div id="app">
@@ -23,19 +25,19 @@
     <div id="view-login" class="view">
       <div class="login-card">
         <div class="login-logo"><i data-feather="shield"></i></div>
-        <h1>Admin Panel</h1>
-        <p class="subtitle">Sign in with your admin account</p>
+        <h1 data-i18n="adminPanel">Admin Panel</h1>
+        <p class="subtitle" data-i18n="adminSignInDesc">Sign in with your admin account</p>
 
         <form id="admin-login-form" autocomplete="off">
           <div class="form-row">
-            <label for="admin-email">Email</label>
+            <label for="admin-email" data-i18n="email">Email</label>
             <input type="email" id="admin-email" class="form-input" placeholder="admin@store.com" required autocomplete="email">
           </div>
           <div class="form-row">
-            <label for="admin-password">Password</label>
+            <label for="admin-password" data-i18n="password">Password</label>
             <input type="password" id="admin-password" class="form-input" placeholder="Password" required autocomplete="current-password">
           </div>
-          <button type="submit" class="btn primary btn-block" style="margin-top:var(--space-4)">Sign In</button>
+          <button type="submit" class="btn primary btn-block" style="margin-top:var(--space-4)" data-i18n="signIn">Sign In</button>
           <div id="admin-login-error" class="error-msg" style="margin-top:var(--space-2)"></div>
         </form>
 
@@ -50,49 +52,54 @@
       <aside id="sidebar">
         <div id="sidebar-brand">
           <span id="sidebar-logo"><i data-feather="settings"></i></span>
-          <span id="sidebar-title">Admin Panel</span>
+          <span id="sidebar-title" data-i18n="adminPanel">Admin Panel</span>
           <button id="btn-sidebar-close" class="icon-btn sidebar-close-btn" aria-label="Close menu"><i data-feather="x"></i></button>
         </div>
         <nav id="sidebar-nav"></nav>
         <div id="sidebar-user">
           <span id="sidebar-username"></span>
-          <button id="btn-logout" class="btn small">Sign Out</button>
+          <button id="btn-logout" class="btn small" data-i18n="signOut">Sign Out</button>
+          <div class="lang-selector" style="padding:8px 12px;border-top:1px solid var(--bg-inset);display:flex;gap:4px;margin-top:4px">
+            <button class="lang-btn" data-lang="en">English</button>
+            <button class="lang-btn" data-lang="fr">Fran&ccedil;ais</button>
+            <button class="lang-btn" data-lang="ar">العربية</button>
+          </div>
         </div>
       </aside>
 
       <div id="mobile-header">
         <button id="btn-toggle-sidebar" class="icon-btn" aria-label="Toggle menu"><i data-feather="menu"></i></button>
-        <span id="mobile-title">Admin</span>
+        <span id="mobile-title" data-i18n="adminPanel">Admin</span>
         <div style="width:40px"></div>
       </div>
 
       <main id="main-content">
 
         <section id="view-overview" class="dash-view">
-          <header class="view-header"><h2>Overview</h2><span id="ov-date" class="meta"></span></header>
+          <header class="view-header"><h2 data-i18n="navOverview">Overview</h2><span id="ov-date" class="meta"></span></header>
           <div id="ov-cards" class="stats-row"></div>
           <div id="ov-attention"></div>
           <div id="ov-store-table" class="table-wrap"></div>
         </section>
 
         <section id="view-stores" class="dash-view">
-          <header class="view-header"><h2>Stores</h2><button id="btn-add-store" class="btn small">+ New Store</button></header>
+          <header class="view-header"><h2 data-i18n="navStores">Stores</h2><button id="btn-add-store" class="btn small" data-i18n="createStore">+ New Store</button></header>
           <div id="store-table" class="table-wrap"></div>
         </section>
 
         <section id="view-store-detail" class="dash-view">
           <header class="view-header">
-            <button id="btn-back-stores" class="btn small" style="margin-right:8px">← Back</button>
-            <h2 id="sd-title">Store</h2>
-            <a id="sd-public-link" href="#" target="_blank" class="btn small" style="margin-left:auto">Public Link ↗</a>
+             <button id="btn-back-stores" class="btn small" style="margin-right:8px" data-i18n="back">← Back</button>
+            <h2 id="sd-title" data-i18n="storeDetail">Store</h2>
+            <a id="sd-public-link" href="#" target="_blank" class="btn small" style="margin-left:auto" data-i18n="publicLink">Public Link ↗</a>
           </header>
 
           <div id="sd-stats" class="stats-row"></div>
 
           <div id="sd-mapping-card" class="card" style="margin-top:16px;padding:16px;background:#1a1a2e;border-radius:12px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <h3 style="margin:0;font-size:16px">Data Mapping</h3>
-              <span id="sd-mapping-badge" class="tag">Loading...</span>
+              <h3 style="margin:0;font-size:16px" data-i18n="dataMapping">Data Mapping</h3>
+              <span id="sd-mapping-badge" class="tag" data-i18n="loading">Loading...</span>
             </div>
             <div id="sd-mapping-body">
               <div class="empty-state">Loading...</div>
@@ -107,28 +114,42 @@
 
           <div id="sd-pending-card" class="card" style="margin-top:16px;padding:16px;background:#1a1a2e;border-radius:12px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <h3 style="margin:0;font-size:16px">Pending Imports</h3>
+              <h3 style="margin:0;font-size:16px" data-i18n="pendingImports">Pending Imports</h3>
             </div>
             <div id="sd-pending-list"></div>
           </div>
 
           <div id="sd-history-card" class="card" style="margin-top:16px;padding:16px;background:#1a1a2e;border-radius:12px">
             <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
-              <h3 style="margin:0;font-size:16px">Import History</h3>
+              <h3 style="margin:0;font-size:16px" data-i18n="importHistory">Import History</h3>
             </div>
             <div id="sd-history-list"></div>
+          </div>
+
+          <div class="card" style="margin-top:16px;padding:16px;background:#1a1a2e;border-radius:12px">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px">
+              <h3 style="margin:0;font-size:16px" data-i18n="qrCode">QR Code</h3>
+            </div>
+            <p style="margin:0 0 12px;font-size:var(--text-sm);color:var(--text-secondary)" data-i18n="qrScanToVisit">Scan to visit this store</p>
+            <div style="display:flex;justify-content:center;margin-bottom:12px">
+              <canvas id="sd-qr-canvas" width="200" height="200"></canvas>
+            </div>
+            <div style="text-align:center;font-size:var(--text-xs);color:var(--text-tertiary);word-break:break-all" id="sd-qr-url"></div>
+            <div style="text-align:center;margin-top:12px">
+              <button id="btn-sd-download-qr" class="btn small" data-i18n="qrDownload">Download PNG</button>
+            </div>
           </div>
         </section>
 
         <section id="view-registrations" class="dash-view">
           <header class="view-header">
-            <h2>Store Registrations</h2>
+            <h2 data-i18n="navRegistrations">Store Registrations</h2>
             <div style="display:flex;gap:var(--space-2)">
               <select id="reg-filter" class="form-input" style="width:auto;padding:var(--space-1) var(--space-3);font-size:var(--text-xs)">
-                <option value="all">All</option>
-                <option value="pending" selected>Pending</option>
-                <option value="approved">Approved</option>
-                <option value="rejected">Rejected</option>
+                <option value="all" data-i18n="all">All</option>
+                <option value="pending" selected data-i18n="pending">Pending</option>
+                <option value="approved" data-i18n="approved">Approved</option>
+                <option value="rejected" data-i18n="rejected">Rejected</option>
               </select>
               <button id="btn-refresh-reg" class="btn small"><i data-feather="refresh-cw" style="width:14px;height:14px"></i></button>
             </div>
@@ -137,52 +158,52 @@
         </section>
 
         <section id="view-users" class="dash-view">
-          <header class="view-header"><h2>Users</h2><button id="btn-add-user" class="btn small">+ New User</button></header>
+          <header class="view-header"><h2 data-i18n="navUsers">Users</h2><button id="btn-add-user" class="btn small" data-i18n="addUser">+ New User</button></header>
           <div id="user-table" class="table-wrap"></div>
         </section>
 
         <section id="view-branding" class="dash-view">
-          <header class="view-header"><h2>Branding</h2></header>
+          <header class="view-header"><h2 data-i18n="navBranding">Branding</h2></header>
           <div id="brand-stores-table" class="table-wrap"></div>
           <div id="brand-editor" class="brand-editor hidden">
             <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
-              <button id="brand-editor-back" class="btn small">← Back</button>
+              <button id="brand-editor-back" class="btn small" data-i18n="back">← Back</button>
               <h3 id="brand-editor-title" style="margin:0;font-size:var(--text-lg)"></h3>
             </div>
             <div class="dash-view-inner">
               <div class="branding-column">
                 <form id="branding-form" class="branding-form">
                   <div class="form-row">
-                    <label>Display Name</label>
+                    <label data-i18n="name">Display Name</label>
                     <input type="text" id="brand-name" placeholder="Store display name"><!-- TODO: replace placeholder with actual store data -->
                   </div>
                   <div class="form-row">
-                    <label>Logo</label>
+                    <label data-i18n="logo">Logo</label>
                     <div class="logo-picker">
                       <input type="file" id="brand-logo-input" accept="image/png,image/jpeg,image/webp">
                       <input type="hidden" id="brand-logo">
                       <img id="brand-logo-preview" class="logo-preview hidden">
-                      <button id="brand-logo-remove" class="btn small hidden" type="button">Remove</button>
+                      <button id="brand-logo-remove" class="btn small hidden" type="button" data-i18n="remove">Remove</button>
                     </div>
                   </div>
                   <div class="form-row">
-                    <label>Primary Color</label>
+                    <label data-i18n="primaryColor">Primary Color</label>
                     <div class="color-row"><input type="color" id="brand-primary" value="#6366f1"><span id="brand-primary-val">#6366f1</span></div>
                   </div>
                   <div class="form-row">
-                    <label>Accent Color</label>
+                    <label data-i18n="accentColor">Accent Color</label>
                     <div class="color-row"><input type="color" id="brand-accent" value="#10b981"><span id="brand-accent-val">#10b981</span></div>
                   </div>
                   <div class="form-row">
-                    <label>Contact Email</label>
+                    <label data-i18n="contactEmail">Contact Email</label>
                     <input type="email" id="brand-email" placeholder="store@example.com"><!-- TODO: replace placeholder with actual store data -->
                   </div>
                   <div class="form-row">
-                    <label>Contact Phone</label>
+                    <label data-i18n="contactPhone">Contact Phone</label>
                     <input type="tel" id="brand-phone" placeholder="+1 555-0123"><!-- TODO: replace placeholder with actual store data -->
                   </div>
                 <div class="form-row">
-                  <label>Footer Text</label>
+                  <label data-i18n="footerText">Footer Text</label>
                   <input type="text" id="brand-footer" placeholder="© 2026 My Store"><!-- TODO: replace placeholder with actual store data -->
                 </div>
                 <div class="form-row">
@@ -194,7 +215,7 @@
                   <input type="url" id="brand-tiktok" placeholder="https://tiktok.com/@..."><!-- TODO: replace placeholder with actual store data -->
                 </div>
                 <div class="form-row">
-                  <label>Website URL</label>
+                  <label data-i18n="websiteUrl">Website URL</label>
                   <input type="url" id="brand-website" placeholder="https://..."><!-- TODO: replace placeholder with actual store data -->
                 </div>
                 <div class="form-row">
@@ -209,7 +230,7 @@
                   <label>YouTube URL</label>
                   <input type="url" id="brand-youtube" placeholder="https://youtube.com/@..."><!-- TODO: replace placeholder with actual store data -->
                 </div>
-                <button type="submit" class="btn primary">Save Branding</button>
+                <button type="submit" class="btn primary" data-i18n="saveBranding">Save Branding</button>
                   <div id="brand-msg" class="success-msg"></div>
                 </form>
               </div>
@@ -262,18 +283,18 @@
         </section>
 
         <section id="view-promotions" class="dash-view">
-          <header class="view-header"><h2>Promotions</h2><button id="btn-promo-refresh" class="btn small" style="margin-left:auto">Refresh</button></header>
+          <header class="view-header"><h2 data-i18n="navPromotions">Promotions</h2><button id="btn-promo-refresh" class="btn small" style="margin-left:auto" data-i18n="refresh">Refresh</button></header>
           <div id="promo-stores-table" class="table-wrap"></div>
           <div id="promo-banner-editor" class="promo-editor hidden">
             <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
-              <button id="promo-banner-back" class="btn small">← Back</button>
+              <button id="promo-banner-back" class="btn small" data-i18n="back">← Back</button>
               <h3 id="promo-banner-title" style="margin:0;font-size:var(--text-lg)"></h3>
             </div>
             <div id="promo-banner-form-wrap"></div>
             <div id="promo-offers-section" style="margin-top:var(--space-6)">
               <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)">
-                <h3 style="margin:0;font-size:16px">Scan Offers</h3>
-                <button id="btn-promo-add-offer" class="btn small">+ New Offer</button>
+                <h3 style="margin:0;font-size:16px" data-i18n="scanOffers">Scan Offers</h3>
+                <button id="btn-promo-add-offer" class="btn small" data-i18n="newOffer">+ New Offer</button>
               </div>
               <div id="promo-offers-list" class="table-wrap"></div>
             </div>
@@ -281,11 +302,11 @@
         </section>
 
         <section id="view-discounts" class="dash-view">
-          <header class="view-header"><h2>Discount Items</h2></header>
+          <header class="view-header"><h2 data-i18n="navDiscounts">Discount Items</h2></header>
           <div id="disc-stores-table" class="table-wrap"></div>
           <div id="disc-editor" class="hidden">
             <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
-              <button id="disc-editor-back" class="btn small">← Back</button>
+              <button id="disc-editor-back" class="btn small" data-i18n="back">← Back</button>
               <h3 id="disc-editor-title" style="margin:0;font-size:var(--text-lg)"></h3>
             </div>
             <div id="disc-list"></div>
@@ -293,53 +314,53 @@
         </section>
 
         <section id="view-activity" class="dash-view">
-          <header class="view-header"><h2>Recent Activity</h2></header>
+          <header class="view-header"><h2 data-i18n="recentActivity">Recent Activity</h2></header>
           <div id="activity-list" class="table-wrap"></div>
         </section>
 
         <section id="view-analytics" class="dash-view">
           <header class="view-header">
-            <h2>Analytics</h2>
+            <h2 data-i18n="navAnalytics">Analytics</h2>
             <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap">
               <select id="an-store-filter" class="form-input" style="width:auto;padding:var(--space-1) var(--space-3);font-size:var(--text-xs)">
-                <option value="">All Stores</option>
+                <option value="" data-i18n="allStores">All Stores</option>
               </select>
               <select id="an-days-filter" class="form-input" style="width:auto;padding:var(--space-1) var(--space-3);font-size:var(--text-xs)">
                 <option value="7">7 days</option>
                 <option value="30" selected>30 days</option>
                 <option value="90">90 days</option>
               </select>
-              <button id="btn-an-export" class="btn small">Export CSV</button>
+              <button id="btn-an-export" class="btn small" data-i18n="exportCSV">Export CSV</button>
             </div>
           </header>
           <div id="an-cards" class="stats-row"></div>
           <div style="display:grid;grid-template-columns:1fr 1fr;gap:var(--space-4);margin-top:var(--space-4)">
             <div class="card" style="padding:var(--space-4);background:var(--bg-surface)">
-              <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)">Daily Trend</h4>
+              <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)" data-i18n="dailyTrend">Daily Trend</h4>
               <div id="an-trend-chart" style="min-height:160px"></div>
             </div>
             <div class="card" style="padding:var(--space-4);background:var(--bg-surface)">
-              <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)">Device Breakdown</h4>
+              <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)" data-i18n="deviceBreakdown">Device Breakdown</h4>
               <div id="an-device-chart" style="min-height:160px"></div>
             </div>
           </div>
           <div class="card" style="padding:var(--space-4);background:var(--bg-surface);margin-top:var(--space-4)">
-            <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)">Top Scanned Products</h4>
+            <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)" data-i18n="topProducts">Top Scanned Products</h4>
             <div id="an-top-products" class="table-wrap"></div>
           </div>
           <div class="card" style="padding:var(--space-4);background:var(--bg-surface);margin-top:var(--space-4)">
-            <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)">Per-Store Breakdown</h4>
+            <h4 style="margin:0 0 var(--space-3);font-size:var(--text-sm)" data-i18n="perStoreBreakdown">Per-Store Breakdown</h4>
             <div id="an-per-store" class="table-wrap"></div>
           </div>
         </section>
 
         <section id="view-profile" class="dash-view">
-          <header class="view-header"><h2>My Profile</h2></header>
+          <header class="view-header"><h2 data-i18n="myProfile">My Profile</h2></header>
           <div class="profile-card">
-            <div class="form-row"><label>Email</label><span id="prof-email"></span></div>
-            <div class="form-row"><label>Name</label><span id="prof-name"></span></div>
-            <div class="form-row"><label>Role</label><span id="prof-role" class="tag"></span></div>
-            <div class="form-row"><label>Store</label><span id="prof-store"></span></div>
+            <div class="form-row"><label data-i18n="email">Email</label><span id="prof-email"></span></div>
+            <div class="form-row"><label data-i18n="name">Name</label><span id="prof-name"></span></div>
+            <div class="form-row"><label data-i18n="role">Role</label><span id="prof-role" class="tag"></span></div>
+            <div class="form-row"><label data-i18n="store">Store</label><span id="prof-store"></span></div>
           </div>
         </section>
 
@@ -347,16 +368,20 @@
     </div>
 
     <div id="modal-overlay" class="hidden" onclick="closeModal(event)">
-      <div id="modal-box">
+      <div id="modal-box" role="dialog" aria-modal="true">
         <div id="modal-body"></div>
-        <div class="modal-actions"><button class="btn small" onclick="closeModal()">Cancel</button><button id="modal-confirm" class="btn primary" type="button">Confirm</button></div>
+        <div class="modal-actions"><button class="btn small" onclick="closeModal()" aria-label="Close" data-i18n="cancel">Cancel</button><button id="modal-confirm" class="btn primary" type="button" data-i18n="confirm">Confirm</button></div>
       </div>
     </div>
 
   </div>
 
+  <div id="toast" role="status" aria-live="polite"></div>
+
   <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
   <script src="../js/shared.js"></script>
+  <script src="../js/i18n.js"></script>
   <script src="js/api.js"></script>
   <script src="js/app.js"></script>
 </body>

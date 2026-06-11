@@ -6,6 +6,7 @@ import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 import { logAudit } from './audit.js'
+import { validateBody, validateName } from '../validate.js'
 
 const router = new Hono()
 
@@ -28,11 +29,26 @@ router.get('/offers/:storeId', async (c) => {
 
 // Admin/dashboard: get all promotions for a store
 router.get('/store/:storeId', authenticate, async (c) => {
-  const data = await queryAll(c.env.DB,
-    'SELECT * FROM promotion WHERE store_id = ? ORDER BY type, priority',
-    [c.req.param('storeId')]
+  const storeId = c.req.param('storeId')
+  const page = Math.max(1, parseInt(c.req.query('page')) || 1)
+  const perPage = Math.min(100, Math.max(1, parseInt(c.req.query('per_page')) || 20))
+  const offset = (page - 1) * perPage
+
+  const promotions = await queryAll(c.env.DB,
+    'SELECT * FROM promotion WHERE store_id = ? ORDER BY type, priority LIMIT ? OFFSET ?',
+    [storeId, perPage, offset]
   )
-  return c.json(data)
+
+  const totalRow = await c.env.DB.prepare(
+    'SELECT COUNT(*) as c FROM promotion WHERE store_id = ?'
+  ).bind(storeId).first()
+
+  return c.json({
+    promotions: promotions || [],
+    total: totalRow?.c || 0,
+    page,
+    perPage
+  })
 })
 
 // Admin/dashboard: get single promotion by ID
@@ -53,6 +69,11 @@ router.post('/', authenticate, async (c) => {
   if (!body.store_id || !body.type) {
     return c.json({ error: 'store_id and type required' }, 400)
   }
+
+  const { valid, errors } = validateBody(body, {
+    title: { required: false, validate: v => validateName(v, 'Title') }
+  })
+  if (!valid) return c.json({ error: errors.join(', ') }, 400)
 
   const id = uuid()
   await execute(c.env.DB,
