@@ -353,6 +353,95 @@
     } catch (err) { msg.textContent = err.message; msg.style.color = '#ff4444' }
   })
 
+  // ─── Shared barcode scanner overlay ───
+  function startBarcodeScanner(onDetected) {
+    if (!('BarcodeDetector' in window)) {
+      showToast('Barcode scanning not supported on this browser. Use Chrome on Android.')
+      return
+    }
+    let stream, active = true, lastResults = [], lastResultTime = 0
+    const SCAN_THROTTLE = 1200
+
+    scannerCore.startCamera().then(s => {
+      stream = s
+
+      const overlay = document.createElement('div')
+      overlay.id = 'scanner-overlay'
+
+      const style = document.createElement('style')
+      style.textContent = '#scanner-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000;display:flex;flex-direction:column}#scanner-overlay .scanner-video-wrap{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}#scanner-overlay video{width:100%;height:100%;object-fit:cover}#scanner-overlay .scanner-frame{position:absolute;width:75%;max-width:320px;aspect-ratio:2/1;top:50%;left:50%;transform:translate(-50%,-50%)}#scanner-overlay .scanner-corner{position:absolute;width:24px;height:24px;border-color:#fff;border-style:solid}#scanner-overlay .scanner-corner-tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}#scanner-overlay .scanner-corner-tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}#scanner-overlay .scanner-corner-bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}#scanner-overlay .scanner-corner-br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}#scanner-overlay .scanner-scan-line{position:absolute;top:4px;left:6px;right:6px;height:2px;background:linear-gradient(90deg,transparent,#00c875,transparent);animation:scannerScan 2s ease-in-out infinite;box-shadow:0 0 8px rgba(0,200,117,0.5)}@keyframes scannerScan{0%,100%{top:4px}50%{top:calc(100% - 4px)}}@media(prefers-reduced-motion:reduce){#scanner-overlay .scanner-scan-line{animation:none}}#scanner-overlay .scanner-result{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);color:#00c875;font-size:14px;font-family:monospace;background:rgba(0,0,0,.8);padding:6px 16px;border-radius:8px;white-space:nowrap;animation:scannerFadeIn .3s ease}@keyframes scannerFadeIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}#scanner-overlay .scanner-toolbar{padding:16px;text-align:center;background:#000}'
+      overlay.appendChild(style)
+
+      const videoWrap = document.createElement('div')
+      videoWrap.className = 'scanner-video-wrap'
+      const video = document.createElement('video')
+      video.setAttribute('playsinline', '')
+      video.setAttribute('autoplay', '')
+      video.srcObject = stream
+      video.play()
+      videoWrap.appendChild(video)
+
+      const frame = document.createElement('div')
+      frame.className = 'scanner-frame'
+      ;['tl','tr','bl','br'].forEach(pos => {
+        const c = document.createElement('div')
+        c.className = 'scanner-corner scanner-corner-' + pos
+        frame.appendChild(c)
+      })
+      const scanLine = document.createElement('div')
+      scanLine.className = 'scanner-scan-line'
+      frame.appendChild(scanLine)
+      videoWrap.appendChild(frame)
+
+      const resultEl = document.createElement('div')
+      resultEl.className = 'scanner-result'
+      resultEl.id = 'scanner-result-text'
+      resultEl.style.display = 'none'
+      videoWrap.appendChild(resultEl)
+      overlay.appendChild(videoWrap)
+
+      const toolbar = document.createElement('div')
+      toolbar.className = 'scanner-toolbar'
+      const cancelBtn = document.createElement('button')
+      cancelBtn.className = 'btn'
+      cancelBtn.textContent = '\u2716 ' + I18N.t('cancel')
+      toolbar.appendChild(cancelBtn)
+      overlay.appendChild(toolbar)
+      document.body.appendChild(overlay)
+
+      function cleanup() { active = false; if (stream) scannerCore.stopCamera(stream); overlay.remove() }
+      cancelBtn.onclick = cleanup
+
+      const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code','data_matrix','itf','codabar','pdf417','aztec','msi','databar','databar_expanded'] })
+
+      async function detect() {
+        if (!active) return
+        try {
+          if (video.readyState >= 2) {
+            const codes = await detector.detect(video)
+            if (active && codes.length > 0) {
+              const now = Date.now()
+              for (const code of codes) {
+                if (!code.rawValue) continue
+                if (lastResults.includes(code.rawValue) && now - lastResultTime < SCAN_THROTTLE) continue
+                lastResults.push(code.rawValue)
+                lastResultTime = now
+                if (lastResults.length > 20) lastResults.shift()
+                try { navigator.vibrate(30) } catch (_) {}
+                resultEl.textContent = 'Scanned: ' + code.rawValue
+                resultEl.style.display = ''
+                setTimeout(() => { cleanup(); if (onDetected) onDetected(code.rawValue) }, 500)
+                return
+              }
+            }
+          }
+        } catch (_) {}
+        if (active) requestAnimationFrame(detect)
+      }
+      detect()
+    }).catch(() => { showToast('Camera access denied') })
+  }
+
   // ══════════════════════════════════════════════
   //  MANAGER VIEWS
   // ══════════════════════════════════════════════
@@ -500,7 +589,10 @@
       <div class="form">
         <div class="form-row">
           <label>${I18N.t('tableBarcode')}</label>
-          <input id="mod-prod-barcode" class="form-input" value="${esc(barcode)}" placeholder="e.g. 5901234123457">
+          <div style="display:flex;gap:8px">
+            <input id="mod-prod-barcode" class="form-input" value="${esc(barcode)}" placeholder="e.g. 5901234123457" style="flex:1">
+            <button id="mod-prod-scan-btn" class="btn small" type="button" title="${I18N.t('scanBarcode')}" style="flex-shrink:0;display:flex;align-items:center;gap:4px"><i data-feather="camera"></i></button>
+          </div>
         </div>
         <div class="form-row">
           <label>${I18N.t('tableName')}</label>
@@ -542,6 +634,26 @@
       } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
     })
     $('modal-confirm').textContent = isEdit ? I18N.t('save') : I18N.t('addProduct')
+    const prodScanBtn = $('mod-prod-scan-btn')
+    if (prodScanBtn) {
+      prodScanBtn.onclick = () => {
+        startBarcodeScanner(async (barcodeValue) => {
+          $('mod-prod-barcode').value = barcodeValue
+          try {
+            const product = await API.getProductByBarcode(user.store_id, barcodeValue)
+            if (product && product.found) {
+              if (product.name) $('mod-prod-name').value = product.name
+              if (product.price) $('mod-prod-price').value = product.price
+              if (product.category) $('mod-prod-category').value = product.category
+              showToast('Product found: ' + product.name)
+            } else {
+              showToast('Product not found for this barcode')
+            }
+          } catch (err) { showToast('Lookup failed: ' + err.message) }
+        })
+      }
+      if (typeof feather !== 'undefined') feather.replace()
+    }
   }
 
   window.editProduct = async (id) => {
@@ -798,7 +910,7 @@
           <label>${I18N.t('discBarcode')}</label>
           <div style="display:flex;gap:8px">
             <input id="mod-disc-barcode" class="form-input" value="${esc(barcode)}" placeholder="e.g. 5901234123457" style="flex:1">
-            <button id="mod-disc-scan-btn" class="btn small" type="button" title="Scan barcode" style="flex-shrink:0;display:flex;align-items:center;gap:4px"><i data-feather="camera"></i></button>
+            <button id="mod-disc-scan-btn" class="btn small" type="button" title="${I18N.t('scanBarcode')}" style="flex-shrink:0;display:flex;align-items:center;gap:4px"><i data-feather="camera"></i></button>
           </div>
         </div>
         <div class="form-row">
@@ -1012,69 +1124,6 @@
       $('mod-disc-image-preview').classList.add('hidden')
       $('mod-disc-image-remove').classList.add('hidden')
     })
-
-    // ─── Barcode scanner overlay ───
-    async function startBarcodeScanner(onDetected) {
-      if (!('BarcodeDetector' in window)) {
-        showToast('Barcode scanning not supported on this browser. Use Chrome on Android.')
-        return
-      }
-      const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','code_128','code_39','code_93','codabar','itf','upc_a','upc_e','qr_code','data_matrix','aztec','pdf417'] })
-      let stream
-      try {
-        stream = await navigator.mediaDevices.getUserMedia({
-          video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } },
-          audio: false
-        })
-      } catch (e) { showToast('Camera access denied'); return }
-
-      const overlay = document.createElement('div')
-      overlay.id = 'scanner-overlay'
-      overlay.style.cssText = 'position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000;display:flex;flex-direction:column'
-      const video = document.createElement('video')
-      video.style.cssText = 'flex:1;width:100%;object-fit:cover'
-      video.setAttribute('playsinline', ''); video.setAttribute('autoplay', '')
-      video.srcObject = stream; video.play()
-
-      const toolbar = document.createElement('div')
-      toolbar.style.cssText = 'padding:16px;text-align:center;background:#000'
-      const hint = document.createElement('p')
-      hint.style.cssText = 'color:#fff;margin:0 0 12px;font-size:14px;opacity:.8'
-      hint.textContent = 'Point camera at a barcode'
-      toolbar.appendChild(hint)
-      const cancelBtn = document.createElement('button')
-      cancelBtn.className = 'btn small'
-      cancelBtn.textContent = '\u2716 Cancel'
-      toolbar.appendChild(cancelBtn)
-      overlay.appendChild(video); overlay.appendChild(toolbar)
-      document.body.appendChild(overlay)
-
-      let active = true, lastResults = [], lastResultTime = 0;
-      const SCAN_THROTTLE = 1200
-
-      async function detect() {
-        if (!active) return
-        try {
-          if (video.readyState >= 2) {
-            const codes = await detector.detect(video)
-            if (active && codes.length > 0) {
-              const now = Date.now()
-              for (const code of codes) {
-                if (!code.rawValue) continue
-                if (lastResults.includes(code.rawValue) && now - lastResultTime < SCAN_THROTTLE) continue
-                lastResults.push(code.rawValue); lastResultTime = now
-                if (lastResults.length > 20) lastResults.shift()
-                cleanup(); onDetected(code.rawValue); return
-              }
-            }
-          }
-        } catch (_) {}
-        if (active) requestAnimationFrame(detect)
-      }
-      function cleanup() { active = false; stream.getTracks().forEach(t => t.stop()); overlay.remove() }
-      cancelBtn.onclick = cleanup
-      detect()
-    }
 
     // Barcode scan button — scan and auto-fill product
     $('mod-disc-scan-btn').onclick = () => {
