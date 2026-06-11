@@ -75,7 +75,7 @@ jobs:
       # Use workers.dev URL to bypass Cloudflare WAF challenges on CI runners
       - name: Warm up — wait for health check
         run: |
-          HEALTH_URL="${WORKERS_DEV_URL:-https://scanner-api.islemhassini.workers.dev}/health"
+          HEALTH_URL="${WORKERS_DEV_URL:-https://scanner-api.islemhassini.workers.dev/api/health}"
           for i in $(seq 1 12); do
             CODE=$(curl -sL -o /tmp/health-resp.txt -w "%{http_code}" "$HEALTH_URL")
             if [ "$CODE" = "200" ]; then echo "API ready"; exit 0; fi
