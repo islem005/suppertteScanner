@@ -1,5 +1,6 @@
 node_modules/
 dist/
+frontend-worker/public/
 logs/
 api/logs/
 bun.lock
