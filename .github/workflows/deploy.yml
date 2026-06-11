@@ -86,10 +86,11 @@ jobs:
           exit 1
 
       # ── Run Full Test Suite Against Live URL ──
+      # Use workers.dev URL to bypass Cloudflare WAF challenges on CI runners
       - name: Run integration tests (against deployed API)
         run: npx vitest run --reporter=verbose
         env:
-          API_BASE: ${{ env.API_BASE }}
+          API_BASE: https://scanner-api.islemhassini.workers.dev/api
           ADMIN_EMAIL: ${{ env.ADMIN_EMAIL }}
           ADMIN_PASS: ${{ env.ADMIN_PASS }}
           ORIGIN: ${{ env.ORIGIN }}
