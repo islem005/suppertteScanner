@@ -19,3 +19,4 @@ bucket_name = "store-catalogs"
 binding = "DB"
 database_name = "shelf-scanner-db-dev"
 database_id = "be60b33e-892f-4dde-8b54-f097e53f552e"
+

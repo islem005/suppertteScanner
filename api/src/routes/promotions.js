@@ -7,6 +7,7 @@ import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 import { logAudit } from './audit.js'
 import { validateBody, validateName } from '../validate.js'
+import { getStoreLimits, countActiveOffers, countAlwaysShowOffers } from '../limits.js'
 
 const router = new Hono()
 
@@ -75,6 +76,20 @@ router.post('/', authenticate, async (c) => {
   })
   if (!valid) return c.json({ error: errors.join(', ') }, 400)
 
+  if (body.type === 'offer' && body.active !== 0) {
+    const limits = await getStoreLimits(c.env.DB, body.store_id)
+    if (!body.trigger_type) {
+      const alwaysShow = await countAlwaysShowOffers(c.env.DB, body.store_id)
+      if (alwaysShow >= limits.offersAlwaysShow) {
+        return c.json({ error: `Always-showing offer limit reached (max ${limits.offersAlwaysShow})` }, 400)
+      }
+    }
+    const total = await countActiveOffers(c.env.DB, body.store_id)
+    if (total >= limits.offersActive) {
+      return c.json({ error: `Active offer limit reached (max ${limits.offersActive})` }, 400)
+    }
+  }
+
   const id = uuid()
   await execute(c.env.DB,
     `INSERT INTO promotion (id, store_id, type, title, image_data, image_url, trigger_type, trigger_value, active, priority)
@@ -100,6 +115,27 @@ router.put('/:id', authenticate, async (c) => {
   const user = c.get('user')
   const body = await c.req.json()
   const id = c.req.param('id')
+
+  const existing = await queryOne(c.env.DB, 'SELECT * FROM promotion WHERE id = ?', [id])
+  if (!existing) return c.json({ error: 'Not found' }, 404)
+
+  if (existing.type === 'offer') {
+    const newActive = body.active !== undefined ? body.active : existing.active
+    const newTrigger = body.trigger_type !== undefined ? body.trigger_type : existing.trigger_type
+    if (newActive !== 0) {
+      const limits = await getStoreLimits(c.env.DB, existing.store_id)
+      if (!newTrigger) {
+        const alwaysShow = await countAlwaysShowOffers(c.env.DB, existing.store_id, id)
+        if (alwaysShow >= limits.offersAlwaysShow) {
+          return c.json({ error: `Always-showing offer limit reached (max ${limits.offersAlwaysShow})` }, 400)
+        }
+      }
+      const total = await countActiveOffers(c.env.DB, existing.store_id, id)
+      if (total >= limits.offersActive) {
+        return c.json({ error: `Active offer limit reached (max ${limits.offersActive})` }, 400)
+      }
+    }
+  }
 
   const allowed = ['store_id', 'type', 'title', 'image_data', 'image_url', 'trigger_type', 'trigger_value', 'active', 'priority']
   const sets = []

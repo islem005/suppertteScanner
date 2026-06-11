@@ -35,7 +35,7 @@ const API = (() => {
   return {
     // Auth
     login: (email, password) => post('/auth/sign-in/email', { email, password }),
-    register: (fields) => post('/auth/setup', fields),
+    register: (fields) => post('/auth/sign-up/email', fields),
 
     // Stores
     getStores: () => get('/stores'),

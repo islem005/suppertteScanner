@@ -22,6 +22,7 @@ import { analyticsRouter } from './routes/analytics.js'
 import { auditRouter } from './routes/audit.js'
 import { teamRouter } from './routes/team.js'
 import { changePasswordRouter } from './routes/change-password.js'
+import { emailRouter } from './routes/email.js'
 import { rateLimit } from './routes/rate-limit-middleware.js'
 import { csrfProtection } from './csrf.js'
 
@@ -90,6 +91,7 @@ app.route('/api/files', filesRouter)
 app.route('/api/page-views', pageViewsRouter)
 app.route('/api/analytics', analyticsRouter)
 app.route('/api/audit', auditRouter)
+app.route('/api/email', emailRouter)
 app.route('/api/team', teamRouter)
 
 app.get('/api/health', (c) => c.json({ ok: true }))

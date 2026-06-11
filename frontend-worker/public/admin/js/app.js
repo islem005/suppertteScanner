@@ -12,6 +12,7 @@
     { id: 'promotions',    icon: 'gift', labelKey: 'navPromotions' },
     { id: 'discounts',     icon: 'tag', labelKey: 'navDiscounts' },
     { id: 'branding',      icon: 'droplet', labelKey: 'navBranding' },
+    { id: 'email',         icon: 'send', labelKey: 'navEmail' },
     { id: 'activity',      icon: 'clock', labelKey: 'navActivity' },
     { id: 'profile',       icon: 'user', labelKey: 'navProfile' },
   ]
@@ -107,6 +108,7 @@
     else if (id === 'branding') loadBranding()
     else if (id === 'promotions') loadPromotions()
     else if (id === 'discounts') loadDiscounts()
+    else if (id === 'email') loadEmailView()
     else if (id === 'activity') loadActivity()
     else if (id === 'profile') loadProfile()
     window.scrollTo(0, 0)
@@ -249,8 +251,9 @@
   }
 
   function renderTrendChart(containerId, data) {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     const el = $(containerId)
-    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">No data yet</div>'; return }
+    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return }
 
     const maxVisits = Math.max(...data.map(d => d.visits), 1)
     const maxScans = Math.max(...data.map(d => d.scans), 1)
@@ -298,8 +301,9 @@
   }
 
   function renderDeviceChart(containerId, data) {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     const el = $(containerId)
-    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">No device data yet</div>'; return }
+    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return }
 
     const total = data.reduce((s, d) => s + d.count, 0)
     const colors = { mobile: '#6366f1', desktop: '#10b981', tablet: '#f59e0b' }
@@ -328,9 +332,10 @@
   }
 
   function renderTopProducts(containerId, data) {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     const el = $(containerId)
-    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">No scan data yet</div>'; return }
-    let html = '<table><thead><tr><th>#</th><th>Barcode</th><th>Name</th><th>Scans</th></tr></thead><tbody>'
+    if (!data || data.length === 0) { el.innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return }
+    let html = '<table><thead><tr><th>#</th><th>' + t('barcode') + '</th><th>' + t('name') + '</th><th>' + t('scans') + '</th></tr></thead><tbody>'
     data.forEach((p, i) => {
       html += `<tr><td>${i + 1}</td><td class="meta" style="font-family:monospace">${esc(p.barcode)}</td><td><strong>${esc(p.name || '—')}</strong></td><td>${p.count}</td></tr>`
     })
@@ -338,9 +343,10 @@
   }
 
   function renderPerStoreTable(containerId, stores, days) {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     const el = $(containerId)
-    if (!stores || stores.length === 0) { el.innerHTML = '<div class="empty-state">No stores yet</div>'; return }
-    let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Visits</th><th>Scans</th><th>Devices</th><th>Hit Rate</th><th></th></tr></thead><tbody>'
+    if (!stores || stores.length === 0) { el.innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return }
+    let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('totalVisits') + '</th><th>' + t('totalScans') + '</th><th>' + t('totalDevices') + '</th><th>' + t('hitRate') + '</th><th></th></tr></thead><tbody>'
     for (const st of stores) {
       html += `<tr>
         <td><strong>${esc(st.name)}</strong></td>
@@ -487,10 +493,11 @@
   async function loadStores() {
     const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     $('store-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
+    let total
     try {
       const result = await API.getStores(storesPage, PER_PAGE)
       stores = result.data || result
-      const total = result.total || stores.length
+      total = result.total || stores.length
     } catch {
       $('store-table').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ' <button class="btn small" onclick="loadStores()">' + t('retry') + '</button></div>'
       return
@@ -505,11 +512,25 @@
   window.openStoreEditModal = async (storeId) => {
     const s = stores.find(st => st.id === storeId)
     if (!s) return
+    let limits = {}
+    try {
+      const store = await API.getStore(storeId)
+      if (store.metadata) {
+        const meta = JSON.parse(store.metadata)
+        limits = meta.limits || {}
+      }
+    } catch {}
     showModal('Edit Store', `
       <div class="form">
         <div class="form-row"><label>Store Name</label><input id="mod-store-edit-name" class="form-input" value="${esc(s.name)}"></div>
         <div class="form-row"><label>Slug</label><input id="mod-store-edit-slug" class="form-input" value="${esc(s.slug)}" placeholder="e.g. my-store" oninput="document.getElementById('store-edit-url-preview').textContent='ivond.com/'+this.value.replace(/\\s+/g,'-').toLowerCase()"></div>
         <div id="store-edit-url-preview" style="font-size:var(--text-sm);color:var(--text-secondary);padding:var(--space-1) var(--space-4) 0">ivond.com/${esc(s.slug)}</div>
+        <hr style="margin:16px 0;border-color:var(--border-subtle)">
+        <h4 style="margin:0 0 12px;font-size:14px">Limits</h4>
+        <div class="form-row"><label>Max Always-Showing Offers</label><input id="mod-store-limit-offers-always" class="form-input" type="number" min="0" value="${limits.offersAlwaysShow || 3}"></div>
+        <div class="form-row"><label>Max Active Offers</label><input id="mod-store-limit-offers-total" class="form-input" type="number" min="0" value="${limits.offersActive || 20}"></div>
+        <div class="form-row"><label>Max Featured Discounts</label><input id="mod-store-limit-discounts-featured" class="form-input" type="number" min="0" value="${limits.discountsFeatured || 10}"></div>
+        <div class="form-row"><label>Max Active Discounts</label><input id="mod-store-limit-discounts-total" class="form-input" type="number" min="0" value="${limits.discountsActive || 100}"></div>
       </div>
     `, async () => {
       const form = $('modal-body')
@@ -520,7 +541,16 @@
       if (!name && !slug) { showToast('Name or slug required'); hasError = true }
       if (!slug) { showFieldError($('mod-store-edit-slug'), 'Slug is required'); hasError = true }
       if (hasError) return
-      await API.updateStore(storeId, { name, slug })
+      const payload = {}
+      if (name) payload.name = name
+      if (slug) payload.slug = slug
+      payload.limits = {
+        offersAlwaysShow: parseInt($('mod-store-limit-offers-always').value) || 0,
+        offersActive: parseInt($('mod-store-limit-offers-total').value) || 0,
+        discountsFeatured: parseInt($('mod-store-limit-discounts-featured').value) || 0,
+        discountsActive: parseInt($('mod-store-limit-discounts-total').value) || 0
+      }
+      await API.updateStore(storeId, payload)
       closeModal(); await loadStores(); showToast('Store updated')
     })
     $('modal-confirm').textContent = 'Save'
@@ -575,10 +605,31 @@
       loadStoreStats(),
       loadMappingCard(),
       loadPendingImports(),
-      loadImportHistory()
+      loadImportHistory(),
+      loadLimitsCard()
     ])
 
     generateStoreQR(store)
+  }
+
+  async function loadLimitsCard() {
+    if (!currentStoreId) return
+    const card = $('sd-limits-card')
+    const body = $('sd-limits-body')
+    try {
+      const usage = await API.getStoreUsage(currentStoreId)
+      const l = usage.limits
+      card.style.display = ''
+      body.innerHTML =
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+          '<div style="background:var(--bg-card);padding:12px;border-radius:8px"><div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:4px">Offers — Always showing</div><div style="font-size:var(--text-lg);font-weight:600">' + usage.offersAlwaysShow + ' / ' + l.offersAlwaysShow + '</div><div style="font-size:var(--text-xs);color:var(--text-tertiary)">max ' + l.offersAlwaysShow + '</div></div>' +
+          '<div style="background:var(--bg-card);padding:12px;border-radius:8px"><div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:4px">Offers — Total active</div><div style="font-size:var(--text-lg);font-weight:600">' + usage.offersActive + ' / ' + l.offersActive + '</div><div style="font-size:var(--text-xs);color:var(--text-tertiary)">max ' + l.offersActive + '</div></div>' +
+          '<div style="background:var(--bg-card);padding:12px;border-radius:8px"><div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:4px">Discounts — Featured</div><div style="font-size:var(--text-lg);font-weight:600">' + usage.discountsFeatured + ' / ' + l.discountsFeatured + '</div><div style="font-size:var(--text-xs);color:var(--text-tertiary)">max ' + l.discountsFeatured + '</div></div>' +
+          '<div style="background:var(--bg-card);padding:12px;border-radius:8px"><div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:4px">Discounts — Total active</div><div style="font-size:var(--text-lg);font-weight:600">' + usage.discountsActive + ' / ' + l.discountsActive + '</div><div style="font-size:var(--text-xs);color:var(--text-tertiary)">max ' + l.discountsActive + '</div></div>' +
+        '</div>'
+    } catch {
+      card.style.display = 'none'
+    }
   }
 
   function generateStoreQR(store) {
@@ -613,14 +664,15 @@
   }
 
   async function loadMappingCard() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     const body = $('sd-mapping-body')
     const badge = $('sd-mapping-badge')
-    body.innerHTML = '<div class="loading-spinner">Loading...</div>'
+    body.innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
 
     try {
       const mapping = await API.getMapping(currentStoreId)
       if (mapping && mapping.column_mapping) {
-        badge.innerHTML = '<span style="color:#00c875">✓ Active Mapping</span>'
+        badge.innerHTML = '<span style="color:#00c875">✓ ' + t('activeMapping') + '</span>'
         const cm = mapping.column_mapping
         const po = mapping.parser_options
         body.innerHTML = `
@@ -638,30 +690,32 @@
         $('btn-sd-remove-map').classList.remove('hidden')
         $('btn-sd-save-map-only').classList.add('hidden')
       } else {
-        badge.innerHTML = '<span style="color:#ffc107">○ Not Mapped</span>'
-        body.innerHTML = '<div class="empty-state">No mapping configured yet. Upload a file for this store to get started.</div>'
+        badge.innerHTML = '<span style="color:#ffc107">○ ' + t('inactive') + '</span>'
+        body.innerHTML = '<div class="empty-state">' + t('noMapping') + '</div>'
         $('btn-sd-edit-map').classList.remove('hidden')
         $('btn-sd-test-map').classList.add('hidden')
         $('btn-sd-remove-map').classList.add('hidden')
         $('btn-sd-save-map-only').classList.add('hidden')
       }
     } catch {
-      badge.innerHTML = '<span style="color:#ff4444">✗ Error</span>'
-      body.innerHTML = '<div class="empty-state">Could not load mapping.</div>'
+      badge.innerHTML = '<span style="color:#ff4444">✗ ' + t('errorState') + '</span>'
+      body.innerHTML = '<div class="empty-state">' + t('couldNotLoadMapping') + '</div>'
     }
+    if (typeof I18N !== 'undefined') I18N.applyHtml()
   }
 
   async function loadPendingImports() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     const list = $('sd-pending-list')
-    list.innerHTML = '<div class="loading-spinner">Loading...</div>'
+    list.innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
       const data = await API.getStoreImports(currentStoreId)
       const pending = (data.imports || []).filter(i => i.status === 'pending' || i.status === 'auto-mapped')
       if (pending.length === 0) {
-        list.innerHTML = '<div class="empty-state">No pending imports.</div>'
+        list.innerHTML = '<div class="empty-state">' + t('noPendingImports') + '</div>'
         return
       }
-      let html = '<table><thead><tr><th>File</th><th>Date</th><th>Rows</th><th>Status</th><th></th></tr></thead><tbody>'
+      let html = '<table><thead><tr><th>' + t('file') + '</th><th>' + t('date') + '</th><th>' + t('rows') + '</th><th>' + t('status') + '</th><th>' + t('storeActions') + '</th></tr></thead><tbody>'
       for (const p of pending) {
         html += `<tr>
           <td><strong>${esc(p.original_filename)}</strong></td>
@@ -669,38 +723,41 @@
           <td>${p.row_count}</td>
           <td><span class="import-status ${p.status}">${p.status}</span></td>
           <td class="actions-cell" style="display:flex;gap:4px">
-            <button class="btn small" onclick="previewImport('${p.id}')">Preview</button>
-            ${p.status === 'pending' ? `<button class="btn small" onclick="openMapModal('${p.id}')">Map & Import</button><button class="btn small danger" onclick="rejectImport('${p.id}')">Reject</button>` : ''}
-            ${p.status === 'auto-mapped' ? `<button class="btn small" onclick="openMapModal('${p.id}')">Re-map</button><button class="btn small" onclick="verifyImport('${p.id}')">Verify ✓</button>` : ''}
+            <button class="btn small" onclick="previewImport('${p.id}')">${t('preview')}</button>
+            ${p.status === 'pending' ? `<button class="btn small" onclick="openMapModal('${p.id}')">${t('mapAndImport')}</button><button class="btn small danger" onclick="rejectImport('${p.id}')">${t('reject')}</button>` : ''}
+            ${p.status === 'auto-mapped' ? `<button class="btn small" onclick="openMapModal('${p.id}')">${t('remap')}</button><button class="btn small" onclick="verifyImport('${p.id}')">${t('verifyImport')} ✓</button>` : ''}
           </td>
         </tr>`
       }
       list.innerHTML = html + '</tbody></table>'
-    } catch { list.innerHTML = '<div class="empty-state">Could not load pending imports.</div>' }
+      if (typeof I18N !== 'undefined') I18N.applyHtml()
+    } catch { list.innerHTML = '<div class="empty-state">' + t('errorOccurred') + '</div>' }
   }
 
   async function loadImportHistory() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     const list = $('sd-history-list')
-    list.innerHTML = '<div class="loading-spinner">Loading...</div>'
+    list.innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
       const data = await API.getStoreImports(currentStoreId)
       const history = (data.imports || []).filter(i => i.status === 'imported' || i.status === 'rejected')
       if (history.length === 0) {
-        list.innerHTML = '<div class="empty-state">No import history.</div>'
+        list.innerHTML = '<div class="empty-state">' + t('noImportHistory') + '</div>'
         return
       }
-      let html = '<table><thead><tr><th>File</th><th>Date</th><th>Rows</th><th>Status</th><th></th></tr></thead><tbody>'
+      let html = '<table><thead><tr><th>' + t('file') + '</th><th>' + t('date') + '</th><th>' + t('rows') + '</th><th>' + t('status') + '</th><th>' + t('storeActions') + '</th></tr></thead><tbody>'
       for (const h of history) {
         html += `<tr>
           <td><strong>${esc(h.original_filename)}</strong></td>
           <td class="meta">${h.imported_at ? new Date(h.imported_at).toLocaleString() : new Date(h.created_at).toLocaleString()}</td>
           <td>${h.row_count}</td>
           <td><span class="import-status ${h.status}">${h.status}</span></td>
-          <td class="actions-cell"><button class="btn small" onclick="previewImport('${h.id}')">Preview</button></td>
+          <td class="actions-cell"><button class="btn small" onclick="previewImport('${h.id}')">${t('preview')}</button></td>
         </tr>`
       }
       list.innerHTML = html + '</tbody></table>'
-    } catch { list.innerHTML = '<div class="empty-state">Could not load history.</div>' }
+      if (typeof I18N !== 'undefined') I18N.applyHtml()
+    } catch { list.innerHTML = '<div class="empty-state">' + t('errorOccurred') + '</div>' }
   }
 
   // ─── Preview Modal ───
@@ -933,10 +990,11 @@
   async function loadUsers() {
     const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     $('user-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
+    let total
     try {
       const result = await API.getAdminUsers(usersPage, PER_PAGE)
       var users = result.data || result
-      const total = result.total || users.length
+      total = result.total || users.length
       stores = await API.getStores()
     } catch {
       $('user-table').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ' <button class="btn small" onclick="loadUsers()">' + t('retry') + '</button></div>'
@@ -1248,18 +1306,19 @@
   let _promoStoreId = null
 
   async function loadPromotions() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     _promoStoreId = null
     $('promo-banner-editor').classList.add('hidden')
-    $('promo-stores-table').innerHTML = '<div class="loading-spinner">Loading...</div>'
+    $('promo-stores-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
       stores = await API.getStores()
     } catch { stores = [] }
 
     if (stores.length === 0) {
-      $('promo-stores-table').innerHTML = '<div class="empty-state">No stores yet.</div>'
+      $('promo-stores-table').innerHTML = '<div class="empty-state">' + t('noData') + '</div>'
       return
     }
-    let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Banners</th><th>Offers</th><th></th></tr></thead><tbody>'
+    let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('banners') + '</th><th>' + t('scanOffers') + '</th><th>' + t('storeActions') + '</th></tr></thead><tbody>'
     for (const s of stores) {
       let bannerCount = 0
       let offerCount = 0
@@ -1274,10 +1333,11 @@
         <td class="meta">/${esc(s.slug)}</td>
         <td>${bannerCount}</td>
         <td>${offerCount}</td>
-        <td class="actions-cell"><button class="btn small" onclick="openPromoEditor('${s.id}')">Manage</button></td>
+        <td class="actions-cell"><button class="btn small" onclick="openPromoEditor('${s.id}')">${t('manage')}</button></td>
       </tr>`
     }
     $('promo-stores-table').innerHTML = html + '</tbody></table>'
+    if (typeof I18N !== 'undefined') I18N.applyHtml()
   }
 
   const btnPromoRefresh = $('btn-promo-refresh')
@@ -1303,8 +1363,9 @@
 
   // ─── Banners List + Editor ───
   async function loadBannerForm(storeId) {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     const wrap = $('promo-banner-form-wrap')
-    wrap.innerHTML = '<div class="loading-spinner">Loading...</div>'
+    wrap.innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
       let banners
       try { banners = await API.getBanner(storeId) } catch { banners = [] }
@@ -1313,14 +1374,14 @@
       let html = `
         <div class="card" style="padding:var(--space-4);background:var(--bg-surface)">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:var(--space-3)">
-            <h4 style="margin:0;font-size:var(--text-base)">Banners</h4>
-            <button id="btn-new-banner" class="btn small">+ New Banner</button>
+            <h4 style="margin:0;font-size:var(--text-base)" data-i18n="banners">Banners</h4>
+            <button id="btn-new-banner" class="btn small" data-i18n="newBanner">+ New Banner</button>
           </div>`
 
       if (banners.length === 0) {
-        html += '<div class="empty-state">No banners yet. Click "+ New Banner" to add one.</div>'
+        html += '<div class="empty-state">' + t('noBanners') + '</div>'
       } else {
-        html += '<div class="table-wrap"><table><thead><tr><th style="width:60px">Image</th><th>Title</th><th style="width:60px">Active</th><th style="width:120px"></th></tr></thead><tbody>'
+        html += '<div class="table-wrap"><table><thead><tr><th style="width:60px" data-i18n="image">Image</th><th data-i18n="title">Title</th><th style="width:60px" data-i18n="active">Active</th><th style="width:120px" data-i18n="storeActions"></th></tr></thead><tbody>'
         for (const b of banners) {
           // a11y: color-only indicator for active status (✓/—)
           html += `<tr>
@@ -1328,8 +1389,8 @@
             <td>${esc(b.title || '')}</td>
             <td>${b.active ? '<span style="color:var(--color-success)">✓</span>' : '—'}</td>
             <td class="actions-cell" style="white-space:nowrap">
-              <button class="btn small" data-banner-id="${b.id}" data-banner-title="${esc(b.title || '')}" data-banner-image="${esc(b.image_data || '')}" data-banner-image-url="${esc(b.image_url || '')}" data-banner-active="${b.active ? '1' : '0'}" onclick="editBanner(this)">Edit</button>
-              <button class="btn small danger" onclick="deleteBanner('${b.id}')">Delete</button>
+              <button class="btn small" data-banner-id="${b.id}" data-banner-title="${esc(b.title || '')}" data-banner-image="${esc(b.image_data || '')}" data-banner-image-url="${esc(b.image_url || '')}" data-banner-active="${b.active ? '1' : '0'}" onclick="editBanner(this)">${t('edit')}</button>
+              <button class="btn small danger" onclick="deleteBanner('${b.id}')">${t('delete')}</button>
             </td>
           </tr>`
         }
@@ -1337,9 +1398,10 @@
       }
       html += '<span id="promo-banner-msg" class="success-msg"></span></div>'
       wrap.innerHTML = html
+      if (typeof I18N !== 'undefined') I18N.applyHtml()
 
       $('btn-new-banner').onclick = () => openBannerModal(storeId, null)
-    } catch { wrap.innerHTML = '<div class="empty-state">Could not load banners.</div>' }
+    } catch { wrap.innerHTML = '<div class="empty-state">' + t('errorOccurred') + '</div>' }
   }
 
   window.editBanner = function(btn) {
@@ -1356,13 +1418,14 @@
   }
 
   window.deleteBanner = async (id) => {
-    showModal('Delete banner?', 'Are you sure you want to delete this banner?', async () => {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    showModal(t('deleteBannerConfirm'), t('areYouSure'), async () => {
       try {
         await API.deletePromotion(id)
         closeModal()
-        showToast('Banner deleted')
+        showToast(t('bannerDeleted'))
         loadBannerForm(_promoStoreId)
-      } catch (err) { showToast('Error: ' + err.message) }
+      } catch (err) { showToast(t('errorPrefix') + err.message) }
     }, true)
   }
 
@@ -1446,18 +1509,19 @@
 
   // ─── Offers List ───
   async function loadPromoOffersList(storeId) {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     const list = $('promo-offers-list')
-    list.innerHTML = '<div class="loading-spinner">Loading...</div>'
+    list.innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
       const promos = await API.getStorePromotions(storeId)
       const offers = promos.filter(p => p.type === 'offer')
       if (offers.length === 0) {
-        list.innerHTML = '<div class="empty-state">No offers for this store.</div>'
+        list.innerHTML = '<div class="empty-state">' + t('noOffersForStore') + '</div>'
         return
       }
-      let html = '<table><thead><tr><th>Image</th><th>Title</th><th>Trigger</th><th>Active</th><th></th></tr></thead><tbody>'
+      let html = '<table><thead><tr><th data-i18n="image">' + t('image') + '</th><th data-i18n="title">' + t('title') + '</th><th data-i18n="trigger">' + t('trigger') + '</th><th data-i18n="active">' + t('active') + '</th><th data-i18n="storeActions">' + t('storeActions') + '</th></tr></thead><tbody>'
       for (const o of offers) {
-        const trigger = o.trigger_type ? o.trigger_type + ': ' + esc(o.trigger_value) : '<span class="tag success">Default</span>'
+        const trigger = o.trigger_type ? o.trigger_type + ': ' + esc(o.trigger_value) : '<span class="tag success">' + t('default') + '</span>'
         const offerImg = o.image_url || o.image_data
         const thumb = offerImg
           ? `<img src="${esc(offerImg)}" class="offer-thumb" alt="">`
@@ -1469,13 +1533,14 @@
           <td class="meta">${esc(trigger)}</td>
           <td>${o.active ? '<span style="color:#00c875">✓</span>' : '<span style="color:#ffc107">○</span>'}</td>
           <td class="actions-cell" style="display:flex;gap:4px">
-            <button class="btn small" onclick="adminEditOffer('${o.id}')">Edit</button>
-            <button class="btn small danger" onclick="adminDeleteOffer('${o.id}')">Delete</button>
+            <button class="btn small" onclick="adminEditOffer('${o.id}')">${t('edit')}</button>
+            <button class="btn small danger" onclick="adminDeleteOffer('${o.id}')">${t('delete')}</button>
           </td>
         </tr>`
       }
       list.innerHTML = html + '</tbody></table>'
-    } catch { list.innerHTML = '<div class="empty-state">Could not load offers.</div>' }
+      if (typeof I18N !== 'undefined') I18N.applyHtml()
+    } catch { list.innerHTML = '<div class="empty-state">' + t('errorOccurred') + '</div>' }
   }
 
   $('btn-promo-add-offer').onclick = () => {
@@ -1604,12 +1669,13 @@
   let _discStoreId = null
 
   async function loadDiscounts() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     _discStoreId = null
     $('disc-editor').classList.add('hidden')
-    $('disc-stores-table').innerHTML = '<div class="loading-spinner">Loading...</div>'
+    $('disc-stores-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try { stores = await API.getStores() } catch { stores = [] }
-    if (stores.length === 0) { $('disc-stores-table').innerHTML = '<div class="empty-state">No stores yet.</div>'; return }
-    let html = '<table><thead><tr><th>Store</th><th>Slug</th><th>Items</th><th></th></tr></thead><tbody>'
+    if (stores.length === 0) { $('disc-stores-table').innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return }
+    let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('items') + '</th><th>' + t('storeActions') + '</th></tr></thead><tbody>'
     for (const s of stores) {
       let items = []
       try { items = await API.getDiscounts(s.id) } catch {}
@@ -1617,10 +1683,11 @@
         <td><strong>${esc(s.name)}</strong></td>
         <td class="meta">/${esc(s.slug)}</td>
         <td>${items.length}</td>
-        <td class="actions-cell"><button class="btn small" onclick="openDiscountEditor('${s.id}')">Manage</button></td>
+        <td class="actions-cell"><button class="btn small" onclick="openDiscountEditor('${s.id}')">${t('manage')}</button></td>
       </tr>`
     }
     $('disc-stores-table').innerHTML = html + '</tbody></table>'
+    if (typeof I18N !== 'undefined') I18N.applyHtml()
   }
 
   window.openDiscountEditor = async (storeId) => {
@@ -2030,6 +2097,104 @@
       if (_discStoreId) await loadDiscountItemsList(_discStoreId)
     }, true)
   }
+
+  // ─── Email ───
+  let emailAttachments = []
+
+  function loadEmailView() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    emailAttachments = []
+    $('email-attach-list').innerHTML = ''
+    $('email-attachments').value = ''
+    $('email-status').textContent = ''
+    $('email-send-btn').disabled = false
+    $('email-send-btn').textContent = t('emailSend')
+  }
+
+  $('email-from').addEventListener('change', () => {
+    const custom = $('email-from-custom')
+    if ($('email-from').value === '__custom__') {
+      custom.classList.remove('hidden')
+      custom.required = true
+    } else {
+      custom.classList.add('hidden')
+      custom.required = false
+    }
+  })
+
+  $('email-attachments').addEventListener('change', (e) => {
+    emailAttachments = []
+    $('email-attach-list').innerHTML = ''
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    for (const file of files) {
+      const fileSizeKB = Math.round(file.size / 1024)
+      const item = document.createElement('div')
+      item.className = 'email-attach-item'
+      item.innerHTML = `<i data-feather="paperclip" style="width:12px;height:12px"></i> ${esc(file.name)} <span class="meta">(${fileSizeKB} KB)</span>`
+      $('email-attach-list').appendChild(item)
+      emailAttachments.push(file)
+    }
+    if (typeof feather !== 'undefined') feather.replace()
+  })
+
+  $('email-form').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    const btn = $('email-send-btn')
+    const status = $('email-status')
+
+    let from = $('email-from').value
+    if (from === '__custom__') {
+      from = $('email-from-custom').value.trim()
+      if (!from) { status.textContent = t('emailFromRequired'); return }
+    }
+
+    const to = $('email-to').value.trim()
+    const subject = $('email-subject').value.trim()
+    const body = $('email-body').value.trim()
+
+    if (!to || !subject || !body) {
+      status.textContent = t('emailFieldsRequired')
+      return
+    }
+
+    btn.disabled = true
+    btn.textContent = t('emailSending')
+    status.textContent = ''
+
+    try {
+      const attachments = []
+      for (const file of emailAttachments) {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = (ev) => {
+            const dataUrl = ev.target.result
+            const b64 = dataUrl.split(',')[1]
+            resolve(b64)
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+        attachments.push({
+          filename: file.name,
+          content: base64,
+          content_type: file.type || 'application/octet-stream',
+        })
+      }
+
+      const result = await API.sendEmail({ from, to, subject, body, type: 'html', attachments })
+      status.innerHTML = `<span style="color:var(--color-success)">✓ ${t('emailSent')}</span>`
+      $('email-form').reset()
+      emailAttachments = []
+      $('email-attach-list').innerHTML = ''
+    } catch (err) {
+      status.innerHTML = `<span style="color:var(--color-danger)">✗ ${t('errorPrefix')}${esc(err.message)}</span>`
+    } finally {
+      btn.disabled = false
+      btn.textContent = t('emailSend')
+    }
+  })
 
   function loadProfile() {
     $('prof-email').textContent = user.email

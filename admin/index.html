@@ -139,6 +139,13 @@
               <button id="btn-sd-download-qr" class="btn small" data-i18n="qrDownload">Download PNG</button>
             </div>
           </div>
+
+          <div id="sd-limits-card" class="card" style="margin-top:16px;padding:16px;background:#1a1a2e;border-radius:12px;display:none">
+            <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:12px">
+              <h3 style="margin:0;font-size:16px">Limits</h3>
+            </div>
+            <div id="sd-limits-body"></div>
+          </div>
         </section>
 
         <section id="view-registrations" class="dash-view">
@@ -313,9 +320,44 @@
           </div>
         </section>
 
-        <section id="view-activity" class="dash-view">
-          <header class="view-header"><h2 data-i18n="recentActivity">Recent Activity</h2></header>
-          <div id="activity-list" class="table-wrap"></div>
+        <section id="view-email" class="dash-view">
+          <header class="view-header"><h2 data-i18n="navEmail">Send Email</h2></header>
+          <div id="email-form-wrap" class="email-form-wrap">
+            <form id="email-form" class="email-form">
+              <div class="form-row">
+                <label for="email-from" data-i18n="emailFrom">From</label>
+                <select id="email-from" class="form-input">
+                  <option value="contact">contact@ivond.com</option>
+                  <option value="sales">sales@ivond.com</option>
+                  <option value="support">support@ivond.com</option>
+                  <option value="info">info@ivond.com</option>
+                  <option value="__custom__" data-i18n="emailCustom">Custom...</option>
+                </select>
+                <input type="email" id="email-from-custom" class="form-input hidden" placeholder="custom@ivond.com">
+              </div>
+              <div class="form-row">
+                <label for="email-to" data-i18n="emailTo">To</label>
+                <input type="email" id="email-to" class="form-input" placeholder="client@example.com" required>
+              </div>
+              <div class="form-row">
+                <label for="email-subject" data-i18n="emailSubject">Subject</label>
+                <input type="text" id="email-subject" class="form-input" placeholder="Subject" required>
+              </div>
+              <div class="form-row">
+                <label for="email-body" data-i18n="emailBody">Message</label>
+                <textarea id="email-body" class="form-input email-body-input" rows="8" placeholder="Write your message..." required></textarea>
+              </div>
+              <div class="form-row">
+                <label data-i18n="emailAttachments">Attachments</label>
+                <div class="email-attach-area">
+                  <input type="file" id="email-attachments" multiple>
+                  <div id="email-attach-list" class="email-attach-list"></div>
+                </div>
+              </div>
+              <button type="submit" class="btn primary" id="email-send-btn" data-i18n="emailSend">Send Email</button>
+              <div id="email-status" class="email-status"></div>
+            </form>
+          </div>
         </section>
 
         <section id="view-analytics" class="dash-view">
@@ -354,6 +396,11 @@
           </div>
         </section>
 
+        <section id="view-activity" class="dash-view">
+          <header class="view-header"><h2 data-i18n="navActivity">Activity</h2></header>
+          <div id="activity-list" class="table-wrap"></div>
+        </section>
+
         <section id="view-profile" class="dash-view">
           <header class="view-header"><h2 data-i18n="myProfile">My Profile</h2></header>
           <div class="profile-card">
@@ -379,7 +426,7 @@
   <div id="toast" role="status" aria-live="polite"></div>
 
   <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.4/build/qrcode.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/qrcode@1.5.0/build/qrcode.min.js"></script>
   <script src="../js/shared.js"></script>
   <script src="../js/i18n.js"></script>
   <script src="js/api.js"></script>

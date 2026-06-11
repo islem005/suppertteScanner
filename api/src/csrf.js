@@ -2,8 +2,30 @@ const SAFE_METHODS = ['GET', 'HEAD', 'OPTIONS']
 const ALLOWED_ORIGINS = [
   'https://ivond.com',
   'https://admin.ivond.com',
-  /^https:\/\/[a-z0-9-]+\.ivond\.com$/
+  /^https:\/\/[a-z0-9-]+\.ivond\.com$/,
+  /^http:\/\/localhost(:\d+)?$/
 ]
+
+// Public endpoints that don't need CSRF protection
+const PUBLIC_PATHS = [
+  '/api/auth/sign-in',
+  '/api/auth/sign-up',
+  '/api/auth/cf-access',
+  '/api/health',
+  '/api/lookup',
+  '/api/page-views',
+  '/api/scans',
+  '/api/branding',
+  '/api/promotions/banners',
+  '/api/promotions/offers',
+  '/api/discounts/featured',
+  '/api/stores/slug',
+  '/api/debug'
+]
+
+function isPublicPath(pathname) {
+  return PUBLIC_PATHS.some(p => pathname.startsWith(p))
+}
 
 function isOriginAllowed(origin) {
   if (!origin) return false
@@ -16,6 +38,13 @@ function isOriginAllowed(origin) {
 export function csrfProtection() {
   return async function csrfMiddleware(c, next) {
     if (SAFE_METHODS.includes(c.req.method)) {
+      await next()
+      return
+    }
+
+    // Skip CSRF for public endpoints
+    const url = new URL(c.req.url)
+    if (isPublicPath(url.pathname)) {
       await next()
       return
     }

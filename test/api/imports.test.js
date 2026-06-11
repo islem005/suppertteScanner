@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import {
-  API_BASE, ADMIN_EMAIL, ADMIN_PASS, MANAGER_EMAIL, MANAGER_PASS,
+  API_BASE, ADMIN_EMAIL, ADMIN_PASS, MANAGER_EMAIL, MANAGER_PASS, ORIGIN,
   loginAs, authedGet, authedPost, authedDelete,
   getTestStoreId, destroyTestStore
 } from './setup.js'
@@ -63,7 +63,7 @@ describe('POST /api/imports/upload (manager: file upload)', () => {
   it('returns 401 without auth', async () => {
     const res = await fetch(`${API_BASE}/imports/upload`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token', 'Origin': ORIGIN },
       body: JSON.stringify({ content: b64('a,b,c\n1,2,3'), filename: 'test.csv' })
     })
     expect(res.status).toBe(401)

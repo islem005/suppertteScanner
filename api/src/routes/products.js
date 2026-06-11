@@ -115,7 +115,7 @@ router.post('/upload', authenticate, async (c) => {
     store_id: user.store_id,
     barcode: r.barcode || r.Barcode || r.BARCODE || '',
     name: r.name || r.Name || r.product_name || r.Product || '',
-    price: parseFloat(r.price || r.Price || r.PRICE || 0),
+    price: parseFloat((r.price || r.Price || r.PRICE || '0').replace(',', '.')),
     category: r.category || r.Category || r.CATEGORY || null,
     created_at: now,
     updated_at: now

@@ -7,7 +7,7 @@
 
 import { describe, it, expect, beforeAll, afterAll } from 'vitest'
 import {
-  API_BASE, ADMIN_EMAIL, ADMIN_PASS, STORE_SLUG,
+  API_BASE, ADMIN_EMAIL, ADMIN_PASS, STORE_SLUG, ORIGIN,
   loginAs, authedGet, authedPost, authedDelete, getStoreIdBySlug,
   getTestStoreId, destroyTestStore
 } from './setup.js'
@@ -104,7 +104,7 @@ describe('POST /api/promotions (authenticated)', () => {
   it('returns 401 without auth', async () => {
     const res = await fetch(`${API_BASE}/promotions`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token', 'Origin': ORIGIN },
       body: JSON.stringify({ store_id: testStoreId, type: 'banner' })
     })
     expect(res.status).toBe(401)

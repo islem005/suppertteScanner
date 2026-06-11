@@ -8,6 +8,7 @@ import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 import { logAudit } from './audit.js'
 import { validateBody, validateBarcode, validateName, validatePrice } from '../validate.js'
+import { getStoreLimits, countFeaturedDiscounts, countActiveDiscounts } from '../limits.js'
 
 const router = new Hono()
 
@@ -100,6 +101,20 @@ router.post('/', authenticate, async (c) => {
   })
   if (!valid) return c.json({ error: errors.join(', ') }, 400)
 
+  if (body.active !== 0) {
+    const limits = await getStoreLimits(c.env.DB, body.store_id)
+    if (body.featured) {
+      const featured = await countFeaturedDiscounts(c.env.DB, body.store_id)
+      if (featured >= limits.discountsFeatured) {
+        return c.json({ error: `Featured discount limit reached (max ${limits.discountsFeatured})` }, 400)
+      }
+    }
+    const total = await countActiveDiscounts(c.env.DB, body.store_id)
+    if (total >= limits.discountsActive) {
+      return c.json({ error: `Active discount limit reached (max ${limits.discountsActive})` }, 400)
+    }
+  }
+
   const id = uuid()
   await execute(c.env.DB,
     `INSERT INTO discount_item (id, store_id, barcode, name, image_data, image_url, category,
@@ -136,6 +151,25 @@ router.put('/:id', authenticate, async (c) => {
   })
   if (!valid) return c.json({ error: errors.join(', ') }, 400)
 
+  const existing = await queryOne(c.env.DB, 'SELECT * FROM discount_item WHERE id = ?', [id])
+  if (!existing) return c.json({ error: 'Not found' }, 404)
+
+  const newActive = body.active !== undefined ? body.active : existing.active
+  const newFeatured = body.featured !== undefined ? body.featured : existing.featured
+  if (newActive !== 0) {
+    const limits = await getStoreLimits(c.env.DB, existing.store_id)
+    if (newFeatured) {
+      const featured = await countFeaturedDiscounts(c.env.DB, existing.store_id, id)
+      if (featured >= limits.discountsFeatured) {
+        return c.json({ error: `Featured discount limit reached (max ${limits.discountsFeatured})` }, 400)
+      }
+    }
+    const total = await countActiveDiscounts(c.env.DB, existing.store_id, id)
+    if (total >= limits.discountsActive) {
+      return c.json({ error: `Active discount limit reached (max ${limits.discountsActive})` }, 400)
+    }
+  }
+
   const allowed = ['store_id', 'barcode', 'name', 'image_data', 'image_url', 'category',
     'original_price', 'new_price', 'discount_percent', 'featured', 'active', 'priority']
   const sets = []
@@ -155,7 +189,6 @@ router.put('/:id', authenticate, async (c) => {
   )
 
   const data = await queryOne(c.env.DB, 'SELECT * FROM discount_item WHERE id = ?', [id])
-  if (!data) return c.json({ error: 'Not found' }, 404)
 
   logAudit(c.env, {
     storeId: data.store_id, userId: user.id, userName: user.display_name || user.email,

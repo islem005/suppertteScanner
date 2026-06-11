@@ -159,46 +159,6 @@
       $('brand-twitter').value = b.twitter_url || ''
       $('brand-youtube').value = b.youtube_url || ''
     } catch { /* defaults */ }
-    updateBrandPreview()
-  }
-
-  function updateBrandPreview() {                                   // TEST: preview phone mockup with live branding
-    const name = $('brand-name').value || 'Your Store'
-    const logo = $('brand-logo').value
-    const primary = $('brand-primary').value || '#6366f1'
-    const accent = $('brand-accent').value || '#10b981'
-    const mockup = $('brand-mockup')                                 // TEST: CSS-only phone mockup element
-    if (!mockup) return
-
-    const titleEl = $('preview-title')
-    if (logo) {
-      titleEl.innerHTML = '<img src="' + logo.replace(/"/g, '&quot;') + '" alt="Logo">'
-    } else {
-      titleEl.textContent = name
-    }
-
-    // Profile preview
-    const logoImg = $('preview-logo')
-    if (logo) { logoImg.src = logo; logoImg.parentElement.classList.remove('hidden') }
-    else logoImg.parentElement.classList.add('hidden')
-    $('preview-profile-name').textContent = name
-
-    const setSocial = function(id, val) {
-      const el = $(id)
-      if (val) { el.href = val; el.classList.remove('hidden') }
-      else el.classList.add('hidden')
-    }
-    setSocial('preview-instagram', $('brand-instagram').value)
-    setSocial('preview-tiktok', $('brand-tiktok').value)
-    setSocial('preview-website', $('brand-website').value)
-    setSocial('preview-facebook', $('brand-facebook').value)
-    setSocial('preview-twitter', $('brand-twitter').value)
-    setSocial('preview-youtube', $('brand-youtube').value)
-    setSocial('preview-email', $('brand-email').value ? 'mailto:' + $('brand-email').value : '')
-    setSocial('preview-phone', $('brand-phone').value ? 'tel:' + $('brand-phone').value : '')
-
-    mockup.style.setProperty('--color-primary', primary)
-    mockup.style.setProperty('--color-success', accent)
   }
 
   // ─── Logo picker ───
@@ -230,7 +190,7 @@
   }
 
   $('brand-logo-input').addEventListener('change', e => {
-    if (e.target.files[0]) { readLogoFile(e.target.files[0]); updateBrandPreview() }
+    if (e.target.files[0]) { readLogoFile(e.target.files[0]) }
   })
 
   $('brand-logo-remove').addEventListener('click', () => {
@@ -238,20 +198,7 @@
     $('brand-logo-input').value = ''
     $('brand-logo-preview').classList.add('hidden')
     $('brand-logo-remove').classList.add('hidden')
-    updateBrandPreview()
   })
-
-  $('brand-primary').oninput = () => { $('brand-primary-val').textContent = $('brand-primary').value; updateBrandPreview() }
-  $('brand-accent').oninput = () => { $('brand-accent-val').textContent = $('brand-accent').value; updateBrandPreview() }
-  $('brand-name').oninput = updateBrandPreview
-  $('brand-email').oninput = updateBrandPreview
-  $('brand-phone').oninput = updateBrandPreview
-  $('brand-instagram').oninput = updateBrandPreview
-  $('brand-tiktok').oninput = updateBrandPreview
-  $('brand-website').oninput = updateBrandPreview
-  $('brand-facebook').oninput = updateBrandPreview
-  $('brand-twitter').oninput = updateBrandPreview
-  $('brand-youtube').oninput = updateBrandPreview
 
   $('branding-form').addEventListener('submit', async e => {
     e.preventDefault()
@@ -484,7 +431,7 @@
     })
   }
 
-  $('btn-upload-csv').onclick = () => $('csv-file').click()
+  $('btn-upload-csv') && ($('btn-upload-csv').onclick = () => $('csv-file').click())
   $('csv-file').onchange = async (e) => {
     const file = e.target.files[0]; if (!file) return
     const ext = file.name.split('.').pop().toLowerCase()
@@ -540,7 +487,7 @@
     e.target.value = ''
   }
 
-  $('btn-add-product').onclick = () => openProductModal(null)
+  $('btn-add-product') && ($('btn-add-product').onclick = () => openProductModal(null))
 
   function openProductModal(existing) {
     const isEdit = !!existing
@@ -656,7 +603,7 @@
     } catch { $('offers-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + ' <button class="btn small" onclick="loadOffers()">' + I18N.t('retry') + '</button></div>' }
   }
 
-  $('btn-add-offer').onclick = () => openOfferModal(null)
+  $('btn-add-offer') && ($('btn-add-offer').onclick = () => openOfferModal(null))
 
   function openOfferModal(existing) {
     const isEdit = !!existing
@@ -728,7 +675,13 @@
         if (isEdit) await API.updatePromotion(existing.id, data)
         else await API.createPromotion(data)
         closeModal(); loadOffers(); showToast(I18N.t('offerSaved'))
-      } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
+      } catch (err) {
+        if (err.message.includes('limit reached')) {
+          showModal('Offer Limit', `<p style="color:var(--color-danger);font-size:var(--text-sm)">${esc(err.message)}</p><p style="font-size:var(--text-sm);color:var(--text-secondary)">Delete some existing offers or ask an admin to increase your store limits.</p>`, null)
+        } else {
+          showToast(I18N.t('errorPrefix') + err.message)
+        }
+      }
     })
     $('modal-confirm').textContent = I18N.t('saveOffer')
 
@@ -823,7 +776,7 @@
     } catch { $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('couldNotLoad') + ' <button class="btn small" onclick="loadDiscounts()">' + I18N.t('retry') + '</button></div>' }
   }
 
-  $('btn-add-discount').onclick = () => openDiscountModal(null)
+  $('btn-add-discount') && ($('btn-add-discount').onclick = () => openDiscountModal(null))
 
   function openDiscountModal(existing) {
     const isEdit = !!existing
@@ -943,7 +896,13 @@
         if (isEdit) await API.updateDiscount(existing.id, data)
         else await API.createDiscount(data)
         closeModal(); await loadDiscounts(); showToast(I18N.t('discSaved'))
-      } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
+      } catch (err) {
+        if (err.message.includes('limit reached')) {
+          showModal('Discount Limit', `<p style="color:var(--color-danger);font-size:var(--text-sm)">${esc(err.message)}</p><p style="font-size:var(--text-sm);color:var(--text-secondary)">Delete some existing discounts or ask an admin to increase your store limits.</p>`, null)
+        } else {
+          showToast(I18N.t('errorPrefix') + err.message)
+        }
+      }
     })
     $('modal-confirm').textContent = I18N.t('saveDiscount')
 

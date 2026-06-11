@@ -31,7 +31,7 @@ const API = (() => {
 
   return {
     login: (email, password) => post('/auth/sign-in/email', { email, password }),
-    register: (fields) => post('/auth/setup', fields),
+    register: (fields) => post('/auth/sign-up/email', fields),
     getStores: (page, perPage) => {
       let path = '/stores'
       const params = []
@@ -63,6 +63,7 @@ const API = (() => {
     deleteUser: (id) => del(`/admin/users/${id}`),
     setUserPassword: (id, password) => post(`/admin/users/${id}/password`, { password }),
     updateStore: (id, data) => put(`/stores/${id}`, data),
+    getStoreUsage: (id) => get(`/stores/${id}/usage`),
     getAdminActivity: (limit) => get(`/admin/activity?limit=${limit || 30}`),
 
     // Imports
@@ -120,6 +121,9 @@ const API = (() => {
         const a = document.createElement('a'); a.href = url; a.download = `analytics-${storeId || 'all'}-${days || 30}d.csv`; a.click()
         URL.revokeObjectURL(url)
       },
+
+    // Email
+    sendEmail: (data) => post('/email/send', data),
 
       // File upload to R2
     /**

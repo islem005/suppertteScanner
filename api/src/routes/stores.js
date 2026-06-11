@@ -7,6 +7,7 @@ import { Hono } from 'hono'
 import { queryAll, queryOne, execute, uuid } from '../db.js'
 import { authenticate } from '../middleware.js'
 import { validateBody, validateName, validateSlug } from '../validate.js'
+import { getStoreLimits, countAlwaysShowOffers, countActiveOffers, countFeaturedDiscounts, countActiveDiscounts } from '../limits.js'
 
 // ─── Auto-register store subdomain as Pages custom domain ──────────
 // Called after store creation — fires and forgets.
@@ -89,14 +90,16 @@ router.post('/', async (c) => {
   const body = await c.req.json()
   const { name, slug } = body
 
+  // Normalize slug first, then validate
+  const cleanSlug = slug ? slug.toLowerCase().replace(/\s+/g, '-') : slug
+
   const { valid, errors } = validateBody(body, {
     name: { required: true, validate: v => validateName(v) },
-    slug: { required: true, validate: v => validateSlug(v) }
+    slug: { required: true, validate: v => validateSlug(cleanSlug) }
   })
   if (!valid) return c.json({ error: errors.join(', ') }, 400)
 
   const id = uuid()
-  const cleanSlug = slug.toLowerCase().replace(/\s+/g, '-')
 
   await execute(c.env.DB,
     'INSERT INTO organization (id, name, slug) VALUES (?, ?, ?)',
@@ -125,32 +128,63 @@ router.get('/:id', async (c) => {
   return c.json(store)
 })
 
+router.get('/:id/usage', async (c) => {
+  const user = c.get('user')
+  if (user.role !== 'admin') return c.json({ error: 'Admin only' }, 403)
+  const storeId = c.req.param('id')
+
+  const db = c.env.DB
+  const [offersAlwaysShow, offersActive, discountsFeatured, discountsActive] = await Promise.all([
+    countAlwaysShowOffers(db, storeId),
+    countActiveOffers(db, storeId),
+    countFeaturedDiscounts(db, storeId),
+    countActiveDiscounts(db, storeId)
+  ])
+  const limits = await getStoreLimits(db, storeId)
+
+  return c.json({
+    offersAlwaysShow, offersActive,
+    discountsFeatured, discountsActive,
+    limits
+  })
+})
+
 router.put('/:id', async (c) => {
   const user = c.get('user')
   if (user.role !== 'admin') return c.json({ error: 'Admin only' }, 403)
 
   const body = await c.req.json()
-  const { name, slug } = body
+  const { name, slug, limits } = body
+
+  // Normalize slug first, then validate
+  const cleanSlug = slug ? slug.toLowerCase().replace(/\s+/g, '-') : slug
 
   const { valid, errors } = validateBody(body, {
     name: { required: false, validate: v => validateName(v) },
-    slug: { required: false, validate: v => validateSlug(v) }
+    slug: { required: false, validate: v => validateSlug(cleanSlug) }
   })
   if (!valid) return c.json({ error: errors.join(', ') }, 400)
-  if (!name && !slug) return c.json({ error: 'Name or slug required' }, 400)
+  if (!name && !slug && limits === undefined) return c.json({ error: 'Nothing to update' }, 400)
 
   const store = await queryOne(c.env.DB,
-    'SELECT id, name, slug FROM organization WHERE id = ?',
+    'SELECT * FROM organization WHERE id = ?',
     [c.req.param('id')]
   )
   if (!store) return c.json({ error: 'Store not found' }, 404)
-
-  const cleanSlug = slug ? slug.toLowerCase().replace(/\s+/g, '-') : store.slug
   const newName = name || store.name
+  const newSlug = cleanSlug || store.slug
+
+  let metadata = store.metadata || '{}'
+  if (limits !== undefined) {
+    let parsed = {}
+    try { parsed = JSON.parse(metadata) } catch {}
+    parsed.limits = limits
+    metadata = JSON.stringify(parsed)
+  }
 
   await execute(c.env.DB,
-    'UPDATE organization SET name = ?, slug = ? WHERE id = ?',
-    [newName, cleanSlug, c.req.param('id')]
+    'UPDATE organization SET name = ?, slug = ?, metadata = ? WHERE id = ?',
+    [newName, newSlug, metadata, c.req.param('id')]
   )
 
   const updated = await queryOne(c.env.DB,

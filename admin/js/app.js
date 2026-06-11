@@ -12,6 +12,7 @@
     { id: 'promotions',    icon: 'gift', labelKey: 'navPromotions' },
     { id: 'discounts',     icon: 'tag', labelKey: 'navDiscounts' },
     { id: 'branding',      icon: 'droplet', labelKey: 'navBranding' },
+    { id: 'email',         icon: 'send', labelKey: 'navEmail' },
     { id: 'activity',      icon: 'clock', labelKey: 'navActivity' },
     { id: 'profile',       icon: 'user', labelKey: 'navProfile' },
   ]
@@ -107,6 +108,7 @@
     else if (id === 'branding') loadBranding()
     else if (id === 'promotions') loadPromotions()
     else if (id === 'discounts') loadDiscounts()
+    else if (id === 'email') loadEmailView()
     else if (id === 'activity') loadActivity()
     else if (id === 'profile') loadProfile()
     window.scrollTo(0, 0)
@@ -491,10 +493,11 @@
   async function loadStores() {
     const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     $('store-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
+    let total
     try {
       const result = await API.getStores(storesPage, PER_PAGE)
       stores = result.data || result
-      const total = result.total || stores.length
+      total = result.total || stores.length
     } catch {
       $('store-table').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ' <button class="btn small" onclick="loadStores()">' + t('retry') + '</button></div>'
       return
@@ -509,11 +512,25 @@
   window.openStoreEditModal = async (storeId) => {
     const s = stores.find(st => st.id === storeId)
     if (!s) return
+    let limits = {}
+    try {
+      const store = await API.getStore(storeId)
+      if (store.metadata) {
+        const meta = JSON.parse(store.metadata)
+        limits = meta.limits || {}
+      }
+    } catch {}
     showModal('Edit Store', `
       <div class="form">
         <div class="form-row"><label>Store Name</label><input id="mod-store-edit-name" class="form-input" value="${esc(s.name)}"></div>
         <div class="form-row"><label>Slug</label><input id="mod-store-edit-slug" class="form-input" value="${esc(s.slug)}" placeholder="e.g. my-store" oninput="document.getElementById('store-edit-url-preview').textContent='ivond.com/'+this.value.replace(/\\s+/g,'-').toLowerCase()"></div>
         <div id="store-edit-url-preview" style="font-size:var(--text-sm);color:var(--text-secondary);padding:var(--space-1) var(--space-4) 0">ivond.com/${esc(s.slug)}</div>
+        <hr style="margin:16px 0;border-color:var(--border-subtle)">
+        <h4 style="margin:0 0 12px;font-size:14px">Limits</h4>
+        <div class="form-row"><label>Max Always-Showing Offers</label><input id="mod-store-limit-offers-always" class="form-input" type="number" min="0" value="${limits.offersAlwaysShow || 3}"></div>
+        <div class="form-row"><label>Max Active Offers</label><input id="mod-store-limit-offers-total" class="form-input" type="number" min="0" value="${limits.offersActive || 20}"></div>
+        <div class="form-row"><label>Max Featured Discounts</label><input id="mod-store-limit-discounts-featured" class="form-input" type="number" min="0" value="${limits.discountsFeatured || 10}"></div>
+        <div class="form-row"><label>Max Active Discounts</label><input id="mod-store-limit-discounts-total" class="form-input" type="number" min="0" value="${limits.discountsActive || 100}"></div>
       </div>
     `, async () => {
       const form = $('modal-body')
@@ -524,7 +541,16 @@
       if (!name && !slug) { showToast('Name or slug required'); hasError = true }
       if (!slug) { showFieldError($('mod-store-edit-slug'), 'Slug is required'); hasError = true }
       if (hasError) return
-      await API.updateStore(storeId, { name, slug })
+      const payload = {}
+      if (name) payload.name = name
+      if (slug) payload.slug = slug
+      payload.limits = {
+        offersAlwaysShow: parseInt($('mod-store-limit-offers-always').value) || 0,
+        offersActive: parseInt($('mod-store-limit-offers-total').value) || 0,
+        discountsFeatured: parseInt($('mod-store-limit-discounts-featured').value) || 0,
+        discountsActive: parseInt($('mod-store-limit-discounts-total').value) || 0
+      }
+      await API.updateStore(storeId, payload)
       closeModal(); await loadStores(); showToast('Store updated')
     })
     $('modal-confirm').textContent = 'Save'
@@ -579,10 +605,31 @@
       loadStoreStats(),
       loadMappingCard(),
       loadPendingImports(),
-      loadImportHistory()
+      loadImportHistory(),
+      loadLimitsCard()
     ])
 
     generateStoreQR(store)
+  }
+
+  async function loadLimitsCard() {
+    if (!currentStoreId) return
+    const card = $('sd-limits-card')
+    const body = $('sd-limits-body')
+    try {
+      const usage = await API.getStoreUsage(currentStoreId)
+      const l = usage.limits
+      card.style.display = ''
+      body.innerHTML =
+        '<div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">' +
+          '<div style="background:var(--bg-card);padding:12px;border-radius:8px"><div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:4px">Offers — Always showing</div><div style="font-size:var(--text-lg);font-weight:600">' + usage.offersAlwaysShow + ' / ' + l.offersAlwaysShow + '</div><div style="font-size:var(--text-xs);color:var(--text-tertiary)">max ' + l.offersAlwaysShow + '</div></div>' +
+          '<div style="background:var(--bg-card);padding:12px;border-radius:8px"><div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:4px">Offers — Total active</div><div style="font-size:var(--text-lg);font-weight:600">' + usage.offersActive + ' / ' + l.offersActive + '</div><div style="font-size:var(--text-xs);color:var(--text-tertiary)">max ' + l.offersActive + '</div></div>' +
+          '<div style="background:var(--bg-card);padding:12px;border-radius:8px"><div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:4px">Discounts — Featured</div><div style="font-size:var(--text-lg);font-weight:600">' + usage.discountsFeatured + ' / ' + l.discountsFeatured + '</div><div style="font-size:var(--text-xs);color:var(--text-tertiary)">max ' + l.discountsFeatured + '</div></div>' +
+          '<div style="background:var(--bg-card);padding:12px;border-radius:8px"><div style="font-size:var(--text-xs);color:var(--text-secondary);margin-bottom:4px">Discounts — Total active</div><div style="font-size:var(--text-lg);font-weight:600">' + usage.discountsActive + ' / ' + l.discountsActive + '</div><div style="font-size:var(--text-xs);color:var(--text-tertiary)">max ' + l.discountsActive + '</div></div>' +
+        '</div>'
+    } catch {
+      card.style.display = 'none'
+    }
   }
 
   function generateStoreQR(store) {
@@ -943,10 +990,11 @@
   async function loadUsers() {
     const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     $('user-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
+    let total
     try {
       const result = await API.getAdminUsers(usersPage, PER_PAGE)
       var users = result.data || result
-      const total = result.total || users.length
+      total = result.total || users.length
       stores = await API.getStores()
     } catch {
       $('user-table').innerHTML = '<div class="empty-state">' + t('errorOccurred') + ' <button class="btn small" onclick="loadUsers()">' + t('retry') + '</button></div>'
@@ -2049,6 +2097,104 @@
       if (_discStoreId) await loadDiscountItemsList(_discStoreId)
     }, true)
   }
+
+  // ─── Email ───
+  let emailAttachments = []
+
+  function loadEmailView() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    emailAttachments = []
+    $('email-attach-list').innerHTML = ''
+    $('email-attachments').value = ''
+    $('email-status').textContent = ''
+    $('email-send-btn').disabled = false
+    $('email-send-btn').textContent = t('emailSend')
+  }
+
+  $('email-from').addEventListener('change', () => {
+    const custom = $('email-from-custom')
+    if ($('email-from').value === '__custom__') {
+      custom.classList.remove('hidden')
+      custom.required = true
+    } else {
+      custom.classList.add('hidden')
+      custom.required = false
+    }
+  })
+
+  $('email-attachments').addEventListener('change', (e) => {
+    emailAttachments = []
+    $('email-attach-list').innerHTML = ''
+    const files = e.target.files
+    if (!files || files.length === 0) return
+    for (const file of files) {
+      const fileSizeKB = Math.round(file.size / 1024)
+      const item = document.createElement('div')
+      item.className = 'email-attach-item'
+      item.innerHTML = `<i data-feather="paperclip" style="width:12px;height:12px"></i> ${esc(file.name)} <span class="meta">(${fileSizeKB} KB)</span>`
+      $('email-attach-list').appendChild(item)
+      emailAttachments.push(file)
+    }
+    if (typeof feather !== 'undefined') feather.replace()
+  })
+
+  $('email-form').addEventListener('submit', async (e) => {
+    e.preventDefault()
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    const btn = $('email-send-btn')
+    const status = $('email-status')
+
+    let from = $('email-from').value
+    if (from === '__custom__') {
+      from = $('email-from-custom').value.trim()
+      if (!from) { status.textContent = t('emailFromRequired'); return }
+    }
+
+    const to = $('email-to').value.trim()
+    const subject = $('email-subject').value.trim()
+    const body = $('email-body').value.trim()
+
+    if (!to || !subject || !body) {
+      status.textContent = t('emailFieldsRequired')
+      return
+    }
+
+    btn.disabled = true
+    btn.textContent = t('emailSending')
+    status.textContent = ''
+
+    try {
+      const attachments = []
+      for (const file of emailAttachments) {
+        const base64 = await new Promise((resolve, reject) => {
+          const reader = new FileReader()
+          reader.onload = (ev) => {
+            const dataUrl = ev.target.result
+            const b64 = dataUrl.split(',')[1]
+            resolve(b64)
+          }
+          reader.onerror = reject
+          reader.readAsDataURL(file)
+        })
+        attachments.push({
+          filename: file.name,
+          content: base64,
+          content_type: file.type || 'application/octet-stream',
+        })
+      }
+
+      const result = await API.sendEmail({ from, to, subject, body, type: 'html', attachments })
+      status.innerHTML = `<span style="color:var(--color-success)">✓ ${t('emailSent')}</span>`
+      $('email-form').reset()
+      emailAttachments = []
+      $('email-attach-list').innerHTML = ''
+    } catch (err) {
+      status.innerHTML = `<span style="color:var(--color-danger)">✗ ${t('errorPrefix')}${esc(err.message)}</span>`
+    } finally {
+      btn.disabled = false
+      btn.textContent = t('emailSend')
+    }
+  })
 
   function loadProfile() {
     $('prof-email').textContent = user.email

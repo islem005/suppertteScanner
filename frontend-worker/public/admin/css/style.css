@@ -422,6 +422,15 @@ h1 { font-size: var(--text-2xl); font-weight: 700; text-align: center; letter-sp
 }
 #crop-actions { display: flex; gap: var(--space-2); }
 
+/* ═══ EMAIL FORM ═══ */
+.email-form-wrap { max-width: 600px; }
+.email-form { display: flex; flex-direction: column; gap: var(--space-4); }
+.email-body-input { min-height: 160px; font-family: var(--font-mono); font-size: var(--text-sm); line-height: 1.6; resize: vertical; }
+.email-attach-area { display: flex; flex-direction: column; gap: var(--space-2); }
+.email-attach-list { display: flex; flex-direction: column; gap: 4px; }
+.email-attach-item { display: flex; align-items: center; gap: var(--space-2); font-size: var(--text-sm); color: var(--text-primary); padding: var(--space-1) var(--space-2); background: var(--bg-inset); border-radius: var(--radius-md); }
+.email-status { font-size: var(--text-sm); padding: var(--space-2) 0; }
+
 /* ═══ FORM VALIDATION ═══ */
 .form-error { color: #ef4444; font-size: 12px; margin-top: 4px; display: none; }
 .form-input.error { border-color: #ef4444; }

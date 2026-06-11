@@ -95,7 +95,7 @@ router.post('/', authenticate, async (c) => {
       return c.json({ error: `type must be one of: ${validTypes.join(', ')}` }, 400)
     }
 
-    if (!ALLOWED_TYPES.includes(file.type) && type !== 'import') {
+    if (!ALLOWED_TYPES.includes(file.type)) {
       return c.json({
         error: `Unsupported file type "${file.type}". Allowed: ${ALLOWED_IMAGE_TYPES.join(', ')}`
       }, 400)

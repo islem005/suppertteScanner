@@ -24,9 +24,6 @@
   const camName = document.getElementById('cam-name');
   const camPrice = document.getElementById('cam-price');
   const camFeed = document.getElementById('camera-feed');
-  const manualEntry = document.getElementById('manual-entry');
-  const manualInput = document.getElementById('manual-barcode');
-  const manualBtn = document.getElementById('btn-manual-submit');
 
   const promoContent = document.getElementById('promo-content');
   const promoImage = document.getElementById('promo-image');
@@ -108,7 +105,7 @@
           if (brand.twitter_url) { profileTwitter.href = brand.twitter_url; profileTwitter.classList.remove('hidden'); }
           if (brand.youtube_url) { profileYoutube.href = brand.youtube_url; profileYoutube.classList.remove('hidden'); }
           if (typeof feather !== 'undefined') feather.replace();
-        } catch {}
+        } catch { console.warn('Branding fetch failed') }
 
         try {
           const banners = await (await fetch(`${apiBase}/promotions/banners/${store.id}`)).json();
@@ -120,6 +117,7 @@
             bannerFallback.classList.add('hidden');
           }
         } catch {
+          console.warn('Banners fetch failed');
           bannerCarousel.classList.add('hidden');
           bannerFallback.classList.add('hidden');
         }
@@ -133,7 +131,7 @@
               promoContent.classList.remove('hidden');
             }
           }
-        } catch {}
+        } catch { console.warn('Offers fetch failed') }
 
         try {
           const discounts = await (await fetch(`${apiBase}/discounts/${store.id}?featured=1`)).json();
@@ -141,7 +139,7 @@
             discItems = discounts;
             startDiscountCarousel();
           }
-        } catch {}
+        } catch { console.warn('Discounts fetch failed') }
 
       } catch (e) {
         showToast('Store not found');
@@ -173,10 +171,7 @@
     const result = await Scanner.init();
     if (result.ok) {
       Scanner.start(video, onBarcode);
-      if (!result.hasDecoder) {
-        camName.textContent = 'Auto-scan unavailable — enter barcode below';
-        manualEntry.classList.remove('hidden');
-      }
+
       camFeed.addEventListener('click', async () => {
         camName.textContent = 'Restarting camera…';
         const r = await Scanner.restart(video, onBarcode);
@@ -185,7 +180,6 @@
       });
     } else {
       camFeed.classList.add('hidden');
-      manualEntry.classList.remove('hidden');
       camName.textContent = result.error;
       camName.classList.add('hint');
     }
@@ -228,10 +222,13 @@
       } catch {}
 
       if (discMatch) {
-        camPrice.innerHTML = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-sm)">${parseFloat(productInfo.price).toFixed(2)} DA</span> ${parseFloat(discMatch.new_price).toFixed(2)} DA`;
+        const origPrice = productInfo.price != null ? parseFloat(productInfo.price) : NaN;
+        const discPrice = discMatch.new_price != null ? parseFloat(discMatch.new_price) : NaN;
+        camPrice.innerHTML = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-sm)">${isNaN(origPrice) ? '—' : origPrice.toFixed(2)} DA</span> ${isNaN(discPrice) ? '—' : discPrice.toFixed(2)} DA`;
         camPrice.classList.remove('error');
       } else {
-        camPrice.textContent = `${parseFloat(productInfo.price).toFixed(2)} DA`;
+        const p = productInfo.price != null ? parseFloat(productInfo.price) : NaN;
+        camPrice.textContent = `${isNaN(p) ? '—' : p.toFixed(2)} DA`;
         camPrice.classList.remove('error');
       }
 
@@ -382,24 +379,7 @@
     console.warn('Missing #btn-install — install button not rendered');
   }
 
-  // ─── Manual barcode entry ───
-  function submitManualBarcode() {
-    const code = manualInput.value.trim();
-    if (!code) return;
-    manualInput.value = '';
-    onBarcode(code);
-  }
-
-  if (manualBtn) {
-    manualBtn.addEventListener('click', submitManualBarcode);
-  }
-  if (manualInput) {
-    manualInput.addEventListener('keydown', e => {
-      if (e.key === 'Enter') submitManualBarcode();
-    });
-  }
-
-  window.addEventListener('unhandledrejection', e => {
+window.addEventListener('unhandledrejection', e => {
     console.warn('Unhandled:', e.reason);
   });
 

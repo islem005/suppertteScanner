@@ -27,6 +27,7 @@ This preserves continuity without a full archive cycle.
 6. **Create fresh handoff** — Write new `project_handoffs/latest_handoff.md` with:
    - New version number
    - Current date
+   - Current branch name (e.g., `main` or `feature/xxx`)
    - Summary of what was accomplished this session
    - Recent changes (bulleted)
    - Next tasks (prioritized list)
@@ -36,6 +37,9 @@ This preserves continuity without a full archive cycle.
 
 ```markdown
 # Handoff v{N} — {Date}
+
+## Branch
+`main` or `feature/xxx` (if in progress)
 
 ## Summary
 {one-paragraph summary of what happened this session}
@@ -68,4 +72,5 @@ When user returns and says things like "Please read the latest handoff" or "Let'
 1. Read `AGENTS.md` for project orientation
 2. **Read the handoff first** — Read `project_handoffs/latest_handoff.md` for current status
 3. **Then read code-lore** — Read `code-lore/code-lore-index.md` for permanent patterns & conventions
-4. If something needed isn't documented, stop and ask
+4. **Check git branch** — Run `git branch --show-current`. If handoff records an open `## Branch`, continue on it. If starting fresh work, create `feature/<name>` from `main`.
+5. If something needed isn't documented, stop and ask

@@ -28,8 +28,8 @@ describe('GET /api/products (list products)', () => {
   it('returns a list of products for the store', async () => {
     const res = await authedGet(`${API_BASE}/products?store_id=${testStoreId}`, adminCookie)
     expect(res.status).toBe(200)
-    const products = await res.json()
-    expect(Array.isArray(products)).toBe(true)
+    const data = await res.json()
+    expect(Array.isArray(data.products)).toBe(true)
   })
 
   it('returns 401 without auth', async () => {
@@ -39,9 +39,9 @@ describe('GET /api/products (list products)', () => {
 
   it('returns products with expected fields', async () => {
     const res = await authedGet(`${API_BASE}/products`, adminCookie)
-    const products = await res.json()
-    if (products.length > 0) {
-      const p = products[0]
+    const data = await res.json()
+    if (data.products && data.products.length > 0) {
+      const p = data.products[0]
       expect(p).toHaveProperty('barcode')
       expect(p).toHaveProperty('name')
       expect(p).toHaveProperty('price')
@@ -91,8 +91,8 @@ describe('POST /api/products (create product)', () => {
 
   afterAll(async () => {
     // Cleanup: delete test product
-    const products = await (await authedGet(`${API_BASE}/products?store_id=${testStoreId}`, adminCookie)).json()
-    const tp = products.find(p => p.barcode === testBarcode)
+    const data = await (await authedGet(`${API_BASE}/products?store_id=${testStoreId}`, adminCookie)).json()
+    const tp = (data.products || []).find(p => p.barcode === testBarcode)
     if (tp) {
       await authedDelete(`${API_BASE}/products/${tp.id}`, adminCookie)
     }
@@ -121,8 +121,8 @@ describe('POST /api/products/upload (CSV upload)', () => {
 
   afterAll(async () => {
     // Cleanup CSV test products
-    const products = await (await authedGet(`${API_BASE}/products?store_id=${testStoreId}`, adminCookie)).json()
-    for (const p of products) {
+    const data = await (await authedGet(`${API_BASE}/products?store_id=${testStoreId}`, adminCookie)).json()
+    for (const p of (data.products || [])) {
       if (p.barcode === 'CSVTEST1' || p.barcode === 'CSVTEST2') {
         await authedDelete(`${API_BASE}/products/${p.id}`, adminCookie)
       }

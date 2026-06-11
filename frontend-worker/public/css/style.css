@@ -168,60 +168,6 @@ html, body { overflow: hidden; height: 100%; }
 }
 
 /* ════════════════════════════════════════════
-   MANUAL BARCODE ENTRY
-   ════════════════════════════════════════════ */
-#manual-entry {
-  flex: 0 0 auto;
-  display: flex; align-items: center; gap: var(--space-2);
-  padding: var(--space-2) var(--space-4);
-  background: var(--bg-surface);
-  border-top: 1px solid var(--border-subtle);
-}
-#manual-entry.hidden { display: none; }
-
-#manual-barcode {
-  flex: 1;
-  height: 40px;
-  background: var(--bg-elevated);
-  border: 1px solid var(--border-subtle);
-  border-radius: var(--radius-md);
-  color: var(--text-primary);
-  font-size: var(--text-base);
-  padding: 0 var(--space-3);
-  outline: none;
-  font-family: var(--font-mono);
-  letter-spacing: 2px;
-}
-#manual-barcode:focus {
-  border-color: var(--color-primary);
-}
-#manual-barcode::placeholder {
-  color: var(--text-tertiary);
-  letter-spacing: 0;
-  font-family: var(--font-sans);
-}
-
-#btn-manual-submit {
-  width: 40px; height: 40px;
-  display: inline-flex; align-items: center; justify-content: center;
-  border: none; border-radius: var(--radius-md);
-  background: var(--color-primary);
-  color: #fff;
-  cursor: pointer; flex-shrink: 0;
-  transition: opacity var(--transition-fast);
-}
-#btn-manual-submit:hover { opacity: 0.85; }
-#btn-manual-submit svg { width: 18px; height: 18px; }
-
-/* Manual entry replaces camera feed when camera unavailable */
-#camera-feed.hidden ~ #manual-entry {
-  flex: 0 0 auto;
-  border-top: none;
-  padding: var(--space-4);
-  background: var(--bg-base);
-}
-
-/* ════════════════════════════════════════════
    PROMO CARD
    ════════════════════════════════════════════ */
 #promo-card {

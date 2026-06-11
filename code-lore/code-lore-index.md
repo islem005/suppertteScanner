@@ -15,11 +15,13 @@ Permanent project memory for SKANER by ivond. This index maps every lore file to
 | **Components** | `components/scanner-storage.md` | IndexedDB schema, scan history CRUD, localStorage usage |
 | **Patterns** | `patterns/api-call-patterns.md` | API client structure, cookie-based auth, error handling |
 | **Patterns** | `patterns/error-handling.md` | Toast notifications, modal errors, unhandled rejection handling |
+| **Patterns** | `patterns/debugging.md` | Stack-specific debug guides, mistake log, debugging workflows |
 | **Patterns** | `patterns/dashboard-patterns.md` | Dashboard SPA structure, all 10 views, upload flow, API client, i18n system |
 | **Patterns** | `patterns/admin-patterns.md` | Admin panel SPA structure, all 11 views, store detail, mapping editor, role enforcement |
 | **Patterns** | `patterns/auth-flow.md` | Login page flow, session persistence, dashboard/admin auth, sign out, localStorage keys |
 | **Patterns** | `patterns/defensive-js.md` | Defensive `$` helper, Feather icons init, IIFE wrapper, null guards on top-level handlers |
 | **Patterns** | `patterns/tool-preferences.md` | MCP-first tool usage rule |
+| **Patterns** | `patterns/email-sending.md` | Email sending via Workers binding, department addresses, attachment handling |
 | **Security** | `security/protocols.md` | Better Auth, middleware chain, role enforcement, Cloudflare Access |
 | **Infrastructure** | `infrastructure/cloudflare-setup.md` | Workers-only architecture (scanner-frontend + scanner-api), D1, R2, deployment flow, CI/CD, dynamic CORS, cross-subdomain auth, auto-subdomain registration, known issues |
 | **Infrastructure** | `infrastructure/pwa-setup.md` | Service Worker cache-first strategy, web manifest, PWA registration flow |
@@ -28,6 +30,7 @@ Permanent project memory for SKANER by ivond. This index maps every lore file to
 | **Infrastructure** | `infrastructure/cloudflare-mcp-setup.md` | Cloudflare API MCP server config (OpenCode global config, OAuth auth, URL, coverage) |
 | **Project Mgmt** | `project-management/thread-handoff-protocol.md` | Session end/archive workflow |
 | **Project Mgmt** | `project-management/code-lore-management.md` | How to add to lore, flag patterns |
+| **Project Mgmt** | `project-management/git-branch-convention.md` | GitHub Flow, branch naming, session-to-branch workflow |
 
 ## Lore Rules
 

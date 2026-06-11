@@ -15,7 +15,7 @@ The admin panel SPA (`admin/index.html`, `admin/js/app.js`) is the platform admi
 - On logout: redirects to login view (not /auth/)
 
 ### Sidebar Navigation
-- 10 nav items: Overview, Analytics, Stores, Registrations, Users, Promotions, Discounts, Branding, Activity, Profile
+- 11 nav items: Overview, Analytics, Stores, Registrations, Users, Promotions, Discounts, Branding, Email, Activity, Profile
 - Nav built dynamically from `navItems` array with Feather icons
 - Active nav item via left border accent
 - Sidebar toggle on mobile
@@ -110,6 +110,13 @@ Opened from pending imports or Edit Mapping button:
 - Table: store name, slug, products count, scans, users, created date
 - Data from: `API.getAdminActivity(50)`
 
+### Email
+- Email sending form: from dropdown (contact/sales/support/info + custom @ivond.com), recipient, subject, body (HTML), file attachments
+- Admin-only (server-enforced)
+- Uses Workers `EMAIL` binding via `POST /api/email/send`
+- Attachments: base64 in JSON payload → decoded to `Uint8Array.buffer` for the Workers binding
+- Data from: `API.sendEmail()`
+
 ### Profile
 - User email, display name, role (styled tag), store name
 
@@ -121,6 +128,7 @@ Opened from pending imports or Edit Mapping button:
 - Same pattern as dashboard API client but with additional admin-specific methods:
   - `getPendingImports()`, `mapImport()`, `remapImport()`, `testImport()`, `verifyImport()`, `rejectImport()`, `saveMapping()`, `deleteMapping()`
   - `getBanner()`, `getOffers()`
+  - `sendEmail()` — sends email via `POST /api/email/send` with from, to, subject, body, attachments
 - Auto-redirects to `/admin/` on 401
 
 ### Modal (`window.showModal`)

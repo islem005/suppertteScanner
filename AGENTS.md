@@ -11,11 +11,12 @@ SKANER is a SaaS barcode scanning platform that lets stores publish their produc
 
 ## Session Start Protocol
 
-Every session begins with two reads in order:
+Every session begins with these steps in order:
 1. **Read the handoff** — `project_handoffs/latest_handoff.md` for current status & next tasks
 2. **Read code-lore** — `code-lore/code-lore-index.md` for permanent patterns & conventions
+3. **Check git branch** — Run `git branch --show-current`. If handoff records an open `## Branch`, continue on it. If starting fresh work, create `feature/<name>` from `main`. See `code-lore/project-management/git-branch-convention.md` for the full workflow.
 
-Without both, you may miss context or repeat mistakes. If something isn't in lore, stop and ask.
+Without these, you may miss context or repeat mistakes. If something isn't in lore, stop and ask.
 
 ## What is code-lore?
 
@@ -63,6 +64,7 @@ npx vitest run
 Subagents available:
 - `@ui-rules` — UI design system enforcer
 - `@tester` — Test runner and output analysis
+- `@debugger` — Debugging specialist (isolate, reproduce, diagnose across the full stack)
 
 **All subagents (build agent, plan agent, etc.) must read `code-lore/code-lore-index.md` before starting any work.** This applies to every agent invoked, not just the initial session agent.
 

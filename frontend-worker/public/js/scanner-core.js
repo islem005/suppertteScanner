@@ -80,6 +80,7 @@ window.scannerCore = (() => {
     canvas.width = videoEl.videoWidth;
     canvas.height = videoEl.videoHeight;
     const ctx = canvas.getContext('2d');
+    if (!ctx) return Promise.reject(new Error('Could not get canvas context'));
     ctx.drawImage(videoEl, 0, 0);
     return new Promise(resolve => canvas.toBlob(resolve, 'image/jpeg', 0.8));
   }
