@@ -4,6 +4,10 @@
 // v3: Added no-cache headers to fix stale Cloudflare edge cache issues
 // ─────────────────────────────────────────────────────────────────────
 
+// ─── Scanner Frontend Worker v5 ──────────────────────────────────────
+// v5: sw.js excluded from asset cache, bumped SW cache to fix stale carousel
+// ─────────────────────────────────────────────────────────────────────
+
 const securityHeaders = {
   'Content-Security-Policy': "default-src 'self'; script-src 'self' 'unsafe-inline' https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com https://cdn.jsdelivr.net; font-src 'self' https://fonts.gstatic.com; img-src 'self' data: https:; connect-src 'self' https://ivond.com https://*.ivond.com https://unpkg.com https://cdn.jsdelivr.net https://static.cloudflareinsights.com; manifest-src 'self' https://ivond.com https://*.ivond.com",
   'X-Content-Type-Options': 'nosniff',
@@ -47,7 +51,17 @@ export default {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
       'Pragma': 'no-cache',
       'Expires': '0',
-      'X-Worker-Version': 'v4'
+      'X-Worker-Version': 'v5'
+    }
+
+    const isSwJs = url.pathname.endsWith('/sw.js')
+
+    // ── sw.js: serve with no-cache so browser always checks for updates
+    if (isSwJs && isAsset) {
+      const resp = await env.ASSETS.fetch(request)
+      const headers = new Headers(resp.headers)
+      for (const [key, val] of Object.entries(noCacheHeaders)) headers.set(key, val)
+      return addSecurityToResponse(new Response(resp.body, { status: resp.status, headers }))
     }
 
     // ── Admin subdomain → admin panel
@@ -79,7 +93,7 @@ export default {
       const resp = await env.ASSETS.fetch(new URL(page, request.url))
       const newResp = new Response(resp.body, {
         status: resp.status,
-        headers: { ...Object.fromEntries(resp.headers), ...noCacheHeaders, 'X-Worker-Version': 'v4-subdomain' }
+        headers: { ...Object.fromEntries(resp.headers), ...noCacheHeaders,       'X-Worker-Version': 'v5-subdomain' }
       })
       return addSecurityToResponse(newResp)
     }
@@ -89,7 +103,7 @@ export default {
     const resp = await env.ASSETS.fetch(request)
     const newResp = new Response(resp.body, {
       status: resp.status,
-      headers: { ...Object.fromEntries(resp.headers), ...noCacheHeaders, 'X-Worker-Version': 'v4-apex' }
+      headers: { ...Object.fromEntries(resp.headers), ...noCacheHeaders,       'X-Worker-Version': 'v5-apex' }
     })
     return addSecurityToResponse(newResp)
   }

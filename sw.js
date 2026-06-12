@@ -1,4 +1,4 @@
-const CACHE = 'shelf-scanner-v4';
+const CACHE = 'shelf-scanner-v5';
 const OFFLINE_URL = '/offline.html';
 
 self.addEventListener('install', e => {
