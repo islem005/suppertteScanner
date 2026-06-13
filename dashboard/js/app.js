@@ -13,6 +13,7 @@
       base.splice(2, 0, { id: 'analytics', icon: 'trending-up', labelKey: 'navAnalytics' })
       base.splice(5, 0, { id: 'activity',  icon: 'clock', labelKey: 'navActivity' })
       base.splice(6, 0, { id: 'branding',  icon: 'droplet', labelKey: 'navBranding' })
+      base.splice(7, 0, { id: 'categories', icon: 'layers', labelKey: 'navCategories' })
       base.push({ id: 'team', icon: 'users', labelKey: 'navTeam' })
       base.push({ id: 'audit', icon: 'clipboard', labelKey: 'navAuditLog' })
     }
@@ -62,6 +63,7 @@
     else if (id === 'offers') loadOffers()
     else if (id === 'discounts') loadDiscounts()
     else if (id === 'branding') loadBranding()
+    else if (id === 'categories') loadCategories()
     else if (id === 'activity') loadActivity()
     else if (id === 'team') loadTeam()
     else if (id === 'audit') loadAuditLog()
@@ -353,93 +355,233 @@
     } catch (err) { msg.textContent = err.message; msg.style.color = '#ff4444' }
   })
 
-  // ─── Shared barcode scanner overlay ───
-  function startBarcodeScanner(onDetected) {
-    if (!('BarcodeDetector' in window)) {
-      showToast('Barcode scanning not supported on this browser. Use Chrome on Android.')
+  // ─── Categories ───
+  function catDisplayName(cat) {
+    const lang = I18N.getLang()
+    return cat[`name_${lang}`] || cat.name || ''
+  }
+
+  let categoriesList = []
+
+  async function loadCategories() {
+    const t = (k) => I18N.t(k)
+    $('category-list').innerHTML = '<div class="loading-spinner">Loading...</div>'
+    try {
+      categoriesList = await API.getCategories(user.store_id)
+    } catch {
+      categoriesList = []
+    }
+    if (categoriesList.length === 0) {
+      $('category-list').innerHTML = '<div class="empty-state">' + t('categories') + '</div>'
       return
     }
-    let stream, active = true, lastResults = [], lastResultTime = 0
+    let html = '<table><thead><tr><th>' + t('categoryName') + '</th><th>English</th><th>Français</th><th>العربية</th><th>' + t('sortOrder') + '</th><th></th></tr></thead><tbody>'
+    for (const c of categoriesList) {
+      const typeLabel = c.global ? t('categoryGlobal') : t('categoryCustom')
+      const typeClass = c.global ? 'tag' : 'tag'
+      const editBtn = `<button class="btn small" onclick="editCategory('${c.id}')">${t('edit')}</button>`
+      const delBtn = c.global ? '' : `<button class="btn small danger" onclick="deleteCategory('${c.id}')">${t('delete')}</button>`
+      html += `<tr>
+        <td><strong>${esc(catDisplayName(c))}</strong> <span class="${typeClass}" style="font-size:10px;opacity:0.6">${typeLabel}</span></td>
+        <td class="meta">${esc(c.name_en || '—')}</td>
+        <td class="meta">${esc(c.name_fr || '—')}</td>
+        <td class="meta">${esc(c.name_ar || '—')}</td>
+        <td class="meta">${c.sort_order}</td>
+        <td class="actions-cell" style="display:flex;gap:4px">${editBtn}${delBtn}</td>
+      </tr>`
+    }
+    $('category-list').innerHTML = html + '</tbody></table>'
+  }
+
+  $('btn-add-category') && ($('btn-add-category').onclick = () => openCategoryModal(null))
+
+  function openCategoryModal(existing) {
+    const isEdit = !!existing
+    const name = existing ? existing.name || '' : ''
+    const name_en = existing ? existing.name_en || '' : ''
+    const name_fr = existing ? existing.name_fr || '' : ''
+    const name_ar = existing ? existing.name_ar || '' : ''
+    const sort_order = existing ? existing.sort_order || 0 : 0
+
+    showModal(isEdit ? I18N.t('editCategory') : I18N.t('addCategory'), `
+      <div class="form">
+        <div class="form-row">
+          <label>${I18N.t('categoryName')}</label>
+          <input id="mod-cat-name" class="form-input" value="${esc(name)}" placeholder="e.g. Dairy">
+        </div>
+        <div class="form-row">
+          <label>English</label>
+          <input id="mod-cat-name-en" class="form-input" value="${esc(name_en)}" placeholder="English name">
+        </div>
+        <div class="form-row">
+          <label>Fran\u00e7ais</label>
+          <input id="mod-cat-name-fr" class="form-input" value="${esc(name_fr)}" placeholder="Nom en fran\u00e7ais">
+        </div>
+        <div class="form-row">
+          <label>العربية</label>
+          <input id="mod-cat-name-ar" class="form-input" value="${esc(name_ar)}" placeholder="الاسم بالعربية">
+        </div>
+        <div class="form-row">
+          <label>${I18N.t('sortOrder')}</label>
+          <input id="mod-cat-sort" type="number" step="1" min="0" class="form-input" value="${sort_order}">
+        </div>
+      </div>
+    `, async () => {
+      const data = {
+        store_id: user.store_id,
+        name: $('mod-cat-name').value.trim(),
+        name_en: $('mod-cat-name-en').value.trim() || null,
+        name_fr: $('mod-cat-name-fr').value.trim() || null,
+        name_ar: $('mod-cat-name-ar').value.trim() || null,
+        sort_order: parseInt($('mod-cat-sort').value) || 0
+      }
+      if (!data.name) { showToast(I18N.t('errorPrefix') + 'Name is required'); return }
+      try {
+        if (isEdit) await API.updateCategory(existing.id, data)
+        else await API.createCategory(data)
+        closeModal()
+        await loadCategories()
+        showToast(I18N.t('categorySaved'))
+      } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
+    })
+    $('modal-confirm').textContent = isEdit ? I18N.t('save') : I18N.t('addCategory')
+  }
+
+  window.editCategory = async (id) => {
+    const c = categoriesList.find(x => x.id === id)
+    if (c) openCategoryModal(c)
+  }
+
+  window.deleteCategory = async (id) => {
+    const c = categoriesList.find(x => x.id === id)
+    if (c && c.global) { showToast(I18N.t('deleteGlobalForbidden')); return }
+    showModal(I18N.t('deleteCategory'), I18N.t('deleteCategoryConfirm'), async () => {
+      try {
+        await API.deleteCategory(id)
+        closeModal()
+        await loadCategories()
+        showToast(I18N.t('categoryDeleted'))
+      } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
+    }, true)
+  }
+
+  // ─── Category dropdown builder (for product/discount forms) ───
+  let _cachedCategories = {}
+
+  async function populateCategoryDropdown(selectId, buttonId, selected, storeId) {
+    const select = $(selectId)
+    if (!select) return
+    // Cache categories per store
+    if (!_cachedCategories[storeId]) {
+      try { _cachedCategories[storeId] = await API.getCategories(storeId) } catch { _cachedCategories[storeId] = [] }
+    }
+    const cats = _cachedCategories[storeId]
+    select.innerHTML = '<option value="">—</option>'
+    for (const c of cats) {
+      const opt = document.createElement('option')
+      opt.value = c.name
+      opt.textContent = catDisplayName(c)
+      if (c.name === selected) opt.selected = true
+      select.appendChild(opt)
+    }
+    // Wire "+" button
+    const btn = $(buttonId)
+    if (btn) {
+      btn.onclick = () => {
+        showModal(I18N.t('addCategory'), `
+          <div class="form">
+            <div class="form-row">
+              <label>${I18N.t('categoryName')}</label>
+              <input id="mod-inline-cat-name" class="form-input" placeholder="e.g. Dairy">
+            </div>
+          </div>
+        `, async () => {
+          const name = $('mod-inline-cat-name').value.trim()
+          if (!name) { showToast(I18N.t('errorPrefix') + 'Name is required'); return }
+          const lang = I18N.getLang()
+          const trans = {}
+          trans[`name_${lang}`] = name
+          trans.name = name
+          trans.store_id = storeId
+          try {
+            await API.createCategory(trans)
+            // Refresh cache and re-populate
+            _cachedCategories[storeId] = await API.getCategories(storeId)
+            populateCategoryDropdown(selectId, buttonId, name, storeId)
+            closeModal()
+            showToast(I18N.t('categorySaved'))
+          } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
+        })
+        $('modal-confirm').textContent = I18N.t('addCategory')
+      }
+    }
+  }
+
+  // ─── Shared barcode scanner overlay ───
+  function startBarcodeScanner(onDetected) {
+    let active = true, lastResults = [], lastResultTime = 0
     const SCAN_THROTTLE = 1200
 
-    scannerCore.startCamera().then(s => {
-      stream = s
+    const overlay = document.createElement('div')
+    overlay.id = 'scanner-overlay'
 
-      const overlay = document.createElement('div')
-      overlay.id = 'scanner-overlay'
+    const style = document.createElement('style')
+    style.textContent = '#scanner-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000;display:flex;flex-direction:column}#scanner-overlay .scanner-video-wrap{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}#scanner-overlay video{width:100%;height:100%;object-fit:cover}#scanner-overlay .scanner-frame{position:absolute;width:75%;max-width:320px;aspect-ratio:2/1;top:50%;left:50%;transform:translate(-50%,-50%)}#scanner-overlay .scanner-corner{position:absolute;width:24px;height:24px;border-color:#fff;border-style:solid}#scanner-overlay .scanner-corner-tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}#scanner-overlay .scanner-corner-tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}#scanner-overlay .scanner-corner-bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}#scanner-overlay .scanner-corner-br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}#scanner-overlay .scanner-scan-line{position:absolute;top:4px;left:6px;right:6px;height:2px;background:linear-gradient(90deg,transparent,#00c875,transparent);animation:scannerScan 2s ease-in-out infinite;box-shadow:0 0 8px rgba(0,200,117,0.5)}@keyframes scannerScan{0%,100%{top:4px}50%{top:calc(100% - 4px)}}@media(prefers-reduced-motion:reduce){#scanner-overlay .scanner-scan-line{animation:none}}#scanner-overlay .scanner-result{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);color:#00c875;font-size:14px;font-family:monospace;background:rgba(0,0,0,.8);padding:6px 16px;border-radius:8px;white-space:nowrap;animation:scannerFadeIn .3s ease}@keyframes scannerFadeIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}#scanner-overlay .scanner-toolbar{padding:16px;text-align:center;background:#000}'
+    overlay.appendChild(style)
 
-      const style = document.createElement('style')
-      style.textContent = '#scanner-overlay{position:fixed;top:0;left:0;right:0;bottom:0;z-index:99999;background:#000;display:flex;flex-direction:column}#scanner-overlay .scanner-video-wrap{flex:1;position:relative;overflow:hidden;display:flex;align-items:center;justify-content:center}#scanner-overlay video{width:100%;height:100%;object-fit:cover}#scanner-overlay .scanner-frame{position:absolute;width:75%;max-width:320px;aspect-ratio:2/1;top:50%;left:50%;transform:translate(-50%,-50%)}#scanner-overlay .scanner-corner{position:absolute;width:24px;height:24px;border-color:#fff;border-style:solid}#scanner-overlay .scanner-corner-tl{top:0;left:0;border-width:3px 0 0 3px;border-radius:4px 0 0 0}#scanner-overlay .scanner-corner-tr{top:0;right:0;border-width:3px 3px 0 0;border-radius:0 4px 0 0}#scanner-overlay .scanner-corner-bl{bottom:0;left:0;border-width:0 0 3px 3px;border-radius:0 0 0 4px}#scanner-overlay .scanner-corner-br{bottom:0;right:0;border-width:0 3px 3px 0;border-radius:0 0 4px 0}#scanner-overlay .scanner-scan-line{position:absolute;top:4px;left:6px;right:6px;height:2px;background:linear-gradient(90deg,transparent,#00c875,transparent);animation:scannerScan 2s ease-in-out infinite;box-shadow:0 0 8px rgba(0,200,117,0.5)}@keyframes scannerScan{0%,100%{top:4px}50%{top:calc(100% - 4px)}}@media(prefers-reduced-motion:reduce){#scanner-overlay .scanner-scan-line{animation:none}}#scanner-overlay .scanner-result{position:absolute;bottom:22%;left:50%;transform:translateX(-50%);color:#00c875;font-size:14px;font-family:monospace;background:rgba(0,0,0,.8);padding:6px 16px;border-radius:8px;white-space:nowrap;animation:scannerFadeIn .3s ease}@keyframes scannerFadeIn{from{opacity:0;transform:translateX(-50%) translateY(8px)}to{opacity:1;transform:translateX(-50%) translateY(0)}}#scanner-overlay .scanner-toolbar{padding:16px;text-align:center;background:#000}'
-      overlay.appendChild(style)
+    const videoWrap = document.createElement('div')
+    videoWrap.className = 'scanner-video-wrap'
+    const video = document.createElement('video')
+    video.setAttribute('playsinline', '')
+    video.setAttribute('muted', '')
+    videoWrap.appendChild(video)
 
-      const videoWrap = document.createElement('div')
-      videoWrap.className = 'scanner-video-wrap'
-      const video = document.createElement('video')
-      video.setAttribute('playsinline', '')
-      video.setAttribute('autoplay', '')
-      video.srcObject = stream
-      video.play()
-      videoWrap.appendChild(video)
+    const frame = document.createElement('div')
+    frame.className = 'scanner-frame'
+    ;['tl','tr','bl','br'].forEach(pos => {
+      const c = document.createElement('div')
+      c.className = 'scanner-corner scanner-corner-' + pos
+      frame.appendChild(c)
+    })
+    const scanLine = document.createElement('div')
+    scanLine.className = 'scanner-scan-line'
+    frame.appendChild(scanLine)
+    videoWrap.appendChild(frame)
 
-      const frame = document.createElement('div')
-      frame.className = 'scanner-frame'
-      ;['tl','tr','bl','br'].forEach(pos => {
-        const c = document.createElement('div')
-        c.className = 'scanner-corner scanner-corner-' + pos
-        frame.appendChild(c)
-      })
-      const scanLine = document.createElement('div')
-      scanLine.className = 'scanner-scan-line'
-      frame.appendChild(scanLine)
-      videoWrap.appendChild(frame)
+    const resultEl = document.createElement('div')
+    resultEl.className = 'scanner-result'
+    resultEl.id = 'scanner-result-text'
+    resultEl.style.display = 'none'
+    videoWrap.appendChild(resultEl)
+    overlay.appendChild(videoWrap)
 
-      const resultEl = document.createElement('div')
-      resultEl.className = 'scanner-result'
-      resultEl.id = 'scanner-result-text'
-      resultEl.style.display = 'none'
-      videoWrap.appendChild(resultEl)
-      overlay.appendChild(videoWrap)
+    const toolbar = document.createElement('div')
+    toolbar.className = 'scanner-toolbar'
+    const cancelBtn = document.createElement('button')
+    cancelBtn.className = 'btn'
+    cancelBtn.textContent = '\u2716 ' + I18N.t('cancel')
+    toolbar.appendChild(cancelBtn)
+    overlay.appendChild(toolbar)
+    document.body.appendChild(overlay)
 
-      const toolbar = document.createElement('div')
-      toolbar.className = 'scanner-toolbar'
-      const cancelBtn = document.createElement('button')
-      cancelBtn.className = 'btn'
-      cancelBtn.textContent = '\u2716 ' + I18N.t('cancel')
-      toolbar.appendChild(cancelBtn)
-      overlay.appendChild(toolbar)
-      document.body.appendChild(overlay)
+    function cleanup() { active = false; Scanner.stop(); overlay.remove() }
+    cancelBtn.onclick = cleanup
 
-      function cleanup() { active = false; if (stream) scannerCore.stopCamera(stream); overlay.remove() }
-      cancelBtn.onclick = cleanup
-
-      const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','qr_code','data_matrix','itf','codabar','pdf417','aztec','msi','databar','databar_expanded'] })
-
-      async function detect() {
+    Scanner.init().then(result => {
+      if (!result.ok) { showToast(result.error || 'Camera not available'); cleanup(); return }
+      Scanner.start(video, function(barcodeValue) {
         if (!active) return
-        try {
-          if (video.readyState >= 2) {
-            const codes = await detector.detect(video)
-            if (active && codes.length > 0) {
-              const now = Date.now()
-              for (const code of codes) {
-                if (!code.rawValue) continue
-                if (lastResults.includes(code.rawValue) && now - lastResultTime < SCAN_THROTTLE) continue
-                lastResults.push(code.rawValue)
-                lastResultTime = now
-                if (lastResults.length > 20) lastResults.shift()
-                try { navigator.vibrate(30) } catch (_) {}
-                resultEl.textContent = 'Scanned: ' + code.rawValue
-                resultEl.style.display = ''
-                setTimeout(() => { cleanup(); if (onDetected) onDetected(code.rawValue) }, 500)
-                return
-              }
-            }
-          }
-        } catch (_) {}
-        if (active) requestAnimationFrame(detect)
-      }
-      detect()
-    }).catch(() => { showToast('Camera access denied') })
+        const now = Date.now()
+        if (lastResults.includes(barcodeValue) && now - lastResultTime < SCAN_THROTTLE) return
+        lastResults.push(barcodeValue)
+        lastResultTime = now
+        if (lastResults.length > 20) lastResults.shift()
+        try { navigator.vibrate(30) } catch (_) {}
+        resultEl.textContent = 'Scanned: ' + barcodeValue
+        resultEl.style.display = ''
+        setTimeout(() => { cleanup(); if (onDetected) onDetected(barcodeValue) }, 500)
+      })
+    }).catch(() => { showToast('Camera access denied'); cleanup() })
   }
 
   // ══════════════════════════════════════════════
@@ -604,7 +746,12 @@
         </div>
         <div class="form-row">
           <label>${I18N.t('tableCategory')}</label>
-          <input id="mod-prod-category" class="form-input" value="${esc(category)}" placeholder="e.g. Beverages">
+          <div style="display:flex;gap:4px">
+            <select id="mod-prod-category" class="form-input" style="flex:1">
+              <option value="">—</option>
+            </select>
+            <button id="btn-add-cat-prod" class="btn small" type="button" title="${I18N.t('addCategory')}" style="flex-shrink:0">+</button>
+          </div>
         </div>
       </div>
     `, async () => {
@@ -624,7 +771,7 @@
         barcode: barcode,
         name: name,
         price: parseFloat(price),
-        category: $('mod-prod-category').value.trim() || null
+        category: $('mod-prod-category').value || null
       }
       try {
         await API.createProduct(data)
@@ -634,6 +781,7 @@
       } catch (err) { showToast(I18N.t('errorPrefix') + err.message) }
     })
     $('modal-confirm').textContent = isEdit ? I18N.t('save') : I18N.t('addProduct')
+    populateCategoryDropdown('mod-prod-category', 'btn-add-cat-prod', category, user.store_id)
     const prodScanBtn = $('mod-prod-scan-btn')
     if (prodScanBtn) {
       prodScanBtn.onclick = () => {
@@ -644,7 +792,7 @@
             if (product && product.found) {
               if (product.name) $('mod-prod-name').value = product.name
               if (product.price) $('mod-prod-price').value = product.price
-              if (product.category) $('mod-prod-category').value = product.category
+              if (product.category) { $('mod-prod-category').value = product.category }
               showToast('Product found: ' + product.name)
             } else {
               showToast('Product not found for this barcode')
@@ -932,7 +1080,12 @@
         </div>
         <div class="form-row">
           <label>${I18N.t('discCategory')}</label>
-          <input id="mod-disc-category" class="form-input" value="${esc(category)}" placeholder="e.g. Beverages">
+          <div style="display:flex;gap:4px">
+            <select id="mod-disc-category" class="form-input" style="flex:1">
+              <option value="">—</option>
+            </select>
+            <button id="btn-add-cat-disc" class="btn small" type="button" title="${I18N.t('addCategory')}" style="flex-shrink:0">+</button>
+          </div>
         </div>
         <div class="form-row">
           <label>${I18N.t('discOrigPrice')}</label>
@@ -1017,6 +1170,7 @@
       }
     })
     $('modal-confirm').textContent = I18N.t('saveDiscount')
+    populateCategoryDropdown('mod-disc-category', 'btn-add-cat-disc', category, user.store_id)
 
     // Shared image handler for camera + gallery
     function handleImageFile(file) {
@@ -1349,6 +1503,48 @@
   window.addEventListener('unhandledrejection', e => {
     console.warn('Unhandled:', e.reason);
   });
+
+  // ─── PWA Install ───
+  let deferredPrompt = null;
+
+  window.addEventListener('beforeinstallprompt', e => {
+    e.preventDefault();
+    deferredPrompt = e;
+    const btn = document.getElementById('btn-install-dash');
+    if (btn) { btn.style.display = ''; if (typeof feather !== 'undefined') feather.replace(); }
+  });
+
+  window.addEventListener('appinstalled', () => {
+    deferredPrompt = null;
+    const btn = document.getElementById('btn-install-dash');
+    if (btn) btn.style.display = 'none';
+  });
+
+  const btnInstallDash = document.getElementById('btn-install-dash');
+  if (btnInstallDash) {
+    btnInstallDash.addEventListener('click', async () => {
+      if (!deferredPrompt) {
+        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
+        if (isIos) {
+          showToast('Tap Share → Add to Home Screen');
+        } else if (window.matchMedia('(display-mode: standalone)').matches) {
+          showToast('Already installed');
+        } else {
+          showToast('Visit a few times, then install will be ready');
+        }
+        return;
+      }
+      deferredPrompt.prompt();
+      const result = await deferredPrompt.userChoice;
+      if (result.outcome === 'accepted') {
+        deferredPrompt = null;
+        const btn = document.getElementById('btn-install-dash');
+        if (btn) btn.style.display = 'none';
+      }
+    });
+  } else {
+    console.warn('Missing #btn-install-dash — install button not rendered');
+  }
 
   // ─── Helpers ───
 

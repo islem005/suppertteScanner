@@ -12,6 +12,7 @@
     { id: 'promotions',    icon: 'gift', labelKey: 'navPromotions' },
     { id: 'discounts',     icon: 'tag', labelKey: 'navDiscounts' },
     { id: 'branding',      icon: 'droplet', labelKey: 'navBranding' },
+    { id: 'categories',    icon: 'layers', labelKey: 'navCategories' },
     { id: 'email',         icon: 'send', labelKey: 'navEmail' },
     { id: 'activity',      icon: 'clock', labelKey: 'navActivity' },
     { id: 'profile',       icon: 'user', labelKey: 'navProfile' },
@@ -107,6 +108,7 @@
     else if (id === 'users') loadUsers()
     else if (id === 'branding') loadBranding()
     else if (id === 'promotions') loadPromotions()
+    else if (id === 'categories') loadAdminCategories()
     else if (id === 'discounts') loadDiscounts()
     else if (id === 'email') loadEmailView()
     else if (id === 'activity') loadActivity()
@@ -1580,9 +1582,11 @@
             <option value="product" ${triggerType === 'product' ? 'selected' : ''}>Product</option>
           </select>
         </div>
-        <div class="form-row">
+        <div class="form-row" id="mod-offer-trigger-value-row">
           <label>Trigger Value</label>
-          <input id="mod-offer-trigger-value" class="form-input" value="${esc(triggerValue)}" placeholder="e.g. Beverages or barcode">
+          <div id="mod-offer-trigger-value-wrap">
+            <input id="mod-offer-trigger-value" class="form-input" value="${esc(triggerValue)}" placeholder="e.g. Beverages or barcode">
+          </div>
         </div>
         <div class="form-row">
           <label>Active</label>
@@ -1616,6 +1620,25 @@
       } catch (err) { showToast('Error: ' + err.message) }
     })
     $('modal-confirm').textContent = 'Save Offer'
+
+    // Wire trigger type change → swap category dropdown
+    const triggerTypeSelect = $('mod-offer-trigger-type')
+    const triggerValueWrap = $('mod-offer-trigger-value-wrap')
+    if (triggerTypeSelect && triggerTypeSelect.value === 'category' && sid) {
+      // Replace input with dropdown
+      triggerValueWrap.innerHTML = `<select id="mod-offer-trigger-value" class="form-input"><option value="">—</option></select>`
+      populateAdminCategoryDropdown('mod-offer-trigger-value', null, triggerValue, sid)
+    }
+    if (triggerTypeSelect) {
+      triggerTypeSelect.addEventListener('change', function() {
+        if (this.value === 'category' && sid) {
+          triggerValueWrap.innerHTML = `<select id="mod-offer-trigger-value" class="form-input"><option value="">—</option></select>`
+          populateAdminCategoryDropdown('mod-offer-trigger-value', null, '', sid)
+        } else {
+          triggerValueWrap.innerHTML = `<input id="mod-offer-trigger-value" class="form-input" value="" placeholder="e.g. Beverages or barcode">`
+        }
+      })
+    }
 
     const imgInput = $('mod-offer-image-input')
     const imgHidden = $('mod-offer-image')
@@ -1663,6 +1686,211 @@
       closeModal()
       if (_promoStoreId) loadPromoOffersList(_promoStoreId)
     }, true)
+  }
+
+  // ─── Categories ───
+  function catDisplayName(cat) {
+    const lang = typeof I18N !== 'undefined' ? I18N.getLang() : 'en'
+    return cat[`name_${lang}`] || cat.name || ''
+  }
+  let _catStoreId = null
+  let _catCategories = []
+
+  async function loadAdminCategories() {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    _catStoreId = null
+    $('cat-editor').classList.add('hidden')
+    $('cat-stores-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
+    try { stores = await API.getStores() } catch { stores = [] }
+    if (stores.length === 0) { $('cat-stores-table').innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return }
+    let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('categories') + '</th><th>' + t('storeActions') + '</th></tr></thead><tbody>'
+    for (const s of stores) {
+      let cats = []
+      try { cats = await API.getCategories(s.id) } catch {}
+      html += `<tr>
+        <td><strong>${esc(s.name)}</strong></td>
+        <td class="meta">/${esc(s.slug)}</td>
+        <td>${cats.length}</td>
+        <td class="actions-cell"><button class="btn small" onclick="openCatEditor('${s.id}')">${t('manage')}</button></td>
+      </tr>`
+    }
+    $('cat-stores-table').innerHTML = html + '</tbody></table>'
+  }
+
+  window.openCatEditor = async (storeId) => {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    _catStoreId = storeId
+    $('cat-stores-table').style.display = 'none'
+    $('cat-editor').classList.remove('hidden')
+    const store = stores.find(s => s.id === storeId) || {}
+    $('cat-editor-title').textContent = store.name || 'Categories'
+    await loadCatItemsList(storeId)
+  }
+
+  $('cat-editor-back').onclick = () => {
+    _catStoreId = null
+    $('cat-editor').classList.add('hidden')
+    $('cat-stores-table').style.display = ''
+    loadAdminCategories()
+  }
+
+  async function loadCatItemsList(storeId) {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
+    const list = $('cat-list')
+    list.innerHTML = '<div class="loading-spinner">Loading...</div>'
+    try {
+      _catCategories = await API.getCategories(storeId)
+      if (_catCategories.length === 0) {
+        list.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="empty-state">' + t('categories') + '</div><button id="btn-cat-add-first" class="btn small">' + t('addCategory') + '</button></div>'
+        wireCatAddFirst()
+        return
+      }
+      let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div></div><button id="btn-cat-add-top" class="btn small">' + t('addCategory') + '</button></div>'
+      html += '<table><thead><tr><th>' + t('categoryName') + '</th><th>English</th><th>Français</th><th>العربية</th><th>' + t('sortOrder') + '</th><th></th></tr></thead><tbody>'
+      for (const c of _catCategories) {
+        const typeLabel = c.global ? t('categoryGlobal') : t('categoryCustom')
+        const editBtn = `<button class="btn small" onclick="adminEditCat('${c.id}')">${t('edit')}</button>`
+        const delBtn = c.global ? '' : `<button class="btn small danger" onclick="adminDeleteCat('${c.id}')">${t('delete')}</button>`
+        html += `<tr>
+          <td><strong>${esc(catDisplayName(c))}</strong> <span style="font-size:10px;opacity:0.6">${typeLabel}</span></td>
+          <td class="meta">${esc(c.name_en || '—')}</td>
+          <td class="meta">${esc(c.name_fr || '—')}</td>
+          <td class="meta">${esc(c.name_ar || '—')}</td>
+          <td class="meta">${c.sort_order}</td>
+          <td class="actions-cell" style="display:flex;gap:4px">${editBtn}${delBtn}</td>
+        </tr>`
+      }
+      list.innerHTML = html + '</tbody></table>'
+      $('btn-cat-add-top').onclick = () => adminOpenCatModal(null, storeId)
+    } catch { list.innerHTML = '<div class="empty-state">' + t('couldNotLoad') + '</div>' }
+  }
+
+  function wireCatAddFirst() {
+    const btn = $('btn-cat-add-first')
+    if (btn) btn.onclick = () => adminOpenCatModal(null, _catStoreId)
+  }
+
+  window.adminOpenCatModal = (existing, storeId) => {
+    const t = typeof I18N !== 'undefined' ? I18N.t : (k) => k
+    const isEdit = !!existing
+    const sid = storeId || _catStoreId
+    const name = existing ? existing.name || '' : ''
+    const name_en = existing ? existing.name_en || '' : ''
+    const name_fr = existing ? existing.name_fr || '' : ''
+    const name_ar = existing ? existing.name_ar || '' : ''
+    const sort_order = existing ? existing.sort_order || 0 : 0
+
+    showModal(isEdit ? t('editCategory') : t('addCategory'), `
+      <div class="form">
+        <div class="form-row">
+          <label>${t('categoryName')}</label>
+          <input id="mod-cat-name" class="form-input" value="${esc(name)}" placeholder="e.g. Dairy">
+        </div>
+        <div class="form-row">
+          <label>English</label>
+          <input id="mod-cat-name-en" class="form-input" value="${esc(name_en)}" placeholder="English name">
+        </div>
+        <div class="form-row">
+          <label>Fran\u00e7ais</label>
+          <input id="mod-cat-name-fr" class="form-input" value="${esc(name_fr)}" placeholder="Nom en fran\u00e7ais">
+        </div>
+        <div class="form-row">
+          <label>العربية</label>
+          <input id="mod-cat-name-ar" class="form-input" value="${esc(name_ar)}" placeholder="الاسم بالعربية">
+        </div>
+        <div class="form-row">
+          <label>${t('sortOrder')}</label>
+          <input id="mod-cat-sort" type="number" step="1" min="0" class="form-input" value="${sort_order}">
+        </div>
+      </div>
+    `, async () => {
+      const data = {
+        store_id: sid,
+        name: $('mod-cat-name').value.trim(),
+        name_en: $('mod-cat-name-en').value.trim() || null,
+        name_fr: $('mod-cat-name-fr').value.trim() || null,
+        name_ar: $('mod-cat-name-ar').value.trim() || null,
+        sort_order: parseInt($('mod-cat-sort').value) || 0
+      }
+      if (!data.name) { showToast('Name is required'); return }
+      try {
+        if (isEdit) await API.updateCategory(existing.id, data)
+        else await API.createCategory(data)
+        closeModal()
+        _catCategories = await API.getCategories(sid)
+        await loadCatItemsList(sid)
+        showToast(isEdit ? 'Category updated!' : 'Category created!')
+      } catch (err) { showToast('Error: ' + err.message) }
+    })
+    $('modal-confirm').textContent = isEdit ? t('save') : t('addCategory')
+  }
+
+  window.adminEditCat = async (id) => {
+    const c = _catCategories.find(x => x.id === id)
+    if (c) adminOpenCatModal(c, null)
+  }
+
+  window.adminDeleteCat = async (id) => {
+    const t = typeof I18N !== 'undefined' ? I18N.t : (k) => k
+    const c = _catCategories.find(x => x.id === id)
+    if (c && c.global) { showToast(t('deleteGlobalForbidden')); return }
+    showModal(t('deleteCategory'), t('deleteCategoryConfirm'), async () => {
+      try {
+        await API.deleteCategory(id)
+        closeModal()
+        _catCategories = await API.getCategories(_catStoreId)
+        await loadCatItemsList(_catStoreId)
+        showToast(t('categoryDeleted'))
+      } catch (err) { showToast('Error: ' + err.message) }
+    }, true)
+  }
+
+  // ─── Category dropdown builder (for admin discount/offer forms) ───
+  let _cachedAdminCats = {}
+
+  async function populateAdminCategoryDropdown(selectId, buttonId, selected, storeId) {
+    const select = $(selectId)
+    if (!select) return
+    if (!_cachedAdminCats[storeId]) {
+      try { _cachedAdminCats[storeId] = await API.getCategories(storeId) } catch { _cachedAdminCats[storeId] = [] }
+    }
+    const cats = _cachedAdminCats[storeId]
+    select.innerHTML = '<option value="">—</option>'
+    for (const c of cats) {
+      const opt = document.createElement('option')
+      opt.value = c.name
+      opt.textContent = catDisplayName(c)
+      if (c.name === selected) opt.selected = true
+      select.appendChild(opt)
+    }
+    const btn = $(buttonId)
+    if (btn) {
+      btn.onclick = () => {
+        showModal('Add Category', `
+          <div class="form">
+            <div class="form-row">
+              <label>Category Name</label>
+              <input id="mod-inline-cat-name" class="form-input" placeholder="e.g. Dairy">
+            </div>
+          </div>
+        `, async () => {
+          const name = $('mod-inline-cat-name').value.trim()
+          if (!name) { showToast('Name is required'); return }
+          const lang = typeof I18N !== 'undefined' ? I18N.getLang() : 'en'
+          const trans = {}
+          trans[`name_${lang}`] = name
+          trans.name = name
+          trans.store_id = storeId
+          try {
+            await API.createCategory(trans)
+            _cachedAdminCats[storeId] = await API.getCategories(storeId)
+            populateAdminCategoryDropdown(selectId, buttonId, name, storeId)
+            closeModal()
+          } catch (err) { showToast('Error: ' + err.message) }
+        })
+        $('modal-confirm').textContent = 'Add'
+      }
+    }
   }
 
   // ─── Discount Items ───
@@ -1784,7 +2012,12 @@
         </div>
         <div class="form-row">
           <label>Category (for scan matching)</label>
-          <input id="mod-disc-category" class="form-input" value="${esc(category)}" placeholder="e.g. Beverages">
+          <div style="display:flex;gap:4px">
+            <select id="mod-disc-category" class="form-input" style="flex:1">
+              <option value="">—</option>
+            </select>
+            <button id="btn-add-cat-adm-disc" class="btn small" type="button" title="Add category" style="flex-shrink:0">+</button>
+          </div>
         </div>
         <div class="form-row">
           <label>Original Price (DA)</label>
@@ -1857,6 +2090,7 @@
       } catch (err) { showToast('Error: ' + err.message); console.error('Discount save error:', err) }
     })
     $('modal-confirm').textContent = 'Save Discount'
+    populateAdminCategoryDropdown('mod-disc-category', 'btn-add-cat-adm-disc', category, sid)
 
     // Shared image handler for camera + gallery
     function handleImageFile(file) {

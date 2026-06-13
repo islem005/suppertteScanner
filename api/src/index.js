@@ -21,6 +21,7 @@ import { pageViewsRouter } from './routes/page-views.js'
 import { analyticsRouter } from './routes/analytics.js'
 import { auditRouter } from './routes/audit.js'
 import { teamRouter } from './routes/team.js'
+import { categoriesRouter } from './routes/categories.js'
 import { changePasswordRouter } from './routes/change-password.js'
 import { emailRouter } from './routes/email.js'
 import { rateLimit } from './routes/rate-limit-middleware.js'
@@ -93,6 +94,7 @@ app.route('/api/analytics', analyticsRouter)
 app.route('/api/audit', auditRouter)
 app.route('/api/email', emailRouter)
 app.route('/api/team', teamRouter)
+app.route('/api/categories', categoriesRouter)
 
 app.get('/api/health', (c) => c.json({ ok: true }))
 

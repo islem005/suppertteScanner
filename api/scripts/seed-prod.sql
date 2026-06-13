@@ -86,7 +86,31 @@ VALUES
   ('promo-o2', 'store-001', 'offer', '20% Off All Beverages', 'category', 'Beverages', 1, 6),
   ('promo-o3', 'store-001', 'offer', 'Coffee Lovers Special - 15% Off', 'barcode', '5901234123501', 1, 7);
 
--- 7. Create discount items
+-- 7. Seed base categories (global, shared by all stores)
+INSERT OR IGNORE INTO category (id, store_id, name, name_en, name_fr, name_ar, sort_order)
+VALUES
+  ('cat-01', NULL, 'Dairy', 'Dairy', 'Produits laitiers', 'الألبان', 1),
+  ('cat-02', NULL, 'Bakery', 'Bakery', 'Boulangerie', 'المخبوزات', 2),
+  ('cat-03', NULL, 'Beverages', 'Beverages', 'Boissons', 'المشروبات', 3),
+  ('cat-04', NULL, 'Pasta & Rice', 'Pasta & Rice', 'Pâtes et Riz', 'المعكرونة والأرز', 4),
+  ('cat-05', NULL, 'Oils & Vinegars', 'Oils & Vinegars', 'Huiles et Vinaigres', 'الزيوت والخل', 5),
+  ('cat-06', NULL, 'Canned Goods', 'Canned Goods', 'Conserves', 'المعلبات', 6),
+  ('cat-07', NULL, 'Snacks', 'Snacks', 'Snacks', 'الوجبات الخفيفة', 7),
+  ('cat-08', NULL, 'Baking', 'Baking', 'Pâtisserie', 'الخبز والحلويات', 8),
+  ('cat-09', NULL, 'Meat & Poultry', 'Meat & Poultry', 'Viande et Volaille', 'اللحوم والدواجن', 9),
+  ('cat-10', NULL, 'Seafood', 'Seafood', 'Fruits de mer', 'المأكولات البحرية', 10),
+  ('cat-11', NULL, 'Frozen', 'Frozen', 'Surgelés', 'المجمدات', 11),
+  ('cat-12', NULL, 'Fresh Produce', 'Fresh Produce', 'Fruits et Légumes', 'الخضروات والفواكه', 12),
+  ('cat-13', NULL, 'Condiments', 'Condiments', 'Condiments', 'الصلصات', 13),
+  ('cat-14', NULL, 'Cereals & Breakfast', 'Cereals & Breakfast', 'Céréales et Petit-déjeuner', 'الحبوب والإفطار', 14),
+  ('cat-15', NULL, 'Personal Care', 'Personal Care', 'Soins personnels', 'العناية الشخصية', 15),
+  ('cat-16', NULL, 'Household', 'Household', 'Ménage', 'المنزل', 16),
+  ('cat-17', NULL, 'Baby', 'Baby', 'Bébé', 'الأطفال', 17),
+  ('cat-18', NULL, 'Pet Food', 'Pet Food', 'Alimentation animale', 'طعام الحيوانات', 18),
+  ('cat-19', NULL, 'Deli', 'Deli', 'Traiteur', 'الجبن واللحوم الباردة', 19),
+  ('cat-20', NULL, 'Other', 'Other', 'Autre', 'أخرى', 20);
+
+-- 8. Create discount items
 INSERT OR IGNORE INTO discount_item (id, store_id, barcode, name, category, original_price, new_price, discount_percent, featured, priority)
 VALUES
   ('disc-01', 'store-001', '5901234123457', 'Organic Milk 1L', 'Dairy', 4.99, 3.99, 20, 1, 10),

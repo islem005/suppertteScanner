@@ -125,6 +125,12 @@ const API = (() => {
     // Auth
     changePassword: (currentPassword, newPassword) => post('/auth/change-password', { currentPassword, newPassword }),
 
+    // Categories
+    getCategories: (storeId) => get(`/categories?store_id=${storeId}`),
+    createCategory: (data) => post('/categories', data),
+    updateCategory: (id, data) => put(`/categories/${id}`, data),
+    deleteCategory: (id) => del(`/categories/${id}`),
+
     // File upload to R2
     /**
      * Upload a data URL (cropped image) to R2 storage.

@@ -125,7 +125,13 @@ const API = (() => {
     // Email
     sendEmail: (data) => post('/email/send', data),
 
-      // File upload to R2
+      // Categories
+    getCategories: (storeId) => get(`/categories?store_id=${storeId}`),
+    createCategory: (data) => post('/categories', data),
+    updateCategory: (id, data) => put(`/categories/${id}`, data),
+    deleteCategory: (id) => del(`/categories/${id}`),
+
+    // File upload to R2
     /**
      * Upload a data URL (cropped image) to R2 storage.
      * @param {string} dataUrl — cropped image as data:image/...;base64,...
