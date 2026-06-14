@@ -908,9 +908,11 @@
             <option value="product" ${triggerType === 'product' ? 'selected' : ''}>${I18N.t('product')}</option>
           </select>
         </div>
-        <div class="form-row">
+        <div class="form-row" id="mod-offer-trigger-value-row">
           <label>${I18N.t('triggerValue')}</label>
-          <input id="mod-offer-trigger-value" class="form-input" value="${esc(triggerValue)}" placeholder="e.g. Beverages or barcode">
+          <div id="mod-offer-trigger-value-wrap">
+            <input id="mod-offer-trigger-value" class="form-input" value="${esc(triggerValue)}" placeholder="e.g. Beverages or barcode">
+          </div>
         </div>
         <div class="form-row">
           <label>${I18N.t('offerActive')}</label>
@@ -989,6 +991,64 @@
       imgPreview.classList.add('hidden')
       imgRemove.classList.add('hidden')
     })
+
+    // Wire trigger type change → category dropdown / product barcode scanner
+    const triggerTypeSelect = $('mod-offer-trigger-type')
+    const triggerValueWrap = $('mod-offer-trigger-value-wrap')
+    if (triggerTypeSelect) {
+      if (triggerTypeSelect.value === 'category') {
+        triggerValueWrap.innerHTML = `<select id="mod-offer-trigger-value" class="form-input"><option value="">—</option></select>`
+        populateCategoryDropdown('mod-offer-trigger-value', null, triggerValue, user.store_id)
+      } else if (triggerTypeSelect.value === 'product') {
+        triggerValueWrap.innerHTML = `
+          <div style="display:flex;gap:8px">
+            <input id="mod-offer-trigger-value" class="form-input" value="${esc(triggerValue)}" placeholder="e.g. 5901234123457" style="flex:1">
+            <button id="mod-offer-scan-btn" class="btn small" type="button" title="${I18N.t('scanBarcode')}" style="flex-shrink:0;display:flex;align-items:center;gap:4px"><i data-feather="camera"></i></button>
+          </div>`
+        if (typeof feather !== 'undefined') feather.replace()
+        $('mod-offer-scan-btn').onclick = () => {
+          startBarcodeScanner(async (barcodeValue) => {
+            $('mod-offer-trigger-value').value = barcodeValue
+            try {
+              const product = await API.getProductByBarcode(user.store_id, barcodeValue)
+              if (product && product.found) {
+                showToast('Product found: ' + (product.name || barcodeValue))
+              } else {
+                showToast('Product not found for this barcode')
+              }
+            } catch (err) { showToast('Lookup failed: ' + err.message) }
+          })
+        }
+      }
+      triggerTypeSelect.addEventListener('change', function() {
+        if (this.value === 'category') {
+          triggerValueWrap.innerHTML = `<select id="mod-offer-trigger-value" class="form-input"><option value="">—</option></select>`
+          populateCategoryDropdown('mod-offer-trigger-value', null, '', user.store_id)
+        } else if (this.value === 'product') {
+          triggerValueWrap.innerHTML = `
+            <div style="display:flex;gap:8px">
+              <input id="mod-offer-trigger-value" class="form-input" value="" placeholder="e.g. 5901234123457" style="flex:1">
+              <button id="mod-offer-scan-btn" class="btn small" type="button" title="${I18N.t('scanBarcode')}" style="flex-shrink:0;display:flex;align-items:center;gap:4px"><i data-feather="camera"></i></button>
+            </div>`
+          if (typeof feather !== 'undefined') feather.replace()
+          $('mod-offer-scan-btn').onclick = () => {
+            startBarcodeScanner(async (barcodeValue) => {
+              $('mod-offer-trigger-value').value = barcodeValue
+              try {
+                const product = await API.getProductByBarcode(user.store_id, barcodeValue)
+                if (product && product.found) {
+                  showToast('Product found: ' + (product.name || barcodeValue))
+                } else {
+                  showToast('Product not found for this barcode')
+                }
+              } catch (err) { showToast('Lookup failed: ' + err.message) }
+            })
+          }
+        } else {
+          triggerValueWrap.innerHTML = `<input id="mod-offer-trigger-value" class="form-input" value="" placeholder="e.g. Beverages or barcode">`
+        }
+      })
+    }
   }
 
   window.editOffer = async (id) => {

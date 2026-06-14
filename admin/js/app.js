@@ -1655,19 +1655,49 @@
     })
     $('modal-confirm').textContent = 'Save Offer'
 
-    // Wire trigger type change → swap category dropdown
+    // Wire trigger type change → category dropdown / product barcode scanner
     const triggerTypeSelect = $('mod-offer-trigger-type')
     const triggerValueWrap = $('mod-offer-trigger-value-wrap')
-    if (triggerTypeSelect && triggerTypeSelect.value === 'category' && sid) {
-      // Replace input with dropdown
-      triggerValueWrap.innerHTML = `<select id="mod-offer-trigger-value" class="form-input"><option value="">—</option></select>`
-      populateAdminCategoryDropdown('mod-offer-trigger-value', null, triggerValue, sid)
+    function wireProductBarcode() {
+      const scanBtn = $('mod-offer-scan-btn')
+      if (scanBtn) {
+        scanBtn.onclick = () => {
+          startBarcodeScanner(async (barcodeValue) => {
+            $('mod-offer-trigger-value').value = barcodeValue
+            try {
+              const product = await API.getProductByBarcode(sid, barcodeValue)
+              if (product && product.found) {
+                showToast('Product found: ' + (product.name || barcodeValue))
+              } else {
+                showToast('Product not found for this barcode')
+              }
+            } catch (err) { showToast('Lookup failed: ' + err.message) }
+          })
+        }
+      }
+    }
+    function buildProductInput(val) {
+      triggerValueWrap.innerHTML = `
+        <div style="display:flex;gap:8px">
+          <input id="mod-offer-trigger-value" class="form-input" value="${esc(val)}" placeholder="e.g. 5901234123457" style="flex:1">
+          <button id="mod-offer-scan-btn" class="btn small" type="button" title="Scan barcode" style="flex-shrink:0;display:flex;align-items:center;gap:4px"><i data-feather="camera"></i></button>
+        </div>`
+      if (typeof feather !== 'undefined') feather.replace()
+      wireProductBarcode()
     }
     if (triggerTypeSelect) {
+      if (triggerTypeSelect.value === 'category' && sid) {
+        triggerValueWrap.innerHTML = `<select id="mod-offer-trigger-value" class="form-input"><option value="">—</option></select>`
+        populateAdminCategoryDropdown('mod-offer-trigger-value', null, triggerValue, sid)
+      } else if (triggerTypeSelect.value === 'product') {
+        buildProductInput(triggerValue)
+      }
       triggerTypeSelect.addEventListener('change', function() {
         if (this.value === 'category' && sid) {
           triggerValueWrap.innerHTML = `<select id="mod-offer-trigger-value" class="form-input"><option value="">—</option></select>`
           populateAdminCategoryDropdown('mod-offer-trigger-value', null, '', sid)
+        } else if (this.value === 'product') {
+          buildProductInput('')
         } else {
           triggerValueWrap.innerHTML = `<input id="mod-offer-trigger-value" class="form-input" value="" placeholder="e.g. Beverages or barcode">`
         }
