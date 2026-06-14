@@ -1929,7 +1929,7 @@
     let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('items') + '</th><th>' + t('storeActions') + '</th></tr></thead><tbody>'
     for (const s of stores) {
       let items = []
-      try { items = await API.getDiscounts(s.id) } catch {}
+      try { const r = await API.getDiscounts(s.id); items = r.discounts || r || [] } catch {}
       html += `<tr>
         <td><strong>${esc(s.name)}</strong></td>
         <td class="meta">/${esc(s.slug)}</td>
@@ -1961,7 +1961,8 @@
     const list = $('disc-list')
     list.innerHTML = '<div class="loading-spinner">Loading...</div>'
     try {
-      const items = await API.getDiscounts(storeId)
+      const r = await API.getDiscounts(storeId)
+      const items = r.discounts || r || []
       if (items.length === 0) { list.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="empty-state">No discount items yet.</div><button id="btn-disc-add-first" class="btn small">+ New Discount</button></div>'; wireDiscAddFirst(); return }
       let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div></div><button id="btn-disc-add-top" class="btn small">+ New Discount</button></div>'
       html += '<div class="table-wrap"><table><thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Featured</th><th>Active</th><th></th></tr></thead><tbody>'

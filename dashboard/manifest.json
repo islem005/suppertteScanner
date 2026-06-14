@@ -1,0 +1,13 @@
+{
+  "name": "SKANER Dashboard",
+  "short_name": "SKANER",
+  "description": "SKANER Dashboard by ivond — Manage your store products, branding, analytics, and scan data.",
+  "start_url": "/dashboard/",
+  "display": "standalone",
+  "background_color": "#0c0c0d",
+  "theme_color": "#0c0c0d",
+  "icons": [
+    { "src": "/assets/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/assets/icons/icon-192.svg", "sizes": "512x512", "type": "image/svg+xml", "purpose": "any" }
+  ]
+}
