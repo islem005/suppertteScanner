@@ -660,16 +660,27 @@
   function generateStoreQR(store) {
     const canvas = $('sd-qr-canvas')
     const urlEl = $('sd-qr-url')
-    const btn = $('btn-sd-download-qr')
+    const btnPng = $('btn-sd-download-qr')
+    const btnSvg = $('btn-sd-download-qr-svg')
     if (!canvas || !store) return
     const url = 'https://' + store.slug + '.ivond.com'
     urlEl.textContent = url
     QRCode.toCanvas(canvas, url, { width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } }).catch(function() {})
-    btn.onclick = function() {
+    btnPng.onclick = function() {
       var link = document.createElement('a')
       link.download = store.slug + '-qr.png'
       link.href = canvas.toDataURL('image/png')
       link.click()
+    }
+    btnSvg.onclick = function() {
+      QRCode.toString(url, { type: 'svg', width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } }).then(function(svg) {
+        var blob = new Blob([svg], { type: 'image/svg+xml' })
+        var link = document.createElement('a')
+        link.download = store.slug + '-qr.svg'
+        link.href = URL.createObjectURL(blob)
+        link.click()
+        URL.revokeObjectURL(link.href)
+      })
     }
   }
 

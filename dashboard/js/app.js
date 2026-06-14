@@ -118,18 +118,29 @@
   async function generateStoreQR() {
     const canvas = $('dash-qr-canvas')
     const urlEl = $('dash-qr-url')
-    const btn = $('btn-dash-download-qr')
+    const btnPng = $('btn-dash-download-qr')
+    const btnSvg = $('btn-dash-download-qr-svg')
     if (!canvas || !user.store_id) return
     try {
       const store = await API.getStore(user.store_id)
       const url = 'https://' + store.slug + '.ivond.com'
       urlEl.textContent = url
       await QRCode.toCanvas(canvas, url, { width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } })
-      btn.onclick = function() {
+      btnPng.onclick = function() {
         var link = document.createElement('a')
         link.download = store.slug + '-qr.png'
         link.href = canvas.toDataURL('image/png')
         link.click()
+      }
+      btnSvg.onclick = function() {
+        QRCode.toString(url, { type: 'svg', width: 200, margin: 2, color: { dark: '#000000', light: '#ffffff' } }).then(function(svg) {
+          var blob = new Blob([svg], { type: 'image/svg+xml' })
+          var link = document.createElement('a')
+          link.download = store.slug + '-qr.svg'
+          link.href = URL.createObjectURL(blob)
+          link.click()
+          URL.revokeObjectURL(link.href)
+        })
       }
     } catch { urlEl.textContent = I18N.t('couldNotLoad') }
   }
