@@ -78,6 +78,14 @@ td.src{font-weight:600}
   </div>
 </div>
 
+<details style="margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px">
+  <summary style="cursor:pointer;font-size:13px;font-weight:600">Debug: Test zxing-wasm manually</summary>
+  <div style="margin-top:8px;font-size:12px;line-height:1.6">
+    <button id="btn-test-zxing" class="btn" style="background:var(--blue);font-size:12px;padding:6px 14px">Test Import</button>
+    <pre id="zxing-debug" style="margin-top:8px;background:#000;padding:8px;border-radius:4px;color:#94a3b8;font-size:11px;white-space:pre-wrap;max-height:200px;overflow-y:auto">Click to test loading zxing-wasm...</pre>
+  </div>
+</details>
+
 <h2 style="font-size:14px;margin-bottom:8px">Detection Log</h2>
 <div style="max-height:300px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:8px">
   <table id="log-table">
@@ -143,15 +151,27 @@ async function initZbar() {
 
 // ── zxing-wasm setup ──
 async function initZxing() {
-  try {
-    const mod = await import('https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.0/dist/reader/index.js')
-    window.zxingRead = mod.readBarcodes
-    // Check if it's ready by doing a no-op warmup
-    setStatus('zxing', 'idle', 'ready')
-    zxingReady = true
-  } catch (e) {
-    setStatus('zxing', 'unsupported', 'load failed: ' + e.message)
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.0/dist/reader/index.js',
+    'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0/dist/reader/index.js',
+    'https://unpkg.com/zxing-wasm@3.1.0/dist/reader/index.js',
+    'https://cdn.jsdelivr.net/npm/@sec-ant/zxing-wasm@2.2.0/reader/index.js'
+  ]
+  for (const url of urls) {
+    try {
+      const mod = await import(url)
+      const fn = mod.readBarcodes || mod.readBarcodesFromImageFile
+      if (typeof fn === 'function') {
+        window.zxingRead = fn
+        setStatus('zxing', 'idle', 'ready')
+        zxingReady = true
+        return
+      }
+    } catch (e) {
+      console.warn('zxing-wasm fail', url, e.message)
+    }
   }
+  setStatus('zxing', 'unsupported', 'all CDN sources failed')
 }
 
 // ── Detection runners ──
@@ -281,6 +301,39 @@ function clearLog() {
 btnStart.onclick = start
 btnStop.onclick = stop
 btnClear.onclick = clearLog
+
+document.getElementById('btn-test-zxing').onclick = async function() {
+  const debug = document.getElementById('zxing-debug')
+  debug.textContent = 'Testing zxing-wasm imports...\n'
+  const urls = [
+    'https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.0/dist/reader/index.js',
+    'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0/dist/reader/index.js',
+    'https://unpkg.com/zxing-wasm@3.1.0/dist/reader/index.js',
+    'https://cdn.jsdelivr.net/npm/@sec-ant/zxing-wasm@2.2.0/reader/index.js'
+  ]
+  for (const url of urls) {
+    debug.textContent += '\nTrying: ' + url + '\n'
+    try {
+      const mod = await import(url)
+      const keys = Object.keys(mod)
+      debug.textContent += '  Loaded OK. Exports: ' + keys.join(', ') + '\n'
+      const fn = mod.readBarcodes || mod.readBarcodesFromImageFile
+      if (typeof fn === 'function') {
+        debug.textContent += '  Found read function: ' + (fn.name || 'anonymous') + ' ✓\n'
+        window.zxingRead = fn
+        zxingReady = true
+        setStatus('zxing', 'idle', 'ready')
+        return
+      } else {
+        debug.textContent += '  No read function found ✗\n'
+      }
+    } catch (e) {
+      debug.textContent += '  FAILED: ' + e.message + '\n'
+      debug.textContent += '  Stack: ' + (e.stack || '').split('\n').slice(0, 3).join('\n') + '\n'
+    }
+  }
+  debug.textContent += '\nAll sources failed.'
+}
 
 // Init libraries on load
 initZbar()
