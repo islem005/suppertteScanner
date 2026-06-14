@@ -26,7 +26,7 @@ export const STORE_SLUG = process.env.STORE_SLUG || 'my-store'
  * so they never touch the production "my-store" data.
  * Created lazily via getTestStoreId().
  */
-const TEST_STORE_SLUG = `test-${Date.now()}`
+const TEST_STORE_SLUG = `test-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`
 let _testStoreId = null
 
 /**
