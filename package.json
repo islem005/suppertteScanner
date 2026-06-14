@@ -39,6 +39,7 @@
     "wrangler": "^4.99.0"
   },
   "dependencies": {
-    "swiper": "^12.2.0"
+    "swiper": "^12.2.0",
+    "zxing-wasm": "^3.1.0"
   }
 }

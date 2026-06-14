@@ -151,11 +151,21 @@ async function initZbar() {
 
 // ── zxing-wasm setup ──
 async function initZxing() {
+  // Try local import first (bundled with Vite)
+  try {
+    const { detectFromCanvas } = await import('./js/zxing-module.js')
+    window.zxingRead = detectFromCanvas
+    setStatus('zxing', 'idle', 'ready')
+    zxingReady = true
+    return
+  } catch (e) {
+    console.warn('local zxing-wasm failed:', e.message)
+  }
+  // Fallback to CDN
   const urls = [
     'https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.0/dist/reader/index.js',
     'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0/dist/reader/index.js',
-    'https://unpkg.com/zxing-wasm@3.1.0/dist/reader/index.js',
-    'https://cdn.jsdelivr.net/npm/@sec-ant/zxing-wasm@2.2.0/reader/index.js'
+    'https://unpkg.com/zxing-wasm@3.1.0/dist/reader/index.js'
   ]
   for (const url of urls) {
     try {
@@ -171,7 +181,7 @@ async function initZxing() {
       console.warn('zxing-wasm fail', url, e.message)
     }
   }
-  setStatus('zxing', 'unsupported', 'all CDN sources failed')
+  setStatus('zxing', 'unsupported', 'all sources failed')
 }
 
 // ── Detection runners ──
@@ -304,22 +314,40 @@ btnClear.onclick = clearLog
 
 document.getElementById('btn-test-zxing').onclick = async function() {
   const debug = document.getElementById('zxing-debug')
-  debug.textContent = 'Testing zxing-wasm imports...\n'
+  debug.textContent = 'Testing zxing-wasm...\n'
+
+  // 1) Local import first
+  debug.textContent += '\n[1] Local import (./js/zxing-module.js):\n'
+  try {
+    const mod = await import('./js/zxing-module.js')
+    const keys = Object.keys(mod)
+    debug.textContent += '  Loaded OK. Exports: ' + keys.join(', ') + '\n'
+    if (typeof mod.detectFromCanvas === 'function') {
+      debug.textContent += '  detectFromCanvas ✓\n'
+      window.zxingRead = mod.detectFromCanvas
+      zxingReady = true
+      setStatus('zxing', 'idle', 'ready')
+      return
+    }
+  } catch (e) {
+    debug.textContent += '  FAILED: ' + e.message + '\n'
+  }
+
+  // 2) CDN fallbacks
   const urls = [
     'https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.0/dist/reader/index.js',
     'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0/dist/reader/index.js',
-    'https://unpkg.com/zxing-wasm@3.1.0/dist/reader/index.js',
-    'https://cdn.jsdelivr.net/npm/@sec-ant/zxing-wasm@2.2.0/reader/index.js'
+    'https://unpkg.com/zxing-wasm@3.1.0/dist/reader/index.js'
   ]
   for (const url of urls) {
-    debug.textContent += '\nTrying: ' + url + '\n'
+    debug.textContent += '\nTrying CDN: ' + url + '\n'
     try {
       const mod = await import(url)
       const keys = Object.keys(mod)
       debug.textContent += '  Loaded OK. Exports: ' + keys.join(', ') + '\n'
       const fn = mod.readBarcodes || mod.readBarcodesFromImageFile
       if (typeof fn === 'function') {
-        debug.textContent += '  Found read function: ' + (fn.name || 'anonymous') + ' ✓\n'
+        debug.textContent += '  Found read function ✓\n'
         window.zxingRead = fn
         zxingReady = true
         setStatus('zxing', 'idle', 'ready')
@@ -329,7 +357,6 @@ document.getElementById('btn-test-zxing').onclick = async function() {
       }
     } catch (e) {
       debug.textContent += '  FAILED: ' + e.message + '\n'
-      debug.textContent += '  Stack: ' + (e.stack || '').split('\n').slice(0, 3).join('\n') + '\n'
     }
   }
   debug.textContent += '\nAll sources failed.'

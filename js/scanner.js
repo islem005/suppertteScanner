@@ -28,7 +28,7 @@ const Scanner = (() => {
 
     if (!detector) {
       try {
-        const zbar = await import('https://cdn.jsdelivr.net/npm/zbar-wasm@2/dist/zbar-wasm.js');
+        const { detectFromCanvas } = await import('./zxing-module.js');
         fallbackCanvas = document.createElement('canvas');
         fallbackDetect = async (video) => {
           const scale = Math.min(640 / video.videoWidth, 480 / video.videoHeight, 1);
@@ -37,11 +37,11 @@ const Scanner = (() => {
           const ctx = fallbackCanvas.getContext('2d');
           if (!ctx) return [];
           ctx.drawImage(video, 0, 0, fallbackCanvas.width, fallbackCanvas.height);
-          const imageData = ctx.getImageData(0, 0, fallbackCanvas.width, fallbackCanvas.height);
-          const symbols = await zbar.scanImageData(imageData);
-          return symbols.map(s => ({ rawValue: s.decode, format: s.typeName }));
+          return detectFromCanvas(fallbackCanvas);
         };
-      } catch (_) {}
+      } catch (e) {
+        console.warn('zxing-wasm fallback not available:', e);
+      }
     }
 
     try {
