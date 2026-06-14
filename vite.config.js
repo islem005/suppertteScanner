@@ -11,6 +11,7 @@ function isKnownPath(url) {
     path === '/' || path === '' ||
     path === '/scanner.html' ||
     path === '/scanner-qr.html' ||
+    path === '/scanner-test.html' ||
     path === '/index.html' ||
     path.startsWith('/home/') ||
     path.startsWith('/dashboard') ||
@@ -65,6 +66,7 @@ export default defineConfig({
         main: resolve(__dirname, 'index.html'),
         scanner: resolve(__dirname, 'scanner.html'),
         scannerQr: resolve(__dirname, 'scanner-qr.html'),
+        scannerTest: resolve(__dirname, 'scanner-test.html'),
         dashboard: resolve(__dirname, 'dashboard/index.html'),
         admin: resolve(__dirname, 'admin/index.html'),
         auth: resolve(__dirname, 'auth/index.html')

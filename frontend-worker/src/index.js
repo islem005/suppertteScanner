@@ -45,7 +45,7 @@ export default {
       return addSecurityToResponse(resp)
     }
 
-    const isAsset = /\.(css|js|json|svg|png|jpg|ico|woff2?|ttf|webmanifest|map)$/i.test(url.pathname)
+    const isAsset = /\.(css|js|json|svg|png|jpg|ico|woff2?|ttf|webmanifest|map|html)$/i.test(url.pathname)
 
     const noCacheHeaders = {
       'Cache-Control': 'no-store, no-cache, must-revalidate, proxy-revalidate',
