@@ -506,7 +506,7 @@
     }
     if (stores.length === 0) { $('store-table').innerHTML = '<div class="empty-state">' + t('noData') + '</div>'; return }
     let html = '<table><thead><tr><th>' + t('store') + '</th><th>' + t('storeSlug') + '</th><th>' + t('storeCreated') + '</th><th>' + t('storeActions') + '</th></tr></thead><tbody>'
-    for (const s of stores) html += `<tr><td><strong>${esc(s.name)}</strong></td><td><span class="meta">/${esc(s.slug)}</span></td><td class="meta">${(s.created_at||'').slice(0,10)}</td><td class="actions-cell" style="display:flex;gap:4px"><button class="btn small" onclick="showStoreDetail('${s.id}')">${t('explore')}</button><button class="btn small" onclick="openStoreEditModal('${s.id}')">${t('edit')}</button><button class="btn small danger" onclick="deleteStore('${s.id}','${esc(s.name)}')">${t('delete')}</button></td></tr>`
+    for (const s of stores) html += `<tr><td><strong>${esc(s.name)}</strong></td><td><span class="meta">/${esc(s.slug)}</span></td><td class="meta">${(s.created_at||'').slice(0,10)}</td><td class="actions-cell" style="display:flex;gap:4px"><button class="btn small" onclick="showStoreDetail('${s.id}')">${t('explore')}</button><button class="btn small" onclick="openStoreEditModal('${s.id}')">${t('edit')}</button><button class="btn small" onclick="duplicateStore('${s.id}','${esc(s.name)}','${esc(s.slug)}')">Duplicate</button><button class="btn small danger" onclick="deleteStore('${s.id}','${esc(s.name)}')">${t('delete')}</button></td></tr>`
     $('store-table').innerHTML = html + '</tbody></table>' + renderPagination(storesPage, Math.ceil(total / PER_PAGE))
     if (typeof I18N !== 'undefined') I18N.applyHtml()
   }
@@ -578,6 +578,29 @@
       await API.del(`/stores/${id}`)
       closeModal(); loadStores(); if ($('view-overview').classList.contains('active')) loadAdminOverview()
     }, true)
+  }
+
+  window.duplicateStore = async (id, origName, origSlug) => {
+    const defaultName = origName + ' Copy'
+    const defaultSlug = origSlug + '-copy'
+    showModal('Duplicate Store', `
+      <p style="font-size:var(--text-sm);color:var(--text-secondary);margin-bottom:var(--space-4)">
+        Create a copy of <strong>${esc(origName)}</strong> with a new name and slug.
+      </p>
+      <div class="form">
+        <div class="form-row"><label>Store Name</label><input id="mod-dup-name" class="form-input" value="${esc(defaultName)}"></div>
+        <div class="form-row"><label>Slug</label><input id="mod-dup-slug" class="form-input" value="${esc(defaultSlug)}" oninput="document.getElementById('dup-url-preview').textContent='ivond.com/'+this.value.replace(/\\s+/g,'-').toLowerCase()"></div>
+        <div id="dup-url-preview" style="font-size:var(--text-sm);color:var(--text-secondary);padding:var(--space-1) var(--space-4) 0">ivond.com/${esc(defaultSlug)}</div>
+      </div>
+    `, async () => {
+      const name = $('mod-dup-name').value.trim()
+      const slug = $('mod-dup-slug').value.trim()
+      if (!name || !slug) { showToast('Name and slug are required'); return }
+      await API.duplicateStore(id, name, slug)
+      closeModal(); loadStores(); showToast('Store duplicated')
+      if ($('view-overview').classList.contains('active')) loadAdminOverview()
+    })
+    $('modal-confirm').textContent = 'Duplicate'
   }
 
   // ─── Store Detail View ───

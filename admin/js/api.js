@@ -63,6 +63,7 @@ const API = (() => {
     deleteUser: (id) => del(`/admin/users/${id}`),
     setUserPassword: (id, password) => post(`/admin/users/${id}/password`, { password }),
     updateStore: (id, data) => put(`/stores/${id}`, data),
+    duplicateStore: (id, name, slug) => post(`/stores/${id}/duplicate`, { name, slug }),
     getStoreUsage: (id) => get(`/stores/${id}/usage`),
     getAdminActivity: (limit) => get(`/admin/activity?limit=${limit || 30}`),
 
