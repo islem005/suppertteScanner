@@ -186,7 +186,15 @@
         </section>
 
         <section id="view-discounts" class="dash-view">
-          <header class="view-header"><h2 data-i18n="navDiscounts">Discount Items</h2><button id="btn-add-discount" class="btn small" data-i18n="newDiscount">+ New Discount</button></header>
+          <header class="view-header"><h2 data-i18n="navDiscounts">Discount Items</h2>
+            <div style="display:flex;gap:8px;align-items:center;flex:1;max-width:320px;margin-left:auto">
+              <div style="position:relative;flex:1">
+                <i data-feather="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-tertiary);pointer-events:none"></i>
+                <input type="text" id="discount-search" class="form-input" data-i18n="searchPlaceholder" placeholder="Search barcode or name..." style="padding-left:30px;font-size:var(--text-sm)">
+              </div>
+              <button id="btn-add-discount" class="btn small" data-i18n="newDiscount">+ New Discount</button>
+            </div>
+          </header>
           <div id="discount-list" class="table-wrap"></div>
         </section>
 

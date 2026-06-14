@@ -89,9 +89,10 @@ const API = (() => {
     getBanner: (storeId) => get(`/promotions/banners/${storeId}`),
 
     // Discounts
-    getDiscounts: (storeId, page, perPage) => {
+    getDiscounts: (storeId, page, perPage, q) => {
       let path = `/discounts/store/${storeId}`
       if (page) path += `?page=${page}&per_page=${perPage || 20}`
+      if (q) path += `&q=${encodeURIComponent(q)}`
       return get(path)
     },
     getDiscount: (id) => get(`/discounts/item/${id}`),

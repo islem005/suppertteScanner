@@ -17,16 +17,24 @@ router.get('/store/:storeId', authenticate, async (c) => {
   const storeId = c.req.param('storeId')
   const page = Math.max(1, parseInt(c.req.query('page')) || 1)
   const perPage = Math.min(100, Math.max(1, parseInt(c.req.query('per_page')) || 20))
+  const q = (c.req.query('q') || '').trim()
   const offset = (page - 1) * perPage
 
-  const discounts = await queryAll(c.env.DB,
-    'SELECT * FROM discount_item WHERE store_id = ? ORDER BY priority LIMIT ? OFFSET ?',
-    [storeId, perPage, offset]
-  )
+  let sql = 'SELECT * FROM discount_item WHERE store_id = ?'
+  let countSql = 'SELECT COUNT(*) as c FROM discount_item WHERE store_id = ?'
+  const params = [storeId]
 
-  const totalRow = await c.env.DB.prepare(
-    'SELECT COUNT(*) as c FROM discount_item WHERE store_id = ?'
-  ).bind(storeId).first()
+  if (q) {
+    const like = `%${q}%`
+    sql += ' AND (barcode LIKE ? OR name LIKE ?)'
+    countSql += ' AND (barcode LIKE ? OR name LIKE ?)'
+    params.push(like, like)
+  }
+
+  sql += ' ORDER BY priority LIMIT ? OFFSET ?'
+
+  const discounts = await queryAll(c.env.DB, sql, [...params, perPage, offset])
+  const totalRow = await c.env.DB.prepare(countSql).bind(...params).first()
 
   return c.json({
     discounts: discounts || [],

@@ -1998,13 +1998,22 @@
     loadDiscounts()
   }
 
+  let discSearchTimer
+
   async function loadDiscountItemsList(storeId) {
     const list = $('disc-list')
     list.innerHTML = '<div class="loading-spinner">Loading...</div>'
     try {
-      const r = await API.getDiscounts(storeId)
+      const q = $('discount-search') ? $('discount-search').value.trim() : ''
+      const r = await API.getDiscounts(storeId, q)
       const items = r.discounts || r || []
-      if (items.length === 0) { list.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="empty-state">No discount items yet.</div><button id="btn-disc-add-first" class="btn small">+ New Discount</button></div>'; wireDiscAddFirst(); return }
+      if (items.length === 0) {
+        const noItemsMsg = q ? 'No discounts match your search.' : 'No discount items yet.'
+        list.innerHTML = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div class="empty-state">' + noItemsMsg + '</div>' + (q ? '<button id="btn-disc-search-clear" class="btn small">Clear search</button>' : '<button id="btn-disc-add-first" class="btn small">+ New Discount</button>') + '</div>'
+        if (q) { $('disc-btn-search-clear') && ($('disc-btn-search-clear').onclick = () => { $('discount-search').value = ''; loadDiscountItemsList(storeId) }) }
+        else wireDiscAddFirst()
+        return
+      }
       let html = '<div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:12px"><div></div><button id="btn-disc-add-top" class="btn small">+ New Discount</button></div>'
       html += '<div class="table-wrap"><table><thead><tr><th>Image</th><th>Name</th><th>Category</th><th>Price</th><th>Featured</th><th>Active</th><th></th></tr></thead><tbody>'
       for (const d of items) {
@@ -2034,6 +2043,13 @@
     const btn = $('btn-disc-add-first')
     if (btn) btn.onclick = () => adminOpenDiscountModal(null, _discStoreId)
   }
+
+  $('discount-search') && ($('discount-search').oninput = () => {
+    clearTimeout(discSearchTimer)
+    discSearchTimer = setTimeout(() => {
+      if (_discStoreId) loadDiscountItemsList(_discStoreId)
+    }, 300)
+  })
 
   window.adminOpenDiscountModal = (existing, storeId) => {
     const isEdit = !!existing

@@ -328,6 +328,10 @@
             <div style="display:flex;align-items:center;gap:var(--space-3);margin-bottom:var(--space-4)">
               <button id="disc-editor-back" class="btn small" data-i18n="back">← Back</button>
               <h3 id="disc-editor-title" style="margin:0;font-size:var(--text-lg)"></h3>
+              <div style="position:relative;flex:1;max-width:280px;margin-left:auto">
+                <i data-feather="search" style="position:absolute;left:10px;top:50%;transform:translateY(-50%);width:14px;height:14px;color:var(--text-tertiary);pointer-events:none"></i>
+                <input type="text" id="discount-search" class="form-input" placeholder="Search by name or barcode..." style="padding-left:30px;font-size:var(--text-sm)">
+              </div>
             </div>
             <div id="disc-list"></div>
           </div>

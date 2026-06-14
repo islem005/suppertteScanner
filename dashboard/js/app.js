@@ -1073,14 +1073,15 @@
     if (!user.store_id) { $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noStoreText') + '</div>'; return }
     $('discount-list').innerHTML = '<div class="loading-spinner">' + I18N.t('loading') + '</div>'
     try {
-      const res = await API.getDiscounts(user.store_id, discountsPage, DISCOUNTS_PER_PAGE)
+      const q = $('discount-search') ? $('discount-search').value.trim() : ''
+      const res = await API.getDiscounts(user.store_id, discountsPage, DISCOUNTS_PER_PAGE, q)
       const items = res.discounts || []
       discountsTotal = res.total
       if (items.length === 0 && discountsTotal === 0) {
         $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noDiscounts') + '</div>'; return
       }
       if (items.length === 0) {
-        $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noDiscounts') + '</div>'; return
+        $('discount-list').innerHTML = '<div class="empty-state">' + I18N.t('noProductsMatch') + '</div>'; return
       }
       let html = '<table><thead><tr><th>' + I18N.t('image') + '</th><th>' + I18N.t('tableName') + '</th><th>' + I18N.t('tableCategory') + '</th><th>' + I18N.t('tablePrice') + '</th><th>' + I18N.t('featured') + '</th><th>' + I18N.t('active') + '</th><th></th></tr></thead><tbody>'
       for (const d of items) {
@@ -1108,6 +1109,15 @@
   }
 
   $('btn-add-discount') && ($('btn-add-discount').onclick = () => openDiscountModal(null))
+
+  let discountSearchTimer
+  $('discount-search') && ($('discount-search').oninput = () => {
+    clearTimeout(discountSearchTimer)
+    discountSearchTimer = setTimeout(() => {
+      discountsPage = 1
+      loadDiscounts()
+    }, 300)
+  })
 
   function openDiscountModal(existing) {
     const isEdit = !!existing

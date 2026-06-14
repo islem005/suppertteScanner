@@ -3,368 +3,209 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner Library Test</title>
+<title>Scanner Fallback — Mirroring scanner.js</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
-:root{--bg:#0f0f1a;--card:#1a1a2e;--border:#2a2a3e;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--green:#22c55e;--red:#ef4444;--yellow:#eab308;--blue:#3b82f6}
+:root{--bg:#0f0f1a;--card:#1a1a2e;--border:#2a2a3e;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6}
 body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:16px;min-height:100vh}
 h1{font-size:20px;margin-bottom:4px}
 .sub{color:var(--text2);font-size:13px;margin-bottom:16px}
 .controls{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
 .btn{padding:10px 20px;border:0;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;color:#fff}
-.btn.start{background:var(--green)}
-.btn.stop{background:var(--red)}
-.btn.clear{background:var(--text3)}
+.btn.green{background:var(--green)}.btn.red{background:var(--red)}.btn.blue{background:var(--blue)}.btn.purple{background:var(--purple)}
 .btn:disabled{opacity:.5;cursor:default}
-.video-wrap{background:#000;border-radius:8px;overflow:hidden;margin-bottom:16px;position:relative;aspect-ratio:4/3;max-width:480px}
+.video-wrap{background:#000;border-radius:8px;overflow:hidden;margin-bottom:12px;position:relative;aspect-ratio:4/3;max-width:480px;display:none}
 .video-wrap video{width:100%;height:100%;display:block;object-fit:cover}
 .video-wrap .badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.75);color:#fff;padding:4px 10px;border-radius:4px;font-size:12px}
-.grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:12px;margin-bottom:16px}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px}
-.panel h3{font-size:14px;margin-bottom:8px;display:flex;align-items:center;gap:6px}
-.panel .status{font-size:12px;padding:2px 8px;border-radius:3px;display:inline-block}
-.status.idle{background:var(--text3);color:#fff}
-.status.running{background:var(--green);color:#fff}
-.status.error{background:var(--red);color:#fff}
-.status.unsupported{background:var(--yellow);color:#000}
-.panel .result{margin-top:8px;font-size:13px;line-height:1.6}
-.panel .result .label{color:var(--text2);font-size:11px}
-.panel .result .val{color:var(--text);word-break:break-all;font-family:monospace;font-size:13px}
-.panel .result .time{color:var(--text3);font-size:11px}
-.count-wrap{font-size:12px;color:var(--text2);margin-top:6px}
-.count-wrap span{font-weight:600;color:var(--text)}
-table{width:100%;border-collapse:collapse;font-size:12px;margin-top:8px}
-th,td{padding:6px 8px;text-align:left;border-bottom:1px solid var(--border)}
-th{color:var(--text2);font-weight:500;font-size:11px;text-transform:uppercase}
-td{font-family:monospace}
-td.src{font-weight:600}
-.src-bd{color:var(--blue)}
-.src-zbar{color:var(--yellow)}
-.src-zxing{color:var(--green)}
-@media(max-width:600px){.grid{grid-template-columns:1fr}}
+.panel{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px}
+.cv-wrap{width:100%;max-width:480px;margin-bottom:12px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#000;display:none}
+.cv-wrap canvas{width:100%;display:block}
+#error-box{display:none;padding:8px;background:#3b0000;border:1px solid var(--red);border-radius:4px;color:#ff8a8a;font-size:12px;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:8px}
+.result{font-size:13px;line-height:1.6}
+.result .label{color:var(--text2);font-size:11px}
+.result .val{word-break:break-all;font-family:monospace;font-size:13px}
+.info{font-size:12px;color:var(--text2);font-family:monospace;line-height:1.6;margin-top:4px}
 </style>
 </head>
 <body>
 
-<h1>Barcode Scanner Library Comparison</h1>
-<p class="sub">Compare detection accuracy of BarcodeDetector, zbar-wasm, and zxing-wasm side by side.</p>
+<h1>Scanner Fallback Test</h1>
+<p class="sub">Mirrors scanner.js fallback code exactly — same canvas sizing, same reusable canvas, same frame loop.</p>
 
 <div class="controls">
-  <button id="btn-start" class="btn start">Start Camera</button>
-  <button id="btn-stop" class="btn stop" disabled>Stop</button>
-  <button id="btn-clear" class="btn clear">Clear Results</button>
+  <button id="btn-start" class="btn green">Start Scanning</button>
+  <button id="btn-capture" class="btn blue" disabled>Capture &amp; Detect</button>
+  <button id="btn-stop" class="btn red" disabled>Stop</button>
+  <button id="btn-self" class="btn purple">Draw &amp; Detect</button>
 </div>
 
-<div class="video-wrap">
+<div class="video-wrap" id="video-wrap">
   <video id="video" autoplay playsinline muted></video>
   <div class="badge" id="cam-badge">Camera off</div>
 </div>
 
-<div class="grid">
-  <div class="panel">
-    <h3><span class="status idle" id="s-bd">idle</span> BarcodeDetector</h3>
-    <div class="result" id="r-bd">Waiting for camera...</div>
-    <div class="count-wrap">Detected: <span id="c-bd">0</span></div>
-  </div>
-  <div class="panel">
-    <h3><span class="status idle" id="s-zbar">idle</span> zbar-wasm <span style="font-size:11px;color:var(--text3)">(current)</span></h3>
-    <div class="result" id="r-zbar">Waiting for camera...</div>
-    <div class="count-wrap">Detected: <span id="c-zbar">0</span></div>
-  </div>
-  <div class="panel">
-    <h3><span class="status idle" id="s-zxing">idle</span> zxing-wasm <span style="font-size:11px;color:var(--text3)">(proposed)</span></h3>
-    <div class="result" id="r-zxing">Waiting for camera...</div>
-    <div class="count-wrap">Detected: <span id="c-zxing">0</span></div>
-  </div>
+<div class="cv-wrap" id="cv-wrap">
+  <canvas id="scan-canvas"></canvas>
 </div>
 
-<details style="margin-bottom:16px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px">
-  <summary style="cursor:pointer;font-size:13px;font-weight:600">Debug: Test zxing-wasm manually</summary>
-  <div style="margin-top:8px;font-size:12px;line-height:1.6">
-    <button id="btn-test-zxing" class="btn" style="background:var(--blue);font-size:12px;padding:6px 14px">Test Import</button>
-    <pre id="zxing-debug" style="margin-top:8px;background:#000;padding:8px;border-radius:4px;color:#94a3b8;font-size:11px;white-space:pre-wrap;max-height:200px;overflow-y:auto">Click to test loading zxing-wasm...</pre>
-  </div>
-</details>
-
-<h2 style="font-size:14px;margin-bottom:8px">Detection Log</h2>
-<div style="max-height:300px;overflow-y:auto;background:var(--card);border:1px solid var(--border);border-radius:8px">
-  <table id="log-table">
-    <thead><tr><th>Time</th><th>Source</th><th>Code</th><th>Format</th><th>ms</th></tr></thead>
-    <tbody id="log-body"></tbody>
-  </table>
-  <div id="log-empty" style="padding:24px;text-align:center;color:var(--text3);font-size:13px">No detections yet</div>
+<div class="panel">
+  <div id="error-box"></div>
+  <div class="result" id="r-result">Press Start Scanning to begin live detection.</div>
+  <div class="info" id="d-info"></div>
 </div>
 
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"></script>
 <script type="module">
+import { detectFromCanvas } from './js/zxing-module.js'
+
 const video = document.getElementById('video')
 const btnStart = document.getElementById('btn-start')
+const btnCapture = document.getElementById('btn-capture')
 const btnStop = document.getElementById('btn-stop')
-const btnClear = document.getElementById('btn-clear')
+const btnSelf = document.getElementById('btn-self')
 const camBadge = document.getElementById('cam-badge')
+const canvasEl = document.getElementById('scan-canvas')
+const cvWrap = document.getElementById('cv-wrap')
+const rResult = document.getElementById('r-result')
+const dInfo = document.getElementById('d-info')
+const errorBox = document.getElementById('error-box')
 
-const statusEls = { bd: document.getElementById('s-bd'), zbar: document.getElementById('s-zbar'), zxing: document.getElementById('s-zxing') }
-const resultEls = { bd: document.getElementById('r-bd'), zbar: document.getElementById('r-zbar'), zxing: document.getElementById('r-zxing') }
-const countEls = { bd: document.getElementById('c-bd'), zbar: document.getElementById('c-zbar'), zxing: document.getElementById('c-zxing') }
-const logBody = document.getElementById('log-body')
-const logEmpty = document.getElementById('log-empty')
+let stream = null, running = false, loopId = null, count = 0
+const TARGET_FPS = 3
+const FRAME_INTERVAL = 1000 / TARGET_FPS
 
-let stream = null
-let running = false
-let detectLoop = null
-let zbarModule = null
-let zxingReady = false
-const counts = { bd: 0, zbar: 0, zxing: 0 }
+function show(msg) { rResult.innerHTML = msg }
+function info(msg) { dInfo.textContent = msg }
 
-function setStatus(src, status, text) {
-  statusEls[src].className = 'status ' + status
-  statusEls[src].textContent = text
+function showError(msg) {
+  errorBox.style.display = 'block'
+  errorBox.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + msg
+  errorBox.scrollTop = errorBox.scrollHeight
+  console.error(msg)
+}
+window.onerror = (_, _2, _3, _4, err) => showError('UNHANDLED: ' + (err?.message || err || 'unknown'))
+window.addEventListener('unhandledrejection', e => showError('UNHANDLED PROMISE: ' + (e.reason?.message || e.reason || 'unknown')))
+
+// ── scanner.js's exact fallback pattern ──
+async function fallbackDetect(video) {
+  const scale = Math.min(640 / video.videoWidth, 480 / video.videoHeight, 1);
+  canvasEl.width = Math.round(video.videoWidth * scale) || 1;
+  canvasEl.height = Math.round(video.videoHeight * scale) || 1;
+  const ctx = canvasEl.getContext('2d');
+  if (!ctx) return [];
+  ctx.drawImage(video, 0, 0, canvasEl.width, canvasEl.height);
+  return detectFromCanvas(canvasEl);
 }
 
-function setResult(src, html) {
-  resultEls[src].innerHTML = html
-}
-
-function logEntry(src, code, format, ms) {
-  logEmpty.style.display = 'none'
-  const cls = src === 'bd' ? 'src-bd' : src === 'zbar' ? 'src-zbar' : 'src-zxing'
-  const row = document.createElement('tr')
-  row.innerHTML = '<td>' + new Date().toLocaleTimeString() + '</td><td class="src ' + cls + '">' + src + '</td><td>' + code + '</td><td>' + format + '</td><td>' + ms + '</td>'
-  logBody.prepend(row)
-  while (logBody.children.length > 200) logBody.removeChild(logBody.lastChild)
-}
-
-function setCount(src, n) {
-  counts[src] = n
-  countEls[src].textContent = n
-}
-
-// ── zbar-wasm setup ──
-async function initZbar() {
+async function scheduleDetect() {
+  if (!running) return
+  const startTime = performance.now()
   try {
-    const mod = await import('https://cdn.jsdelivr.net/npm/zbar-wasm@2/dist/zbar-wasm.js')
-    zbarModule = mod
-    setStatus('zbar', 'idle', 'ready')
-  } catch {
-    setStatus('zbar', 'unsupported', 'load failed')
-  }
-}
-
-// ── zxing-wasm setup ──
-async function initZxing() {
-  // Try local import first (bundled with Vite)
-  try {
-    const { detectFromImageData } = await import('./js/zxing-module.js')
-    window.zxingRead = detectFromImageData
-    setStatus('zxing', 'idle', 'ready')
-    zxingReady = true
-    return
-  } catch (e) {
-    console.warn('local zxing-wasm failed:', e.message)
-  }
-  // Fallback to CDN
-  const urls = [
-    'https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.0/dist/reader/index.js',
-    'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0/dist/reader/index.js',
-    'https://unpkg.com/zxing-wasm@3.1.0/dist/reader/index.js'
-  ]
-  for (const url of urls) {
-    try {
-      const mod = await import(url)
-      const fn = mod.readBarcodes || mod.readBarcodesFromImageFile
-      if (typeof fn === 'function') {
-        window.zxingRead = fn
-        setStatus('zxing', 'idle', 'ready')
-        zxingReady = true
-        return
-      }
-    } catch (e) {
-      console.warn('zxing-wasm fail', url, e.message)
-    }
-  }
-  setStatus('zxing', 'unsupported', 'all sources failed')
-}
-
-// ── Detection runners ──
-
-async function detectBarcodeDetector() {
-  if (!('BarcodeDetector' in window)) {
-    setStatus('bd', 'unsupported', 'not available')
-    return
-  }
-  setStatus('bd', 'running', 'running')
-  try {
-    const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','upc_a','upc_e','code_128','code_39','code_93','codabar','itf','qr_code','data_matrix','pdf417','aztec'] })
-    while (running) {
-      const t0 = performance.now()
-      let codes
-      try { codes = await detector.detect(video) } catch (e) { console.error('bd detect:', e); codes = [] }
-      const t1 = performance.now()
+    if (video.readyState >= 2) {
+      cvWrap.style.display = 'block'
+      const codes = await fallbackDetect(video)
+      const elapsed = performance.now() - startTime
+      info('Canvas: ' + canvasEl.width + 'x' + canvasEl.height + ' | Time: ' + elapsed.toFixed(1) + 'ms | Results: ' + codes.length)
       if (codes.length > 0) {
-        const c = codes[0]
-        setResult('bd', '<div><span class="label">Code:</span> <span class="val">' + esc(c.rawValue) + '</span></div><div><span class="label">Format:</span> ' + c.format + '</div><div class="time">' + (t1 - t0).toFixed(1) + 'ms</div>')
-        setCount('bd', counts.bd + 1)
-        logEntry('bd', c.rawValue, c.format, (t1 - t0).toFixed(1))
+        count++
+        const r = codes[0]
+        show('&#10003; <span class="label">Code:</span> <span class="val">' + esc(r.rawValue) + '</span><br><span class="label">Format:</span> ' + esc(r.format) + ' <span class="label">(' + count + ' detections)</span>')
+      } else {
+        show('<span style="color:var(--text3)">Scanning (frame ' + count + ' scans)...</span>')
       }
-      await sleep(800)
     }
-  } catch (e) { console.error('bd loop:', e); setStatus('bd', 'error', e.message) }
-}
-
-async function detectZbar() {
-  if (!zbarModule) { setStatus('zbar', 'unsupported', 'not loaded'); return }
-  setStatus('zbar', 'running', 'running')
-  const canvas = document.createElement('canvas')
-  const ctx = canvas.getContext('2d')
-  while (running) {
-    const t0 = performance.now()
-    try {
-      if (video.readyState < 2) { await sleep(200); continue }
-      canvas.width = Math.min(video.videoWidth || 640, 640)
-      canvas.height = Math.min(video.videoHeight || 480, 480)
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const symbols = await zbarModule.scanImageData(imageData)
-      const t1 = performance.now()
-      if (symbols.length > 0) {
-        const s = symbols[0]
-        setResult('zbar', '<div><span class="label">Code:</span> <span class="val">' + esc(s.decode || '') + '</span></div><div><span class="label">Format:</span> ' + (s.typeName || '?') + '</div><div class="time">' + (t1 - t0).toFixed(1) + 'ms</div>')
-        setCount('zbar', counts.zbar + 1)
-        logEntry('zbar', s.decode || '', s.typeName || '?', (t1 - t0).toFixed(1))
-      }
-    } catch (e) { console.error('zbar detect error:', e) }
-    await sleep(800)
+  } catch (e) {
+    showError('SCAN: ' + (e.message || e))
   }
+  if (!running) return
+  const elapsed = performance.now() - startTime
+  loopId = setTimeout(scheduleDetect, Math.max(0, FRAME_INTERVAL - elapsed))
 }
 
-async function detectZxing() {
-  if (!zxingReady) { setStatus('zxing', 'unsupported', 'not loaded'); return }
-  setStatus('zxing', 'running', 'running')
-  const canvas = document.createElement('canvas')
-  const ctx = canvas.getContext('2d')
-  while (running) {
-    const t0 = performance.now()
-    try {
-      if (video.readyState < 2) { await sleep(200); continue }
-      canvas.width = Math.min(video.videoWidth || 640, 640)
-      canvas.height = Math.min(video.videoHeight || 480, 480)
-      ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
-      const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const results = await window.zxingRead(imageData, { tryHarder: true, formats: ['AllReadable'], maxNumberOfSymbols: 1 })
-      const t1 = performance.now()
-      if (results.length > 0) {
-        const r = results[0]
-        setResult('zxing', '<div><span class="label">Code:</span> <span class="val">' + esc(r.rawValue) + '</span></div><div><span class="label">Format:</span> ' + r.format + '</div><div class="time">' + (t1 - t0).toFixed(1) + 'ms</div>')
-        setCount('zxing', counts.zxing + 1)
-        logEntry('zxing', r.rawValue, r.format, (t1 - t0).toFixed(1))
-      }
-    } catch (e) { console.error('zxing detect error:', e) }
-    await sleep(800)
-  }
-}
-
-function esc(s) { return String(s).replace(/[&<>"']/g, function(m) { return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m] }) }
-function sleep(ms) { return new Promise(r => setTimeout(r, ms)) }
-
-async function start() {
+async function startScanning() {
   if (stream) return
   try {
-    stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment', width: { ideal: 1280 }, height: { ideal: 720 } }, audio: false })
+    stream = await navigator.mediaDevices.getUserMedia({
+      video: { facingMode: 'environment' }, audio: false
+    })
     video.srcObject = stream
     await video.play()
     camBadge.textContent = 'Camera active'
-    btnStart.disabled = true
-    btnStop.disabled = false
-    running = true
-    detectBarcodeDetector()
-    detectZbar()
-    detectZxing()
+    btnStart.disabled = true; btnCapture.disabled = false; btnStop.disabled = false
+    running = true; count = 0
+    show('Scanning...')
+    scheduleDetect()
   } catch (e) {
-    camBadge.textContent = 'Camera error: ' + e.message
+    showError('CAMERA: ' + e.message)
+    show('Camera failed: ' + e.message)
   }
 }
 
-function stop() {
+async function captureOnce() {
+  if (!stream) return
+  show('Detecting...'); info('')
+  const w = video.videoWidth, h = video.videoHeight
+  if (!w || !h) { showError('No video dimensions'); return }
+  canvasEl.width = Math.round(Math.min(640, w)) || 1
+  canvasEl.height = Math.round(Math.min(480, h)) || 1
+  const ctx = canvasEl.getContext('2d')
+  ctx.drawImage(video, 0, 0, canvasEl.width, canvasEl.height)
+  cvWrap.style.display = 'block'
+  try {
+    const codes = await detectFromCanvas(canvasEl)
+    info('Canvas: ' + canvasEl.width + 'x' + canvasEl.height + ' | Results: ' + codes.length)
+    if (codes.length > 0) {
+      const r = codes[0]
+      show('&#10003; <span class="label">Code:</span> <span class="val">' + esc(r.rawValue) + '</span><br><span class="label">Format:</span> ' + esc(r.format))
+    } else {
+      show('&#10007; No barcode found')
+    }
+  } catch (e) {
+    showError('CAPTURE: ' + (e.message || e))
+    show('Error: ' + e.message)
+  }
+}
+
+function stopScanning() {
   running = false
-  if (detectLoop) { clearTimeout(detectLoop); detectLoop = null }
+  if (loopId) { clearTimeout(loopId); loopId = null }
   if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null }
   video.srcObject = null
   camBadge.textContent = 'Camera off'
-  btnStart.disabled = false
-  btnStop.disabled = true
-  setStatus('bd', 'idle', 'stopped')
-  setStatus('zbar', 'idle', 'stopped')
-  setStatus('zxing', 'idle', 'stopped')
-  setResult('bd', 'Camera stopped')
-  setResult('zbar', 'Camera stopped')
-  setResult('zxing', 'Camera stopped')
+  btnStart.disabled = false; btnCapture.disabled = true; btnStop.disabled = true
+  show('Stopped')
 }
 
-function clearLog() {
-  logBody.innerHTML = ''
-  logEmpty.style.display = 'block'
-  setCount('bd', 0); setCount('zbar', 0); setCount('zxing', 0)
-  for (const src of ['bd', 'zbar', 'zxing']) {
-    setResult(src, 'Cleared')
-  }
-}
-
-btnStart.onclick = start
-btnStop.onclick = stop
-btnClear.onclick = clearLog
-
-document.getElementById('btn-test-zxing').onclick = async function() {
-  const debug = document.getElementById('zxing-debug')
-  debug.textContent = 'Testing zxing-wasm...\n'
-
-  // 1) Local import first
-  debug.textContent += '\n[1] Local import (./js/zxing-module.js):\n'
+async function drawAndDetect() {
+  show('Drawing test barcode...'); info('')
+  canvasEl.width = 400; canvasEl.height = 200
+  const ctx = canvasEl.getContext('2d')
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 400, 200)
   try {
-    const mod = await import('./js/zxing-module.js')
-    const keys = Object.keys(mod)
-    debug.textContent += '  Loaded OK. Exports: ' + keys.join(', ') + '\n'
-    if (typeof mod.detectFromImageData === 'function') {
-      debug.textContent += '  detectFromImageData ✓\n'
-      window.zxingRead = mod.detectFromImageData
-      zxingReady = true
-      setStatus('zxing', 'idle', 'ready')
-      return
+    JsBarcode(canvasEl, '1234567890128', {
+      format: 'EAN13', width: 2, height: 100, displayValue: true, margin: 10
+    })
+    cvWrap.style.display = 'block'
+    const codes = await detectFromCanvas(canvasEl)
+    info('Canvas: 400x200 | Results: ' + codes.length)
+    if (codes.length > 0) {
+      const r = codes[0]
+      show('&#10003; <span class="label">Code:</span> <span class="val">' + esc(r.rawValue) + '</span><br><span class="label">Format:</span> ' + esc(r.format))
+    } else {
+      show('&#10007; Self-test failed!')
     }
   } catch (e) {
-    debug.textContent += '  FAILED: ' + e.message + '\n'
+    showError('SELFTEST: ' + (e.message || e))
+    show('Error: ' + e.message)
   }
-
-  // 2) CDN fallbacks
-  const urls = [
-    'https://cdn.jsdelivr.net/npm/zxing-wasm@3.1.0/dist/reader/index.js',
-    'https://cdn.jsdelivr.net/npm/zxing-wasm@3.0.0/dist/reader/index.js',
-    'https://unpkg.com/zxing-wasm@3.1.0/dist/reader/index.js'
-  ]
-  for (const url of urls) {
-    debug.textContent += '\nTrying CDN: ' + url + '\n'
-    try {
-      const mod = await import(url)
-      const keys = Object.keys(mod)
-      debug.textContent += '  Loaded OK. Exports: ' + keys.join(', ') + '\n'
-      const fn = mod.readBarcodes || mod.readBarcodesFromImageFile
-      if (typeof fn === 'function') {
-        debug.textContent += '  Found read function ✓\n'
-        window.zxingRead = fn
-        zxingReady = true
-        setStatus('zxing', 'idle', 'ready')
-        return
-      } else {
-        debug.textContent += '  No read function found ✗\n'
-      }
-    } catch (e) {
-      debug.textContent += '  FAILED: ' + e.message + '\n'
-    }
-  }
-  debug.textContent += '\nAll sources failed.'
 }
 
-// Init libraries on load
-initZbar()
-initZxing()
+function esc(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
+
+btnStart.onclick = startScanning
+btnCapture.onclick = captureOnce
+btnStop.onclick = stopScanning
+btnSelf.onclick = drawAndDetect
 </script>
 </body>
 </html>

@@ -106,7 +106,11 @@ const API = (() => {
     getOffers: (storeId) => get(`/promotions/offers/${storeId}`),
 
     // Discounts
-    getDiscounts: (storeId) => get(`/discounts/store/${storeId}`),
+    getDiscounts: (storeId, q) => {
+      let path = `/discounts/store/${storeId}`
+      if (q) path += `?q=${encodeURIComponent(q)}`
+      return get(path)
+    },
     getDiscount: (id) => get(`/discounts/item/${id}`),
     createDiscount: (data) => post('/discounts', data),
     updateDiscount: (id, data) => put(`/discounts/${id}`, data),

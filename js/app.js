@@ -37,6 +37,7 @@ import 'swiper/css/pagination';
   const discTrack = document.getElementById('discount-track');
   const discDots = document.getElementById('discount-dots');
 
+  const btnRefresh = document.getElementById('btn-refresh');
   const btnInstall = document.getElementById('btn-install');
   const apiBase = '/api';
 
@@ -184,6 +185,16 @@ import 'swiper/css/pagination';
         camName.textContent = r.ok ? 'Camera ready' : r.error;
         if (r.ok) showToast('Camera refreshed');
       });
+
+      if (btnRefresh) {
+        btnRefresh.addEventListener('click', async e => {
+          e.stopPropagation();
+          camName.textContent = 'Restarting camera…';
+          const r = await Scanner.restart(video, onBarcode);
+          camName.textContent = r.ok ? 'Camera ready' : r.error;
+          if (r.ok) showToast('Camera refreshed');
+        });
+      }
     } else {
       camFeed.classList.add('hidden');
       camName.textContent = result.error;
@@ -298,7 +309,7 @@ import 'swiper/css/pagination';
     if (discSwiper) { discSwiper.destroy(true, true); discSwiper = null }
     discDots.innerHTML = '';
 
-    if (discItems.length < 2) { discArea.classList.add('hidden'); return }
+    if (discItems.length < 1) { discArea.classList.add('hidden'); return }
 
     const wrapper = document.getElementById('discount-wrapper');
     wrapper.innerHTML = '';
@@ -341,10 +352,10 @@ import 'swiper/css/pagination';
     discArea.classList.remove('hidden');
     discSwiper = new Swiper('#discount-track', {
       modules: [Autoplay, Pagination],
-      slidesPerView: 3,
+      slidesPerView: discItems.length === 1 ? 1 : 3,
       spaceBetween: 0,
       loop: discItems.length >= 5,
-      autoplay: { delay: 5000, disableOnInteraction: false },
+      autoplay: discItems.length > 1 ? { delay: 5000, disableOnInteraction: false } : false,
       pagination: { el: '#discount-dots', clickable: true }
     });
   }
