@@ -10,6 +10,28 @@ import { validateBody, validateName, validateSlug } from '../validate.js'
 import { getStoreLimits, countAlwaysShowOffers, countActiveOffers, countFeaturedDiscounts, countActiveDiscounts } from '../limits.js'
 import { generateStoreQR, deleteStoreQR } from '../qr.js'
 
+// ─── Copy an R2 file from source store to new store ─────────────────
+// Returns the new URL path, or the original if not an R2 file or on failure.
+async function copyR2File(env, urlPath, sourceId, newId) {
+  if (!urlPath || !urlPath.startsWith('/api/files/')) return urlPath
+  const oldKey = urlPath.replace('/api/files/', '')
+  const newKey = oldKey.replace(sourceId, newId)
+  if (oldKey === newKey) return urlPath
+  try {
+    const obj = await env.CATALOGS.get(oldKey)
+    if (obj) {
+      await env.CATALOGS.put(newKey, obj.body, {
+        httpMetadata: obj.httpMetadata,
+        customMetadata: { ...(obj.customMetadata || {}), duplicatedFrom: sourceId }
+      })
+    }
+    return `/api/files/${newKey}`
+  } catch (err) {
+    console.warn('R2 copy failed:', oldKey, err.message)
+    return urlPath
+  }
+}
+
 // ─── Auto-register store subdomain as Pages custom domain ──────────
 // Called after store creation — fires and forgets.
 async function registerStoreSubdomain(c, slug) {
@@ -159,15 +181,16 @@ router.post('/:id/duplicate', async (c) => {
     'INSERT INTO organization (id, name, slug, logo, metadata, createdAt, updatedAt) VALUES (?, ?, ?, ?, ?, ?, ?)'
   ).bind(newId, name, cleanSlug, source.logo, source.metadata, now, now))
 
-  // 2. Store branding
+  // 2. Store branding (with R2 logo copy)
   const branding = await queryOne(c.env.DB,
     'SELECT * FROM store_branding WHERE store_id = ?', [sourceId]
   )
   if (branding) {
+    const newLogoUrl = await copyR2File(c.env, branding.logo_url, sourceId, newId)
     stmts.push(c.env.DB.prepare(
       `INSERT INTO store_branding (store_id, logo_url, primary_color, accent_color, display_name, contact_email, contact_phone, footer_text, instagram_url, tiktok_url, website_url, facebook_url, twitter_url, youtube_url)
        VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
-    ).bind(newId, branding.logo_url, branding.primary_color, branding.accent_color,
+    ).bind(newId, newLogoUrl, branding.primary_color, branding.accent_color,
       branding.display_name, branding.contact_email, branding.contact_phone,
       branding.footer_text, branding.instagram_url, branding.tiktok_url,
       branding.website_url, branding.facebook_url, branding.twitter_url,
@@ -195,24 +218,26 @@ router.post('/:id/duplicate', async (c) => {
     ).bind(uuid(), newId, p.barcode, p.name, p.price, p.category, now, now))
   }
 
-  // 5. Promotions
+  // 5. Promotions (with R2 image copy)
   const promotions = await queryAll(c.env.DB,
     'SELECT * FROM promotion WHERE store_id = ?', [sourceId]
   )
   for (const p of promotions) {
+    const newImageUrl = await copyR2File(c.env, p.image_url, sourceId, newId)
     stmts.push(c.env.DB.prepare(
-      'INSERT INTO promotion (id, store_id, type, title, image_data, trigger_type, trigger_value, active, priority, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(uuid(), newId, p.type, p.title, p.image_data, p.trigger_type, p.trigger_value, p.active, p.priority, now, now))
+      'INSERT INTO promotion (id, store_id, type, title, image_data, image_url, trigger_type, trigger_value, active, priority, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(uuid(), newId, p.type, p.title, p.image_data, newImageUrl, p.trigger_type, p.trigger_value, p.active, p.priority, now, now))
   }
 
-  // 6. Discount items
+  // 6. Discount items (with R2 image copy)
   const discounts = await queryAll(c.env.DB,
     'SELECT * FROM discount_item WHERE store_id = ?', [sourceId]
   )
   for (const d of discounts) {
+    const newImageUrl = await copyR2File(c.env, d.image_url, sourceId, newId)
     stmts.push(c.env.DB.prepare(
-      'INSERT INTO discount_item (id, store_id, barcode, name, image_data, category, original_price, new_price, discount_percent, featured, active, priority, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
-    ).bind(uuid(), newId, d.barcode, d.name, d.image_data, d.category, d.original_price, d.new_price, d.discount_percent, d.featured, d.active, d.priority, now, now))
+      'INSERT INTO discount_item (id, store_id, barcode, name, image_data, image_url, category, original_price, new_price, discount_percent, featured, active, priority, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+    ).bind(uuid(), newId, d.barcode, d.name, d.image_data, newImageUrl, d.category, d.original_price, d.new_price, d.discount_percent, d.featured, d.active, d.priority, now, now))
   }
 
   // Atomic batch insert
