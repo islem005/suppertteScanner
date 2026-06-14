@@ -89,6 +89,11 @@ export default {
       if (isAsset) return addSecurityToResponse(await env.ASSETS.fetch(request))
       const ua = (request.headers.get('User-Agent') || '').toLowerCase()
       const isMobile = /mobile|android|iphone|ipad|ipod/i.test(ua)
+      // Android must use Chrome — zbar-wasm fallback is unreliable
+      if (/android/.test(ua) && !/chrome/.test(ua)) {
+        const html = '<!DOCTYPE html><html lang="en"><head><meta charset="UTF-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>Chrome Required</title><style>body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:100vh;margin:0;padding:24px;text-align:center;background:#0f0f1a;color:#e2e8f0}svg{width:80px;height:80px;margin-bottom:16px}h1{font-size:24px;margin:0 0 8px}p{font-size:16px;color:#94a3b8;max-width:400px;line-height:1.5;margin:0 0 24px}.btn{display:inline-block;padding:14px 32px;background:#4285f4;color:#fff;border-radius:8px;text-decoration:none;font-weight:600;font-size:16px}.note{font-size:13px;color:#64748b;margin-top:24px}</style></head><body><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="8" fill="#4285f4"/><path d="M14 20l10-8 10 8v12a2 2 0 01-2 2H16a2 2 0 01-2-2V20z" fill="#fff" opacity=".9"/><circle cx="24" cy="24" r="4" fill="#4285f4"/></svg><h1>Open in Chrome</h1><p>The scanner requires Chrome on Android for reliable barcode detection. Please open this page in the Chrome browser.</p><a class="btn" href="intent://' + host + url.pathname + url.search + '#Intent;scheme=https;package=com.android.chrome;end">Open in Chrome</a><p class="note">If the button doesn\'t work, copy the URL and paste it into Chrome manually.</p></body></html>'
+        return addSecurityToResponse(new Response(html, { headers: { 'Content-Type': 'text/html;charset=utf-8' } }))
+      }
       const page = isMobile ? '/scanner.html' : '/scanner-qr.html'
       const resp = await env.ASSETS.fetch(new URL(page, request.url))
       const newResp = new Response(resp.body, {
