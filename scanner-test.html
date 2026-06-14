@@ -153,8 +153,8 @@ async function initZbar() {
 async function initZxing() {
   // Try local import first (bundled with Vite)
   try {
-    const { detectFromCanvas } = await import('./js/zxing-module.js')
-    window.zxingRead = detectFromCanvas
+    const { detectFromImageData } = await import('./js/zxing-module.js')
+    window.zxingRead = detectFromImageData
     setStatus('zxing', 'idle', 'ready')
     zxingReady = true
     return
@@ -197,7 +197,7 @@ async function detectBarcodeDetector() {
     while (running) {
       const t0 = performance.now()
       let codes
-      try { codes = await detector.detect(video) } catch { codes = [] }
+      try { codes = await detector.detect(video) } catch (e) { console.error('bd detect:', e); codes = [] }
       const t1 = performance.now()
       if (codes.length > 0) {
         const c = codes[0]
@@ -207,7 +207,7 @@ async function detectBarcodeDetector() {
       }
       await sleep(800)
     }
-  } catch (e) { setStatus('bd', 'error', e.message) }
+  } catch (e) { console.error('bd loop:', e); setStatus('bd', 'error', e.message) }
 }
 
 async function detectZbar() {
@@ -231,7 +231,7 @@ async function detectZbar() {
         setCount('zbar', counts.zbar + 1)
         logEntry('zbar', s.decode || '', s.typeName || '?', (t1 - t0).toFixed(1))
       }
-    } catch {}
+    } catch (e) { console.error('zbar detect error:', e) }
     await sleep(800)
   }
 }
@@ -249,15 +249,15 @@ async function detectZxing() {
       canvas.height = Math.min(video.videoHeight || 480, 480)
       ctx.drawImage(video, 0, 0, canvas.width, canvas.height)
       const imageData = ctx.getImageData(0, 0, canvas.width, canvas.height)
-      const results = await window.zxingRead(imageData, { tryHarder: true, formats: ['EAN-13','EAN-8','UPC-A','UPC-E','Code128','Code39','Code93','Codabar','ITF','QRCode','DataMatrix','PDF417','Aztec'], maxNumberOfSymbols: 1 })
+      const results = await window.zxingRead(imageData, { tryHarder: true, formats: ['AllReadable'], maxNumberOfSymbols: 1 })
       const t1 = performance.now()
       if (results.length > 0) {
         const r = results[0]
-        setResult('zxing', '<div><span class="label">Code:</span> <span class="val">' + esc(r.text) + '</span></div><div><span class="label">Format:</span> ' + r.format + '</div><div class="time">' + (t1 - t0).toFixed(1) + 'ms</div>')
+        setResult('zxing', '<div><span class="label">Code:</span> <span class="val">' + esc(r.rawValue) + '</span></div><div><span class="label">Format:</span> ' + r.format + '</div><div class="time">' + (t1 - t0).toFixed(1) + 'ms</div>')
         setCount('zxing', counts.zxing + 1)
-        logEntry('zxing', r.text, r.format, (t1 - t0).toFixed(1))
+        logEntry('zxing', r.rawValue, r.format, (t1 - t0).toFixed(1))
       }
-    } catch {}
+    } catch (e) { console.error('zxing detect error:', e) }
     await sleep(800)
   }
 }
@@ -322,9 +322,9 @@ document.getElementById('btn-test-zxing').onclick = async function() {
     const mod = await import('./js/zxing-module.js')
     const keys = Object.keys(mod)
     debug.textContent += '  Loaded OK. Exports: ' + keys.join(', ') + '\n'
-    if (typeof mod.detectFromCanvas === 'function') {
-      debug.textContent += '  detectFromCanvas ✓\n'
-      window.zxingRead = mod.detectFromCanvas
+    if (typeof mod.detectFromImageData === 'function') {
+      debug.textContent += '  detectFromImageData ✓\n'
+      window.zxingRead = mod.detectFromImageData
       zxingReady = true
       setStatus('zxing', 'idle', 'ready')
       return
