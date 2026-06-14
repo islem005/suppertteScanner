@@ -17,6 +17,7 @@ router.get('/banners/:storeId', async (c) => {
     "SELECT * FROM promotion WHERE store_id = ? AND type = 'banner' AND active = 1 ORDER BY priority",
     [c.req.param('storeId')]
   )
+  c.header('Cache-Control', 'no-cache, no-store, must-revalidate')
   return c.json(data)
 })
 
@@ -25,6 +26,7 @@ router.get('/offers/:storeId', async (c) => {
     "SELECT * FROM promotion WHERE store_id = ? AND type = 'offer' AND active = 1 ORDER BY priority",
     [c.req.param('storeId')]
   )
+  c.header('Cache-Control', 'no-cache, no-store, must-revalidate')
   return c.json(data)
 })
 

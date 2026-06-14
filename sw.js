@@ -35,6 +35,18 @@ self.addEventListener('fetch', e => {
     return;
   }
 
+  // API calls: network-first so customers always see fresh promotions/discounts
+  if (reqUrl.pathname.startsWith('/api/')) {
+    e.respondWith(
+      fetch(e.request).then(res => {
+        const clone = res.clone();
+        caches.open(CACHE).then(cache => cache.put(e.request, clone));
+        return res;
+      }).catch(() => caches.match(e.request))
+    );
+    return;
+  }
+
   e.respondWith(
     caches.match(e.request).then(cached => {
       return cached || fetch(e.request).then(res => {

@@ -51,6 +51,7 @@ router.get('/featured/:storeId', async (c) => {
     'SELECT * FROM discount_item WHERE store_id = ? AND active = 1 AND featured = 1 ORDER BY priority',
     [c.req.param('storeId')]
   )
+  c.header('Cache-Control', 'no-cache, no-store, must-revalidate')
   return c.json(data)
 })
 
@@ -81,6 +82,7 @@ router.get('/:storeId', async (c) => {
   sql += ' ORDER BY priority'
 
   const data = await queryAll(c.env.DB, sql, params)
+  c.header('Cache-Control', 'no-cache, no-store, must-revalidate')
   return c.json(data)
 })
 

@@ -44,6 +44,7 @@ import 'swiper/css/pagination';
   let storeSlug = null;
   let storeName = null;
   let storeId = null;
+  const cacheBust = () => `_t=${Date.now()}`;
   let placeholderPromo = null;
   let discItems = [];
   let discSwiper = null;
@@ -113,7 +114,7 @@ import 'swiper/css/pagination';
         } catch { console.warn('Branding fetch failed') }
 
         try {
-          const banners = await (await fetch(`${apiBase}/promotions/banners/${store.id}`)).json();
+          const banners = await (await fetch(`${apiBase}/promotions/banners/${store.id}?${cacheBust()}`)).json();
           if (Array.isArray(banners) && banners.length > 0) {
             startCarousel(banners);
             bannerFallback.classList.add('hidden');
@@ -128,7 +129,7 @@ import 'swiper/css/pagination';
         }
 
         try {
-          const offers = await (await fetch(`${apiBase}/promotions/offers/${store.id}`)).json();
+          const offers = await (await fetch(`${apiBase}/promotions/offers/${store.id}?${cacheBust()}`)).json();
           if (Array.isArray(offers) && offers.length > 0) {
             placeholderPromo = offers.find(o => !o.trigger_type && !o.trigger_value) || offers[0];
             if (placeholderPromo.image_url || placeholderPromo.image_data) {
@@ -139,7 +140,7 @@ import 'swiper/css/pagination';
         } catch { console.warn('Offers fetch failed') }
 
         try {
-          const discounts = await (await fetch(`${apiBase}/discounts/${store.id}?featured=1`)).json();
+          const discounts = await (await fetch(`${apiBase}/discounts/${store.id}?featured=1&${cacheBust()}`)).json();
           if (Array.isArray(discounts) && discounts.length > 0) {
             discItems = discounts;
             startDiscountCarousel();
@@ -221,7 +222,7 @@ import 'swiper/css/pagination';
       // Check for matching discount by barcode
       let discMatch = null;
       try {
-        const dr = await fetch(`${apiBase}/discounts/${storeId}?barcode=${encodeURIComponent(code)}`);
+        const dr = await fetch(`${apiBase}/discounts/${storeId}?barcode=${encodeURIComponent(code)}&${cacheBust()}`);
         const dl = await dr.json();
         if (Array.isArray(dl) && dl.length > 0) discMatch = dl[0];
       } catch {}
@@ -240,7 +241,7 @@ import 'swiper/css/pagination';
       // Show category-matched discounts
       if (productInfo.category && storeId) {
         try {
-          const dr = await fetch(`${apiBase}/discounts/${storeId}?category=${encodeURIComponent(productInfo.category)}`);
+          const dr = await fetch(`${apiBase}/discounts/${storeId}?category=${encodeURIComponent(productInfo.category)}&${cacheBust()}`);
           const catDiscs = await dr.json();
           if (Array.isArray(catDiscs) && catDiscs.length > 0) {
             discItems = catDiscs;
@@ -352,7 +353,7 @@ import 'swiper/css/pagination';
   function checkIdle() {
     if (!storeId) return;
     if (Date.now() - lastScanTime > 30000 && discItems.length > 0) {
-      fetch(`${apiBase}/discounts/${storeId}?featured=1`).then(r => r.json()).then(dl => {
+      fetch(`${apiBase}/discounts/${storeId}?featured=1&${cacheBust()}`).then(r => r.json()).then(dl => {
         if (Array.isArray(dl) && dl.length > 0) {
           discItems = dl;
           startDiscountCarousel();
