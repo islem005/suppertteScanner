@@ -1549,8 +1549,8 @@
     const list = $('promo-offers-list')
     list.innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try {
-      const promos = await API.getStorePromotions(storeId)
-      const offers = promos.filter(p => p.type === 'offer')
+      const result = await API.getStorePromotions(storeId)
+      const offers = (result.promotions || []).filter(p => p.type === 'offer')
       if (offers.length === 0) {
         list.innerHTML = '<div class="empty-state">' + t('noOffersForStore') + '</div>'
         return
@@ -1714,7 +1714,7 @@
       const reader = new FileReader()
       reader.onload = async ev => {
         try {
-          const cropped = await window.cropImage(ev.target.result, 400/200, 400, 200)
+          const cropped = await window.cropImage(ev.target.result, 800/300, 800, 300)
           const result = await API.uploadImage(cropped, sid, 'promotion')
           imgHidden.value = result.url
           imgPreview.src = result.url
@@ -1745,10 +1745,13 @@
   }
 
   window.adminDeleteOffer = async (id) => {
+    const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     showModal('Delete Offer', 'Delete this offer?', async () => {
-      await API.deletePromotion(id)
-      closeModal()
-      if (_promoStoreId) loadPromoOffersList(_promoStoreId)
+      try {
+        await API.deletePromotion(id)
+        closeModal()
+        if (_promoStoreId) loadPromoOffersList(_promoStoreId)
+      } catch (err) { showToast(t('errorPrefix') + err.message) }
     }, true)
   }
 
@@ -1963,6 +1966,7 @@
   async function loadDiscounts() {
     const t = typeof I18N !== 'undefined' ? (k) => I18N.t(k) : (k) => k
     _discStoreId = null
+    if ($('discount-search')) $('discount-search').value = ''
     $('disc-editor').classList.add('hidden')
     $('disc-stores-table').innerHTML = '<div class="loading-spinner">' + t('loading') + '</div>'
     try { stores = await API.getStores() } catch { stores = [] }
@@ -1986,6 +1990,7 @@
     _discStoreId = storeId
     const store = stores.find(s => s.id === storeId)
     $('disc-editor-title').textContent = store ? esc(store.name) + ' — Discounts' : 'Discounts'
+    if ($('discount-search')) $('discount-search').value = ''
     $('disc-stores-table').style.display = 'none'
     $('disc-editor').classList.remove('hidden')
     await loadDiscountItemsList(storeId)
@@ -1993,6 +1998,7 @@
 
   $('disc-editor-back').onclick = () => {
     _discStoreId = null
+    if ($('discount-search')) $('discount-search').value = ''
     $('disc-editor').classList.add('hidden')
     $('disc-stores-table').style.display = ''
     loadDiscounts()
