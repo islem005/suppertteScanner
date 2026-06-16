@@ -1600,12 +1600,22 @@
   const btnInstallDash = document.getElementById('btn-install-dash');
   if (btnInstallDash) {
     btnInstallDash.addEventListener('click', async () => {
+      if (!deferredPrompt) {
+        await new Promise(resolve => {
+          const handler = e => {
+            window.removeEventListener('beforeinstallprompt', handler);
+            e.preventDefault();
+            deferredPrompt = e;
+            resolve();
+          };
+          window.addEventListener('beforeinstallprompt', handler);
+          setTimeout(() => { window.removeEventListener('beforeinstallprompt', handler); resolve(); }, 15000);
+        });
+      }
       if (deferredPrompt) {
         deferredPrompt.prompt();
         const result = await deferredPrompt.userChoice;
         if (result.outcome === 'accepted') deferredPrompt = null;
-      } else if (typeof navigator.install === 'function') {
-        try { await navigator.install(); } catch {}
       }
     });
   }

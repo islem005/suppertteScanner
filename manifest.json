@@ -1,6 +1,7 @@
 {
   "name": "SKANER",
   "short_name": "SKANER",
+  "id": "/",
   "description": "SKANER by ivond — instant in-store barcode scanning",
   "start_url": "/",
   "display": "standalone",
