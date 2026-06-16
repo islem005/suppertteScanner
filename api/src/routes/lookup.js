@@ -24,17 +24,41 @@ router.get('/:slug', async (c) => {
     [store.id, barcode]
   )
 
-  // Find matching offer for this store
-  const offer = await queryOne(c.env.DB,
-    `SELECT title, image_data, trigger_type, trigger_value FROM promotion
-     WHERE store_id = ? AND type = 'offer' AND active = 1 ORDER BY priority LIMIT 1`,
-    [store.id]
-  )
+  // Find all matching offers for this store and scanned product
+  // Priority: product-triggered > category-triggered > always-show
+  let offers = []
+  if (product) {
+    offers = await queryAll(c.env.DB,
+      `SELECT title, image_data, image_url, trigger_type, trigger_value FROM promotion
+       WHERE store_id = ? AND type = 'offer' AND active = 1
+         AND (
+           (trigger_type = 'product' AND trigger_value = ?)
+           OR (trigger_type = 'category' AND trigger_value = ?)
+           OR (trigger_type IS NULL AND trigger_value IS NULL)
+         )
+       ORDER BY
+         CASE
+           WHEN trigger_type = 'product' THEN 0
+           WHEN trigger_type = 'category' THEN 1
+           ELSE 2
+         END,
+         priority`,
+      [store.id, barcode, product.category]
+    )
+  } else {
+    offers = await queryAll(c.env.DB,
+      `SELECT title, image_data, image_url FROM promotion
+       WHERE store_id = ? AND type = 'offer' AND active = 1
+         AND trigger_type IS NULL AND trigger_value IS NULL
+       ORDER BY priority`,
+      [store.id]
+    )
+  }
 
   if (product) {
-    return c.json({ found: true, ...product, offer: offer || null })
+    return c.json({ found: true, ...product, offers })
   }
-  return c.json({ found: false, barcode, offer: offer || null })
+  return c.json({ found: false, barcode, offers })
 })
 
 export { router as lookupRouter }

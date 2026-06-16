@@ -969,7 +969,7 @@
       const reader = new FileReader()
       reader.onload = async ev => {
         try {
-          const cropped = await window.cropImage(ev.target.result, 400/200, 400, 200)
+          const cropped = await window.cropImage(ev.target.result, 800/300, 800, 300)
           // Upload cropped image to R2
           const result = await API.uploadImage(cropped, user.store_id, 'promotion')
           imgHidden.value = result.url
@@ -1605,13 +1605,8 @@
   if (btnInstallDash) {
     btnInstallDash.addEventListener('click', async () => {
       if (!deferredPrompt) {
-        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-        if (isIos) {
-          showToast('Tap Share → Add to Home Screen');
-        } else if (window.matchMedia('(display-mode: standalone)').matches) {
+        if (window.matchMedia('(display-mode: standalone)').matches) {
           showToast('Already installed');
-        } else {
-          showToast('Visit a few times, then install will be ready');
         }
         return;
       }

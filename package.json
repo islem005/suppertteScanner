@@ -19,7 +19,7 @@
     "test:coverage": "vitest run --coverage",
     "deploy:fe": "node build-frontend.mjs && cd frontend-worker && wrangler deploy",
     "deploy:api": "cd api && wrangler deploy --config wrangler.prod.toml",
-    "deploy:all": "node build-frontend.mjs && cd frontend-worker && wrangler deploy && cd ../api && wrangler deploy --config wrangler.prod.toml",
+    "deploy:all": "node build-frontend.mjs && cd frontend-worker && wrangler deploy && cd ../api && wrangler deploy --config wrangler.prod.toml && cd .. && node deploy-tests.mjs",
     "lint": "eslint . --ext .js,.html --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern 'frontend-worker/public'",
     "lint:fix": "eslint . --ext .js,.html --fix --ignore-pattern dist --ignore-pattern node_modules --ignore-pattern 'frontend-worker/public'"
   },

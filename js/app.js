@@ -30,8 +30,9 @@ import 'swiper/css/pagination';
   const camPrice = document.getElementById('cam-price');
   const camFeed = document.getElementById('camera-feed');
 
-  const promoContent = document.getElementById('promo-content');
-  const promoImage = document.getElementById('promo-image');
+  const promoCarousel = document.getElementById('promo-carousel');
+  const promoTrack = document.getElementById('promo-track');
+  const promoDots = document.getElementById('promo-dots');
 
   const discArea = document.getElementById('discount-area');
   const discTrack = document.getElementById('discount-track');
@@ -46,7 +47,8 @@ import 'swiper/css/pagination';
   let storeName = null;
   let storeId = null;
   const cacheBust = () => `_t=${Date.now()}`;
-  let placeholderPromo = null;
+  let alwaysShowOffers = [];
+  let promoSwiper = null;
   let discItems = [];
   let discSwiper = null;
   let lastScanTime = 0;
@@ -130,13 +132,10 @@ import 'swiper/css/pagination';
         }
 
         try {
-          const offers = await (await fetch(`${apiBase}/promotions/offers/${store.id}?${cacheBust()}`)).json();
-          if (Array.isArray(offers) && offers.length > 0) {
-            placeholderPromo = offers.find(o => !o.trigger_type && !o.trigger_value) || offers[0];
-            if (placeholderPromo.image_url || placeholderPromo.image_data) {
-              promoImage.src = placeholderPromo.image_url || placeholderPromo.image_data;
-              promoContent.classList.remove('hidden');
-            }
+          const allOffers = await (await fetch(`${apiBase}/promotions/offers/${store.id}?${cacheBust()}`)).json();
+          if (Array.isArray(allOffers)) {
+            alwaysShowOffers = allOffers.filter(o => !o.trigger_type && !o.trigger_value);
+            if (alwaysShowOffers.length > 0) startPromoCarousel(alwaysShowOffers);
           }
         } catch { console.warn('Offers fetch failed') }
 
@@ -203,70 +202,67 @@ import 'swiper/css/pagination';
   }
 
   async function onBarcode(code) {
-    let productInfo = null;
     lastScanTime = Date.now();
-
-    if (storeSlug) {
-      try {
-        const res = await fetch(`${apiBase}/lookup/${storeSlug}?barcode=${encodeURIComponent(code)}`);
-        productInfo = await res.json();
-      } catch {}
-
-      fetch(`${apiBase}/scans`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token' },
-        body: JSON.stringify({
-          store_slug: storeSlug,
-          barcode: code,
-          client_id: clientId,
-          session_id: sessionId
-        })
-      }).catch(() => {});
-    }
 
     vibrate();
 
-    if (productInfo && productInfo.found) {
-      camName.textContent = productInfo.name;
-      camName.classList.remove('hint');
+    if (!storeSlug) {
+      showToast(`Scanned: ${code}`);
+      return;
+    }
 
-      // Check for matching discount by barcode
-      let discMatch = null;
-      try {
-        const dr = await fetch(`${apiBase}/discounts/${storeId}?barcode=${encodeURIComponent(code)}&${cacheBust()}`);
-        const dl = await dr.json();
-        if (Array.isArray(dl) && dl.length > 0) discMatch = dl[0];
-      } catch {}
+    let scanData = null;
+    try {
+      const res = await fetch(`${apiBase}/scan/${storeSlug}?barcode=${encodeURIComponent(code)}`);
+      scanData = await res.json();
+    } catch {}
 
-      if (discMatch) {
-        const origPrice = productInfo.price != null ? parseFloat(productInfo.price) : NaN;
-        const discPrice = discMatch.new_price != null ? parseFloat(discMatch.new_price) : NaN;
-        camPrice.innerHTML = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-sm)">${isNaN(origPrice) ? '—' : origPrice.toFixed(2)} DA</span> ${isNaN(discPrice) ? '—' : discPrice.toFixed(2)} DA`;
-        camPrice.classList.remove('error');
-      } else {
-        const p = productInfo.price != null ? parseFloat(productInfo.price) : NaN;
-        camPrice.textContent = `${isNaN(p) ? '—' : p.toFixed(2)} DA`;
-        camPrice.classList.remove('error');
-      }
+    fetch(`${apiBase}/scans`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-CSRF-Token': 'skaner-csrf-token' },
+      body: JSON.stringify({
+        store_slug: storeSlug,
+        barcode: code,
+        client_id: clientId,
+        session_id: sessionId
+      })
+    }).catch(() => {});
 
-      // Show category-matched discounts
-      if (productInfo.category && storeId) {
-        try {
-          const dr = await fetch(`${apiBase}/discounts/${storeId}?category=${encodeURIComponent(productInfo.category)}&${cacheBust()}`);
-          const catDiscs = await dr.json();
-          if (Array.isArray(catDiscs) && catDiscs.length > 0) {
-            discItems = catDiscs;
-            startDiscountCarousel();
-          }
-        } catch {}
-      }
-    } else if (storeSlug) {
+    if (!scanData || !scanData.product) {
       camName.textContent = 'Unknown product';
       camName.classList.add('hint');
       camPrice.textContent = code;
       camPrice.classList.add('error');
+      return;
+    }
+
+    const product = scanData.product;
+    camName.textContent = product.name;
+    camName.classList.remove('hint');
+
+    if (Array.isArray(scanData.offers)) {
+      const triggeredOffers = scanData.offers.filter(o => o.trigger_type && o.trigger_value);
+      if (triggeredOffers.length > 0) {
+        startPromoCarousel(triggeredOffers);
+      } else if (alwaysShowOffers.length > 0) {
+        startPromoCarousel(alwaysShowOffers);
+      }
+    }
+
+    if (scanData.discount) {
+      const origPrice = product.price != null ? parseFloat(product.price) : NaN;
+      const discPrice = scanData.discount.new_price != null ? parseFloat(scanData.discount.new_price) : NaN;
+      camPrice.innerHTML = `<span style="text-decoration:line-through;color:var(--text-tertiary);font-size:var(--text-sm)">${isNaN(origPrice) ? '—' : origPrice.toFixed(2)} DA</span> ${isNaN(discPrice) ? '—' : discPrice.toFixed(2)} DA`;
+      camPrice.classList.remove('error');
     } else {
-      showToast(`Scanned: ${code}`);
+      const p = product.price != null ? parseFloat(product.price) : NaN;
+      camPrice.textContent = `${isNaN(p) ? '—' : p.toFixed(2)} DA`;
+      camPrice.classList.remove('error');
+    }
+
+    if (Array.isArray(scanData.categoryDiscounts) && scanData.categoryDiscounts.length > 0) {
+      discItems = scanData.categoryDiscounts;
+      startDiscountCarousel();
     }
   }
 
@@ -301,6 +297,31 @@ import 'swiper/css/pagination';
       loop: banners.length > 1,
       autoplay: banners.length > 1 ? { delay: 5000, disableOnInteraction: false } : false,
       pagination: { el: '#banner-dots', clickable: true }
+    });
+  }
+
+  // ─── Promo Carousel ───
+  function startPromoCarousel(offers) {
+    if (promoSwiper) { promoSwiper.destroy(true, true); promoSwiper = null }
+    promoDots.innerHTML = '';
+    promoTrack.innerHTML = '';
+    offers.forEach(o => {
+      const slide = document.createElement('div');
+      slide.className = 'swiper-slide';
+      if (o.image_url || o.image_data) {
+        const img = document.createElement('img');
+        img.src = o.image_url || o.image_data;
+        img.alt = o.title || '';
+        slide.appendChild(img);
+      }
+      promoTrack.appendChild(slide);
+    });
+    promoCarousel.classList.remove('hidden');
+    promoSwiper = new Swiper('#promo-carousel', {
+      modules: [Autoplay, Pagination],
+      loop: offers.length > 1,
+      autoplay: offers.length > 1 ? { delay: 5000, disableOnInteraction: false } : false,
+      pagination: { el: '#promo-dots', clickable: true }
     });
   }
 
@@ -363,13 +384,18 @@ import 'swiper/css/pagination';
   // ─── Idle Detection ───
   function checkIdle() {
     if (!storeId) return;
-    if (Date.now() - lastScanTime > 30000 && discItems.length > 0) {
-      fetch(`${apiBase}/discounts/${storeId}?featured=1&${cacheBust()}`).then(r => r.json()).then(dl => {
-        if (Array.isArray(dl) && dl.length > 0) {
-          discItems = dl;
-          startDiscountCarousel();
-        }
-      }).catch(() => {});
+    if (Date.now() - lastScanTime > 30000) {
+      if (discItems.length > 0) {
+        fetch(`${apiBase}/discounts/${storeId}?featured=1&${cacheBust()}`).then(r => r.json()).then(dl => {
+          if (Array.isArray(dl) && dl.length > 0) {
+            discItems = dl;
+            startDiscountCarousel();
+          }
+        }).catch(() => {});
+      }
+      if (alwaysShowOffers.length > 0) {
+        startPromoCarousel(alwaysShowOffers);
+      }
     }
   }
 
@@ -378,13 +404,8 @@ import 'swiper/css/pagination';
   if (btnInstall) {
     btnInstall.addEventListener('click', async () => {
       if (!deferredPrompt) {
-        const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent);
-        if (isIos) {
-          showToast('Tap Share → Add to Home Screen');
-        } else if (window.matchMedia('(display-mode: standalone)').matches) {
+        if (window.matchMedia('(display-mode: standalone)').matches) {
           showToast('Already installed');
-        } else {
-          showToast('Visit a few times, then install will be ready');
         }
         return;
       }

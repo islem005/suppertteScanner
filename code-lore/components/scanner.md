@@ -10,11 +10,50 @@ The scanner app (`js/app.js`, `js/scanner.js`, `js/scanner-core.js`, `scanner.ht
 
 ---
 
+## zxing-wasm Fallback (`js/zxing-module.js`)
+
+When `BarcodeDetector` is unavailable, the scanner dynamically imports zxing-wasm:
+
+```js
+// In js/scanner.js — fallback initialization
+const { detectFromCanvas } = await import('./zxing-module.js');
+fallbackCanvas = document.createElement('canvas');
+fallbackDetect = async (video) => {
+  const scale = Math.min(640 / video.videoWidth, 480 / video.videoHeight, 1);
+  fallbackCanvas.width = Math.round(video.videoWidth * scale) || 1;
+  fallbackCanvas.height = Math.round(video.videoHeight * scale) || 1;
+  const ctx = fallbackCanvas.getContext('2d');
+  if (!ctx) return [];
+  ctx.drawImage(video, 0, 0, fallbackCanvas.width, fallbackCanvas.height);
+  return detectFromCanvas(fallbackCanvas);
+};
+```
+
+### Module API (`js/zxing-module.js`)
+```js
+// Initialize with wasm file location
+prepareZXingModule({
+  overrides: {
+    locateFile: (path, prefix) => {
+      if (path.endsWith('.wasm')) return '/wasm/zxing_reader.wasm';
+      return prefix + path;
+    }
+  }
+});
+
+export async function detectFromCanvas(canvas)      // Canvas → ImageData → detect
+export async function detectFromImageData(imageData, opts?)  // Raw ImageData, for test pages
+```
+
+- Wasm file: `public/wasm/zxing_reader.wasm` (served at `/wasm/zxing_reader.wasm`)
+- npm package: `zxing-wasm@^3.1.0`
+- Fallback runs at 3 FPS with scaled canvas (max 640×480, maintaining aspect ratio)
+
 ## Scanner Engine (`js/scanner.js`)
 
 A singleton `Scanner` module with multi-layer fallback:
 1. **Native `BarcodeDetector`** (Chrome, Edge, Samsung, Safari 16.4+)
-2. **zbar-wasm** (Firefox, Safari 14.5+, any WASM-capable browser)
+2. **zxing-wasm fallback** (local npm module, bundled via Vite)
 3. **Manual barcode input** — always available as a fallback in the UI
 
 ### Init
@@ -22,7 +61,9 @@ A singleton `Scanner` module with multi-layer fallback:
 const result = await Scanner.init()
 // => { ok: bool, hasDecoder: bool, error?: string }
 ```
-- Tries native `BarcodeDetector` first, then zbar-wasm dynamically from CDN
+- Tries native `BarcodeDetector` first
+- If not available, dynamically imports `./zxing-module.js` (zxing-wasm npm package)
+- Creates a reusable off-screen canvas for frame capture
 - If both decoders fail, `hasDecoder: false` — camera still starts for preview
 - Always requests camera via `getUserMedia` (facingMode: environment, 1280x720)
 - Returns `{ ok: false, error }` only if camera itself fails
@@ -85,10 +126,17 @@ const result = await Scanner.restart(video, onBarcode)
 - Sets `--color-primary` and `--color-success` on `<html>` style
 - Shows logo (`profile-logo`), display name, social links (Instagram, TikTok, Website, Email, Phone, Facebook, Twitter, YouTube)
 
-### Promotion Carousels (Swiper.js)
+### Promotion Carousels (Swiper.js — bundled locally)
+- Imported as ES module via npm (`swiper` package, bundled by Vite):
+```js
+import Swiper from 'swiper';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+```
 - **Banner carousel:** `#banner-carousel` — Swiper with loop + autoplay (5s delay), pagination dots
 - **Discount/offer carousel:** `#discount-track` — Swiper with `slidesPerView: 3`, loop if 5+ items, autoplay 5s
-- Uses inline Swiper.js (loaded from CDN in HTML)
+- Carousels are destroyed and recreated when data changes (e.g., after idle refresh)
 
 ### Idle Detection
 - `checkIdle()` runs every 10s via `setInterval`
@@ -138,11 +186,26 @@ See `code-lore/infrastructure/pwa-setup.md` for full details.
 
 ---
 
-## Desktop QR Interstitial (`scanner-qr.html`)
+## Browser Detection & Routing (`frontend-worker/src/index.js`)
 
-When a store subdomain (`*.ivond.com`) is opened on a desktop/laptop, the frontend Worker (`frontend-worker/src/index.js`) serves `scanner-qr.html` instead of the scanner PWA.
+The frontend Worker handles three cases for store subdomains:
 
-### Detection in the Worker
+### 1. Chrome-Only Enforcement for Android
+Non-Chrome Android browsers get a Chrome-required interstitial:
+
+```js
+if (/android/.test(ua) && !/chrome/.test(ua)) {
+  // Returns inline HTML with "Open in Chrome" prompt
+  // Uses Android intent:// scheme for deep link to Chrome
+}
+```
+
+- Rationale: zbar-wasm fallback was unreliable; zxing-wasm requires modern Chrome on Android
+- Shows a styled interstitial with Chrome logo, explanation text, and `intent://` deep link button
+- Manual URL copy fallback text included
+
+### 2. Desktop → QR Interstitial (`scanner-qr.html`)
+When a store subdomain is opened on a desktop/laptop:
 
 ```js
 const ua = (request.headers.get('User-Agent') || '').toLowerCase()
@@ -152,6 +215,9 @@ const page = isMobile ? '/scanner.html' : '/scanner-qr.html'
 
 - Tablets (iPad) are treated as mobile — the scanner works on them
 - Desktop/laptop users see a QR code they can scan with their phone
+
+### 3. Mobile → Scanner PWA
+Mobile Chrome users get `scanner.html` with full barcode scanning capability.
 
 ### Page Structure
 
@@ -180,7 +246,8 @@ Triggered automatically:
 ### Key Files
 
 - `scanner-qr.html` — the QR interstitial page
-- `frontend-worker/src/index.js` — handles desktop/mobile routing for store subdomains
+- `scanner-test.html` — standalone debug page for wasm fallback pipeline (see `patterns/debugging.md`)
+- `frontend-worker/src/index.js` — handles desktop/mobile routing + Chrome enforcement for store subdomains
 - `api/src/qr.js` — QR generation helper (SVG → R2)
 - `api/src/routes/files.js` — on-the-fly QR generation fallback
 - `api/src/routes/stores.js` — QR gen on store create/slug change
@@ -201,6 +268,6 @@ Key elements referenced by the scanner app:
 - `#btn-install` — PWA install button
 - `#btn-menu` / `#panel-overlay` / `#results-panel` — slide-up results panel
 - `#profile-logo`, `#profile-name`, social link elements — store branding
-- `#banner-carousel`, `#discount-track` — promotion carousels
+- `#banner-carousel`, `#promo-carousel`, `#discount-track` — promotion carousels
 - `#promo-content`, `#promo-image` — triggered offers
 - `#toast` — notification

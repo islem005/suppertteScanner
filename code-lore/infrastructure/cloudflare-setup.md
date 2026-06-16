@@ -10,6 +10,10 @@ SKANER by ivond runs entirely on Cloudflare's free tier with a **Workers-only ar
 
 **Development model: Deployed-only.** All development happens against the live deployed instance at `https://ivond.com`. There is no local dev environment — changes are pushed to GitHub, then CI/CD builds, deploys, and runs the full test suite against production.
 
+**Requirements:**
+- **Node.js 22+** — CI runs on Node 22 (`actions/setup-node@v4` with `node-version: '22'`)
+- **Wrangler 4** — Both frontend and backend deploys use `wranglerVersion: 4`
+
 **Architecture:**
 ```
 *.ivond.com       ─┐
@@ -48,6 +52,8 @@ The frontend Worker serves all static assets and handles hostname-based routing.
 **Asset detection:** Requests for `.css`, `.js`, `.json`, `.svg`, `.png`, `.jpg`, `.ico`, `.woff2?`, `.ttf`, `.webmanifest`, `.map` are passed directly to `env.ASSETS.fetch()` without modification.
 
 **No-cache headers:** All HTML responses get `Cache-Control: no-store, no-cache, must-revalidate, proxy-revalidate` to prevent stale Cloudflare edge cache issues.
+
+**Version headers:** All HTML responses include `X-Worker-Version: v5` (or `v5-subdomain` / `v5-apex` for store-specific routes) for debugging cache/proxy issues.
 
 **Favicon:** `/favicon.ico` is handled inline in the Worker fetch handler — returns a branded SVG favicon (`image/svg+xml`) to prevent browser 404 noise.
 
@@ -115,6 +121,7 @@ Better Auth is configured with `sameSite: 'none'` and `secure: true` on the sess
 - `api/migrations/002_store_registrations.sql` — Store registration requests table
 - `api/migrations/003_client_tracking.sql` — Client device + page view tracking
 - `api/migrations/004_audit_log.sql` — Audit log for associate actions
+- `api/migrations/005_categories.sql` — Category table (global + per-store)
 
 **Apply migrations:**
 ```bash
@@ -123,12 +130,13 @@ wrangler d1 execute shelf-scanner-db --remote --file=migrations/002_r2.sql
 wrangler d1 execute shelf-scanner-db --remote --file=migrations/002_store_registrations.sql
 wrangler d1 execute shelf-scanner-db --remote --file=migrations/003_client_tracking.sql
 wrangler d1 execute shelf-scanner-db --remote --file=migrations/004_audit_log.sql
+wrangler d1 execute shelf-scanner-db --remote --file=migrations/005_categories.sql
 ```
 
 **D1 tables (20 total):**
 - Better Auth core: `user`, `session`, `account`, `verification`
 - Organization plugin: `organization`, `member`, `invitation`
-- App tables: `product`, `scan_event`, `store_branding`, `promotion`, `discount_item`, `import_mapping`, `pending_import`, `store_registration`, `client_device`, `page_view`, `audit_log`
+- App tables: `product`, `scan_event`, `store_branding`, `promotion`, `discount_item`, `import_mapping`, `pending_import`, `store_registration`, `client_device`, `page_view`, `audit_log`, `category`
 - Internal: `_cf_KV`
 
 ---
@@ -147,16 +155,27 @@ One bucket exists:
 
 ### Manual Deploy
 ```bash
-node build-frontend.mjs          # Build frontend + copy to frontend-worker/public/
-cd frontend-worker && wrangler deploy && cd ..
-cd api && wrangler deploy --config wrangler.prod.toml && cd ..
+npm run deploy:all
 ```
+
+This runs: `node build-frontend.mjs && cd frontend-worker && wrangler deploy && cd ../api && wrangler deploy --config wrangler.prod.toml && cd .. && node deploy-tests.mjs`
+
+**Steps:**
+1. Build frontend (`npm run build` → `dist/`)
+2. Copy assets to `frontend-worker/public/`
+3. Deploy frontend Worker
+4. Deploy backend Worker
+5. **Warm-up** — polls workers.dev health endpoint (up to ~120s) via `deploy-tests.mjs`
+6. **Run full test suite** via `deploy-tests.mjs` against workers.dev URL (bypasses Cloudflare WAF)
+7. **Fails on test failure** — exits with error code
+
+> **Note:** The first four steps were the original `deploy:all`; the warmup + test runner was added in Handoff v13. All env vars from the CI/CD table below apply.
 
 ### CI/CD (on push to main)
 
 **Pipeline file:** `.github/workflows/deploy.yml`
 
-Triggers on push to `main` branch or via `workflow_dispatch`. Uses concurrency gating (cancels in-flight runs for same branch).
+Triggers on push to `main` branch or via `workflow_dispatch`. Uses `concurrency.group: deploy-${{ github.ref }}` with `cancel-in-progress: true` — cancels in-flight runs for the same branch.
 
 **Environment:**
 | Env var | Source | Default | Notes |
@@ -168,17 +187,17 @@ Triggers on push to `main` branch or via `workflow_dispatch`. Uses concurrency g
 | `ORIGIN` | GitHub secret | `https://ivond.com` | |
 
 **Steps (timeout: 15min):**
-1. **Checkout + Setup Node.js 22** with npm cache
+1. **Checkout** + **Setup Node.js 22** with npm cache
 2. **Install dependencies** (`npm ci`)
 3. **Build frontend** (`npm run build` → `dist/`)
-4. **Copy assets to frontend-worker/public/**
+4. **Copy assets to frontend-worker/public/** (`node build-frontend.mjs`)
 5. **Deploy frontend Worker** via `cloudflare/wrangler-action@v3` with `wranglerVersion: 4` in `frontend-worker/`
 6. **Install API dependencies** (`cd api && npm ci`)
 7. **Deploy backend Worker** via `cloudflare/wrangler-action@v3` with `wranglerVersion: 4`: `wrangler deploy --config wrangler.prod.toml`
 8. **Security audit** — `npm audit --audit-level=high` (continue-on-error)
 9. **Warm-up** — polls workers.dev URL (`https://scanner-api.islemhassini.workers.dev/api/health`) every 10s for up to ~120s until 200 OK. Uses workers.dev to bypass Cloudflare WAF challenges on CI runners.
 10. **Run full test suite** (`npx vitest run --reporter=verbose`) against workers.dev URL (overrides `API_BASE` to `https://scanner-api.islemhassini.workers.dev/api` for WAF bypass)
-11. **Rollback on failure** — if tests fail, exits with error code (prevents green pipeline on broken deploy)
+11. **Rollback on failure** — if tests fail, exits with error code
 12. **Notify on failure** — prints `::error::` annotation if tests fail post-deploy
 
 ---

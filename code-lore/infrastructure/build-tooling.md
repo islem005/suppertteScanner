@@ -12,6 +12,7 @@ build: {
     input: {
       main: resolve(__dirname, 'index.html'),
       scanner: resolve(__dirname, 'scanner.html'),
+      scannerTest: resolve(__dirname, 'scanner-test.html'),
       dashboard: resolve(__dirname, 'dashboard/index.html'),
       admin: resolve(__dirname, 'admin/index.html'),
       auth: resolve(__dirname, 'auth/index.html')
@@ -20,7 +21,7 @@ build: {
 }
 ```
 
-Five entry points: home/index, scanner, dashboard, admin, auth.
+Six entry points: home/index, scanner, scanner-test (debug page for wasm fallback), dashboard, admin, auth.
 
 ## Slug Router Plugin
 
@@ -73,6 +74,7 @@ proxy: {
 dist/
 ├── index.html
 ├── scanner.html
+├── scanner-test.html
 ├── dashboard/
 │   └── index.html
 ├── admin/
@@ -83,4 +85,26 @@ dist/
 ├── js/              # copied static JS
 ├── css/             # copied static CSS
 └── sw.js            # copied as-is
+```
+
+## npm Dependencies Bundled by Vite
+
+Some previously CDN-loaded libraries are now npm dependencies bundled by Vite:
+
+| Package | Version | Used In |
+|---------|---------|---------|
+| `swiper` | ^12.2.0 | Scanner app carousels (banners, offers, discounts) |
+| `zxing-wasm` | ^3.1.0 | Scanner fallback (BarcodeDetector alternative) |
+
+### Swiper Import Pattern
+```js
+import Swiper from 'swiper';
+import { Autoplay, Pagination } from 'swiper/modules';
+import 'swiper/css';
+import 'swiper/css/pagination';
+```
+
+### zxing-wasm Import Pattern
+```js
+import { readBarcodesFromImageData, prepareZXingModule } from 'zxing-wasm/reader';
 ```

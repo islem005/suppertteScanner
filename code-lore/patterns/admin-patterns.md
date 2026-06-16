@@ -51,8 +51,10 @@ The admin panel SPA (`admin/index.html`, `admin/js/app.js`) is the platform admi
 - Data from: `API.getRegistrations()`, `API.approveRegistration()`, `API.rejectRegistration()`
 
 ### Stores
-- Store table: name, slug, created date, Explore + Delete buttons
+- Store table: name, slug, created date, Explore + Edit + Duplicate + Delete buttons
 - **New Store** modal: name + slug input with live URL preview (`ivond.com/{slug}`)
+- **Edit Store** modal: change store name/slug with live preview
+- **Duplicate Store** modal: pre-fills `{name} Copy` / `{slug}-copy`, slug preview updates on input. Calls `API.duplicateStore(id, name, slug)` → `POST /api/stores/:id/duplicate` which copies org + branding + mapping + products + promos + discounts + R2 images.
 - **Delete Store** modal: confirmation with warning about products & scans deletion
 - **Explore** → opens Store Detail view (see below)
 - Data from: `API.getStores()`
@@ -88,14 +90,17 @@ Opened from pending imports or Edit Mapping button:
 - Store selection table: each store with banner/offer counts
 - **Manage** → opens per-store promotion editor:
   - **Banners section:** table with image thumbnail, title, active status, Edit/Delete buttons. "+ New Banner" button opens modal with image crop at 800x300 (8:3), title, active toggle. GIF images supported.
-  - **Offers section:** table with image, title, trigger type/value, active, Edit/Delete buttons. "+ New Offer" button opens modal with image crop at 400x200 (2:1), title, trigger type dropdown (category/product), trigger value, active toggle.
+  - **Offers section:** table with image, title, trigger type/value, active, Edit/Delete buttons. "+ New Offer" button opens modal with image crop at 400x200 (2:1), title, trigger type dropdown (category/product/barcode scan), trigger value, active toggle.
+  - Barcode scanner overlay available for product-triggered offers
   - Data from: `API.getBanner()`, `API.getOffers()`, `API.getStorePromotions()` etc.
 
 ### Discounts
 - Store selection table: each store with discount item count
 - **Manage** → opens per-store discount editor:
   - Table: image thumbnail, name, barcode, category, price with strikethrough, discount %, featured star, active, Edit/Delete buttons
+  - Search input with debounced server-side LIKE query on barcode+name
   - CRUD modal: image picker + crop at 300x400 (3:4), barcode, name, category, original price, discount type (percent/fixed), featured/active toggles, live price preview calculator
+  - Barcode scanner overlay for scanning product barcode into the discount form
   - Data from: `API.getDiscounts()`, `API.getDiscount()`, etc.
 
 ### Branding
@@ -103,6 +108,7 @@ Opened from pending imports or Edit Mapping button:
 - **Modify Branding** → opens per-store branding editor (same as dashboard branding but admin can edit any store)
   - Phone mockup preview with live updates
   - Fields: display name, logo, primary/accent colors, contact info, footer text, social links
+  - QR code download: PNG (`QRCode.toCanvas` → data URL) and SVG (Blob + `URL.createObjectURL`)
   - Back button returns to store list
 
 ### Activity
@@ -128,6 +134,7 @@ Opened from pending imports or Edit Mapping button:
 - Same pattern as dashboard API client but with additional admin-specific methods:
   - `getPendingImports()`, `mapImport()`, `remapImport()`, `testImport()`, `verifyImport()`, `rejectImport()`, `saveMapping()`, `deleteMapping()`
   - `getBanner()`, `getOffers()`
+  - `duplicateStore(id, name, slug)` — calls `POST /api/stores/:id/duplicate`
   - `sendEmail()` — sends email via `POST /api/email/send` with from, to, subject, body, attachments
 - Auto-redirects to `/admin/` on 401
 

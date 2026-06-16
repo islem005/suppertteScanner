@@ -49,15 +49,20 @@ If a plan requires something not covered in code-lore, stop and ask how to proce
 ```bash
 npm run deploy:all
 ```
-This runs: `node build-frontend.mjs && cd frontend-worker && wrangler deploy && cd ../api && wrangler deploy --config wrangler.prod.toml`
+This runs: `node build-frontend.mjs && cd frontend-worker && wrangler deploy && cd ../api && wrangler deploy --config wrangler.prod.toml && cd .. && node deploy-tests.mjs`
+
+The `deploy-tests.mjs` script polls the health endpoint (up to ~120s), then runs the full test suite. Exits with error on test failure.
 
 ### Testing
-Tests run **post-deploy** against the live production URL via CI/CD:
+Tests run **post-deploy** against the live production URL via CI/CD or `npm run deploy:all`:
 ```bash
-# Manually run tests against production:
-API_BASE=https://ivond.com/api npx vitest run
+# Manually run tests against production (uses workers.dev to bypass WAF):
+npm run deploy:all
 
-# Or test against local wrangler dev (pre-deploy debugging):
+# Or manually against any URL:
+API_BASE=https://scanner-api.islemhassini.workers.dev/api npx vitest run --reporter=verbose
+
+# Test against local wrangler dev (pre-deploy debugging):
 npx vitest run
 ```
 

@@ -4,8 +4,9 @@
 
 Used by both the scanner and dashboard apps. Single SW for the whole `ivond.com` domain.
 
-- **Cache name:** `shelf-scanner-v5`
+- **Cache name:** `shelf-scanner-v5` (bump version when updating SW to force re-cache)
 - **Strategy:** Network-first with cache fallback (navigate requests), cache-first with network update (static assets)
+- **No-cache:** The frontend Worker serves `sw.js` with `Cache-Control: no-store, no-cache` headers to prevent edge cache staleness. The SW is excluded from Workers Assets cache in the Worker fetch handler.
 
 ### Install
 ```js
@@ -27,6 +28,7 @@ on GET request:
 ```
 - Non-GET requests pass through untouched
 - Offline fallback page: `/offline.html`
+- **Cache version bumping:** When pushing SW updates, increment the `CACHE` version constant (e.g., `shelf-scanner-v5` → `shelf-scanner-v6`). The activate handler deletes all caches not matching the current version.
 
 ---
 

@@ -119,6 +119,31 @@ npm run start                # Vite dev + wrangler dev concurrently
 # All API calls proxy to wrangler dev on :3002
 ```
 
+## Debugging Tools
+
+### Scanner Test Page (`scanner-test.html`)
+A standalone page for debugging the zxing-wasm fallback pipeline:
+- **"Start Scanning"** — live camera + zxing-wasm detection (same code path as production)
+- **"Capture & Detect"** — single-frame capture + decode
+- **"Draw & Detect"** — generates EAN-13 via JsBarcode, runs `detectFromCanvas()` to verify end-to-end
+- Shows detected barcode values, formats, and timing info
+- Built entry point: `scannerTest` in `vite.config.js`
+- Key file: `js/zxing-module.js` (imported as ES module)
+
+### `wrangler tail` — Live Production Logs
+```bash
+wrangler tail               # Streams logs from scanner-api (production)
+```
+
+### Workers.dev URL (WAF Bypass for Testing)
+The workers.dev URL bypasses Cloudflare WAF:
+```
+https://scanner-api.islemhassini.workers.dev/api/health
+```
+Used in CI/CD for warm-up polling and test execution.
+
+---
+
 ## Quick Commands
 
 | Command | What it does |

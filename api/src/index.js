@@ -6,6 +6,7 @@ import { authRouter } from './routes/auth.js'
 import { storesRouter } from './routes/stores.js'
 import { productsRouter } from './routes/products.js'
 import { lookupRouter } from './routes/lookup.js'
+import { scanRouter } from './routes/scan.js'
 import { scansRouter } from './routes/scans.js'
 import { brandingRouter } from './routes/branding.js'
 import { adminRouter } from './routes/admin.js'
@@ -79,6 +80,7 @@ app.route('/api/auth', authRouter)
 app.route('/api/stores', storesRouter)
 app.route('/api/products', productsRouter)
 app.route('/api/lookup', lookupRouter)
+app.route('/api/scan', scanRouter)
 app.route('/api/scans', scansRouter)
 app.route('/api/branding', brandingRouter)
 app.route('/api/admin', adminRouter)

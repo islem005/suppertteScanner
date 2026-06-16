@@ -72,6 +72,6 @@ describe('GET /api/lookup/:slug (public barcode lookup)', () => {
     const res = await fetch(`${API_BASE}/lookup/${STORE_SLUG}?barcode=UNKNOWN_BARCODE_99999`)
     const body = await res.json()
     // May or may not have an offer, but the field should exist
-    expect(body).toHaveProperty('offer')
+    expect(body).toHaveProperty('offers')
   })
 })

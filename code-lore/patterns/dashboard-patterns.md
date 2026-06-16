@@ -38,7 +38,7 @@ The dashboard SPA (`dashboard/index.html`, `dashboard/js/app.js`) is the store m
 
 ### Products
 - Product table: barcode (monospace), name, price (DA), category, delete button
-- Search filter: filters by barcode or name on input
+- Search filter: server-side LIKE query on barcode+name with 300ms debounce
 - Delete with inline `deleteProduct(id)` function
 - Data from: `API.getProducts()`
 
@@ -56,9 +56,11 @@ The dashboard SPA (`dashboard/index.html`, `dashboard/js/app.js`) is the store m
 - CRUD via modal: New/Edit offer with image crop, title, trigger type/value, active toggle
 - Delete with confirmation modal
 - Image cropped via `cropImage()` at 400x200 (2:1 ratio)
+- **Barcode scanner in offer triggers**: Product-triggered offers can use the barcode scanner overlay to select a product by scanning
 
 ### Discounts
 - Table of discount items: image, name, barcode, category, price (strikethrough + new), discount %, featured star, active
+- **Search**: `#discount-search` input with 300ms debounce, passes `?q=` to server-side LIKE on barcode+name, resets to page 1 on search
 - CRUD modal with:
   - Image picker + crop at 300x400 (3:4 ratio) with camera capture support
   - Discount type: percentage off or fixed price (toggle fields dynamically)
@@ -73,6 +75,9 @@ The dashboard SPA (`dashboard/index.html`, `dashboard/js/app.js`) is the store m
 - Social links: Instagram, TikTok, Website, Facebook, Twitter, YouTube
 - Preview updates: logo, name, social links visibility, primary/accent colors on the mockup
 - Save: `API.updateBranding()`, shows success/error message
+- **QR code download**: Two buttons (`#btn-dash-download-qr` for PNG, `#btn-dash-download-qr-svg` for SVG):
+  - PNG: `QRCode.toCanvas()` → `canvas.toDataURL()` → download
+  - SVG: `QRCode.toString(url, { type: 'svg' })` → `new Blob([svg], { type: 'image/svg+xml' })` → `URL.createObjectURL(blob)` → download
 
 ### Activity
 - Top scanned products for the store
@@ -80,7 +85,8 @@ The dashboard SPA (`dashboard/index.html`, `dashboard/js/app.js`) is the store m
 - Data from: `API.getScanStats()`
 
 ### Analytics
-- Chart area with scan trend data (last 7/30/90 days)
+- Chart area with scan trend data (last 7/30/90 days) — rendered as inline SVG
+- **SVG chart pattern**: Uses `<rect>`, `<line>`, `<text>` elements with `fill="var(--color-primary)"` and `fill="var(--color-success)"` for visits/scans bars. No chart library dependency.
 - Date range picker + Export CSV button
 - Data from: `API.getAnalytics()`, `API.exportAnalytics()`
 - Only visible to managers/admins (blocked for associates)
@@ -126,6 +132,80 @@ The `I18N` singleton handles internationalization (shared across all apps):
 | Offers | `newOffer`, `editOffer`, `deleteOffer`, `saveOffer`, `offerSaved`, `noOffers` |
 | Discounts | `newDiscount`, `editDiscount`, `deleteDiscount`, `saveDiscount`, `discSaved`, `noDiscounts`, `discBarcode`, `discName`, `discPercent`, `discFixed` |
 | General | `delete`, `cancel`, `confirm`, `edit`, `errorPrefix` |
+
+---
+
+## Reusable Patterns
+
+### Search-as-You-Type (Debounced)
+Used in Products and Discounts views:
+```js
+const input = $('discount-search')
+input && (input.oninput = () => {
+  clearTimeout(window._discSearchTimer)
+  window._discSearchTimer = setTimeout(() => {
+    discountsPage = 1  // Reset to page 1 on new search
+    loadDiscounts()
+  }, 300)
+})
+```
+- Server-side: `WHERE barcode LIKE '%q%' OR name LIKE '%q%'`
+- Client-side: 300ms debounce, resets pagination to page 1
+- Same pattern in products with `#product-search`
+
+### Dynamic Barcode Scanner Overlay
+Injected full-screen camera overlay used in offer/discount modals for barcode input:
+
+```js
+function startBarcodeScanner(onDetected) {
+  // Creates #scanner-overlay with:
+  // - Full-screen video (object-fit: cover)
+  // - Corner bracket frame (scanner-corner-tl/tr/bl/br)
+  // - Animated scan line (scanner-scan-line, 2s infinite loop)
+  // - Result display (scanner-result, bottom 22%)
+  // - Close button in toolbar
+  // Uses the Scanner module for camera + detection
+  // Calls onDetected(barcodeValue) on successful scan
+}
+```
+- Uses `Scanner` singleton for camera + detection
+- Inline CSS uses custom properties for dark overlay theme
+- Callback-based: `startBarcodeScanner(async (barcode) => { ... })`
+- Used in: product-triggered offers, discount creation, manual barcode entry
+
+### Cache-Busting Pattern
+```js
+const cacheBust = () => `_t=${Date.now()}`
+fetch(`/api/some-endpoint?${cacheBust()}`)
+```
+Used for promotions, discounts, and banners fetches to prevent edge cache staleness.
+
+### Inline SVG Chart (No Library)
+Analytics bar charts rendered as raw SVG strings:
+```js
+let svg = `<svg viewBox="0 0 ${chartW} ${chartH}" ...>`
+// Bars: <rect fill="var(--color-primary)" ...>
+// X-axis labels: <text ...>
+// Legend: <rect> + <text> pairs
+el.innerHTML = svg
+```
+- Uses CSS custom properties for theming (`var(--color-primary)`, `var(--color-success)`)
+- `<title>` elements for hover tooltips
+
+### Pagination Helper
+```js
+function paginationHtml(current, total, perPage, goToFnName) {
+  // Renders prev/next + page numbers
+  // Returns HTML string, e.g.:
+  // <div class="pagination">
+  //   <button onclick="goToFnName(1)">«</button>
+  //   <button onclick="goToFnName(2)" class="active">2</button>
+  //   <button onclick="goToFnName(3)">3</button>
+  //   <button onclick="goToFnName(5)">»</button>
+  // </div>
+}
+```
+Used in Products, Offers, Discounts, Team, and Audit Log views.
 
 ---
 
