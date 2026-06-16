@@ -1604,27 +1604,15 @@
   const btnInstallDash = document.getElementById('btn-install-dash');
   if (btnInstallDash) {
     btnInstallDash.addEventListener('click', async () => {
-      if (!deferredPrompt) {
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-          showToast('Already installed');
-          return;
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        if (result.outcome === 'accepted') {
+          deferredPrompt = null;
+          btnInstallDash.style.display = 'none';
         }
-        if (typeof navigator.install === 'function') {
-          try { await navigator.install(); return; } catch {}
-        }
-        showToast('Tap ⋮ → Install App');
-        return;
-      }
-      deferredPrompt.prompt();
-      const result = await deferredPrompt.userChoice;
-      if (result.outcome === 'accepted') {
-        deferredPrompt = null;
-        const btn = document.getElementById('btn-install-dash');
-        if (btn) btn.style.display = 'none';
       }
     });
-  } else {
-    console.warn('Missing #btn-install-dash — install button not rendered');
   }
 
   // ─── Helpers ───

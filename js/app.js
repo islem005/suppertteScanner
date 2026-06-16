@@ -78,6 +78,8 @@ import 'swiper/css/pagination';
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
+    const btn = document.getElementById('btn-install');
+    if (btn) { btn.style.display = ''; if (typeof feather !== 'undefined') feather.replace(); }
   });
 
   window.addEventListener('appinstalled', () => {
@@ -403,25 +405,12 @@ import 'swiper/css/pagination';
 
   if (btnInstall) {
     btnInstall.addEventListener('click', async () => {
-      if (!deferredPrompt) {
-        if (window.matchMedia('(display-mode: standalone)').matches) {
-          showToast('Already installed');
-          return;
-        }
-        if (typeof navigator.install === 'function') {
-          try { await navigator.install(); return; } catch {}
-        }
-        showToast('Tap ⋮ → Install App');
-        return;
-      }
-      deferredPrompt.prompt();
-      const result = await deferredPrompt.userChoice;
-      if (result.outcome === 'accepted') {
-        deferredPrompt = null;
+      if (deferredPrompt) {
+        deferredPrompt.prompt();
+        const result = await deferredPrompt.userChoice;
+        if (result.outcome === 'accepted') deferredPrompt = null;
       }
     });
-  } else {
-    console.warn('Missing #btn-install — install button not rendered');
   }
 
 window.addEventListener('unhandledrejection', e => {
