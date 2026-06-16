@@ -1591,14 +1591,10 @@
   window.addEventListener('beforeinstallprompt', e => {
     e.preventDefault();
     deferredPrompt = e;
-    const btn = document.getElementById('btn-install-dash');
-    if (btn) { btn.style.display = ''; if (typeof feather !== 'undefined') feather.replace(); }
   });
 
   window.addEventListener('appinstalled', () => {
     deferredPrompt = null;
-    const btn = document.getElementById('btn-install-dash');
-    if (btn) btn.style.display = 'none';
   });
 
   const btnInstallDash = document.getElementById('btn-install-dash');
@@ -1607,10 +1603,9 @@
       if (deferredPrompt) {
         deferredPrompt.prompt();
         const result = await deferredPrompt.userChoice;
-        if (result.outcome === 'accepted') {
-          deferredPrompt = null;
-          btnInstallDash.style.display = 'none';
-        }
+        if (result.outcome === 'accepted') deferredPrompt = null;
+      } else if (typeof navigator.install === 'function') {
+        try { await navigator.install(); } catch {}
       }
     });
   }
