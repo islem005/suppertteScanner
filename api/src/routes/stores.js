@@ -236,7 +236,7 @@ router.post('/:id/duplicate', async (c) => {
   for (const d of discounts) {
     const newImageUrl = await copyR2File(c.env, d.image_url, sourceId, newId)
     stmts.push(c.env.DB.prepare(
-      'INSERT INTO discount_item (id, store_id, barcode, name, image_data, image_url, category, original_price, new_price, discount_percent, featured, active, priority, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
+      'INSERT INTO discount_item (id, store_id, barcode, name, image_data, image_url, category, original_price, new_price, discount_percent, featured, active, priority, created_at, updated_at) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)'
     ).bind(uuid(), newId, d.barcode, d.name, d.image_data, newImageUrl, d.category, d.original_price, d.new_price, d.discount_percent, d.featured, d.active, d.priority, now, now))
   }
 
