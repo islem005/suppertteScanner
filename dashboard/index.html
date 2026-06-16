@@ -281,7 +281,25 @@
 
   <script>
     if ('serviceWorker' in navigator) {
-      navigator.serviceWorker.register('/sw.js').catch(() => {});
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        reg.update();
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (sw) {
+            sw.addEventListener('statechange', () => {
+              if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                sw.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          }
+        });
+      }).catch(() => {});
+      navigator.serviceWorker.addEventListener('message', e => {
+        if (e.data && e.data.type === 'RELOAD') {
+          window.showToast('App updated');
+          setTimeout(() => window.location.reload(), 500);
+        }
+      });
     }
   </script>
   <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>

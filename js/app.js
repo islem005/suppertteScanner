@@ -406,7 +406,12 @@ import 'swiper/css/pagination';
       if (!deferredPrompt) {
         if (window.matchMedia('(display-mode: standalone)').matches) {
           showToast('Already installed');
+          return;
         }
+        if (typeof navigator.install === 'function') {
+          try { await navigator.install(); return; } catch {}
+        }
+        showToast('Tap ⋮ → Install App');
         return;
       }
       deferredPrompt.prompt();

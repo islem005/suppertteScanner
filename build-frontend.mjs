@@ -1,6 +1,6 @@
 // Builds the frontend and copies dist/ into frontend-worker/public/
 // Run: node build-frontend.mjs
-import { copyFile, mkdir, rm, readdir, stat } from 'node:fs/promises'
+import { copyFile, mkdir, rm, readdir, stat, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { execSync } from 'node:child_process'
 import { join, dirname } from 'node:path'
@@ -12,6 +12,13 @@ const PUBLIC = join(ROOT, 'frontend-worker', 'public')
 
 console.log('[1/3] Building frontend...')
 execSync('npm run build', { cwd: ROOT, stdio: 'inherit' })
+
+// Inject build timestamp into sw.js for automatic cache busting
+const swPath = join(DIST, 'sw.js')
+let swContent = await readFile(swPath, 'utf-8')
+swContent = swContent.replace('__BUILD_TS__', String(Date.now()))
+await writeFile(swPath, swContent, 'utf-8')
+console.log('  → Injected build timestamp into sw.js')
 
 console.log('[2/3] Cleaning public/...')
 if (existsSync(PUBLIC)) await rm(PUBLIC, { recursive: true })
