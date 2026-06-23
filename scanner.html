@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, orientation=portrait">
   <meta name="theme-color" content="#0c0c0d">
   <meta name="mobile-web-app-capable" content="yes">
   <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
@@ -17,6 +17,7 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
   <link id="manifest-link" rel="manifest" href="/manifest.json">
   <script>!function(){var h=location.hostname,s=location.pathname.replace(/\/+$/,'').replace(/^\//,''),link=document.getElementById('manifest-link');if(h.endsWith('.ivond.com')&&h!=='ivond.com'&&!h.startsWith('admin.')&&!h.startsWith('www.')){link.href='/api/manifest?slug='+encodeURIComponent(h.split('.')[0])}else{var r=['','index.html','scanner.html','scanner','dashboard','admin','auth'];if(!h.startsWith('www.')&&s&&!r.includes(s)&&!s.startsWith('dashboard')&&!s.startsWith('admin')&&!s.startsWith('auth'))link.href='/api/manifest?slug='+encodeURIComponent(s)}}()</script>
+  <script>if(screen.orientation&&screen.orientation.lock)screen.orientation.lock('portrait').catch(function(){})</script>
   <link rel="stylesheet" href="css/tokens.css">
   <link rel="stylesheet" href="css/style.css">
 </head>

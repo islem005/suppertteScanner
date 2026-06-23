@@ -63,8 +63,7 @@ window.scannerCore = (() => {
     const detector = new BarcodeDetector({
       formats: [
         'ean_13', 'ean_8', 'upc_a', 'upc_e', 'code_128', 'code_39',
-        'qr_code', 'data_matrix', 'itf', 'codabar', 'pdf417', 'aztec',
-        'msi', 'databar', 'databar_expanded'
+        'qr_code', 'data_matrix', 'itf', 'codabar', 'pdf417', 'aztec'
       ]
     });
     return detector.detect(videoEl);

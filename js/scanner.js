@@ -20,7 +20,7 @@ const Scanner = (() => {
       try {
         detector = new BarcodeDetector({ formats: [
           'qr_code', 'ean_13', 'ean_8', 'code_128', 'code_39',
-          'code_93', 'codabar', 'itf', 'upc_a', 'upc_e',
+          'codabar', 'itf', 'upc_a', 'upc_e',
           'data_matrix', 'aztec', 'pdf417'
         ]});
       } catch (_) {}
@@ -44,9 +44,12 @@ const Scanner = (() => {
       }
     }
 
+    const hasDecoder = !!(detector || fallbackDetect);
+    console.warn('[Scanner] detection path:', detector ? 'native BarcodeDetector' : fallbackDetect ? 'zxing-wasm fallback' : 'no decoder', '| hasDecoder:', hasDecoder);
+
     try {
       stream = await scannerCore.startCamera(null, { facingMode });
-      return { ok: true, hasDecoder: !!(detector || fallbackDetect) };
+      return { ok: true, hasDecoder };
     } catch (e) {
       return { ok: false, error: 'Camera not available.', hasDecoder: false };
     }
@@ -77,6 +80,9 @@ const Scanner = (() => {
           codes = await detector.detect(videoEl);
         } else {
           return;
+        }
+        if (codes.length > 0) {
+          console.warn('[Scanner] detected', codes.length, 'barcodes:', codes.map(c => c.rawValue).join(', '));
         }
         if (active && codes.length > 0) {
           processResults(codes);

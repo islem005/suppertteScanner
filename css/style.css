@@ -143,30 +143,31 @@ html, body { overflow: hidden; height: 100%; }
 #cam-overlay {
   position: absolute; inset: 0;
   display: flex; flex-direction: column;
-  align-items: center; justify-content: center;
+  align-items: center; justify-content: flex-start;
+  padding-top: max(4vh, 24px);
   gap: var(--space-1);
   pointer-events: none;
   z-index: 1;
 }
 
 #cam-name {
-  font-size: clamp(0.8rem, 3.5vw, 1.25rem); font-weight: 700; color: var(--text-primary);
+  font-size: clamp(1.4rem, 6vw, 2.2rem); font-weight: 800; color: var(--text-primary);
   text-align: center; line-height: 1.2;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.7);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.8);
   transition: font-size var(--transition-fast), color var(--transition-fast);
 }
 #cam-name.hint {
-  font-size: clamp(0.65rem, 2.5vw, 0.875rem); font-weight: 500; color: var(--text-tertiary);
+  font-size: clamp(1rem, 4vw, 1.4rem); font-weight: 600; color: var(--text-tertiary);
 }
 
 #cam-price {
-  font-size: clamp(1rem, 5vw, 1.5rem); font-weight: 800; color: var(--color-success);
+  font-size: clamp(1.6rem, 8vw, 2.6rem); font-weight: 800; color: var(--color-success);
   text-align: center; line-height: 1.2;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.7);
+  text-shadow: 0 2px 12px rgba(0,0,0,0.8);
   transition: font-size var(--transition-fast), color var(--transition-fast);
 }
 #cam-price.error {
-  font-size: clamp(0.6rem, 2vw, 0.75rem); color: var(--text-tertiary);
+  font-size: clamp(0.85rem, 3vw, 1.1rem); color: var(--text-tertiary);
   font-family: var(--font-mono); letter-spacing: 0.5px;
 }
 
@@ -413,8 +414,60 @@ html, body { overflow: hidden; height: 100%; }
   .avatar-ring { width: 28px; height: 28px; }
   #profile-brand { font-size: 0.5rem; }
 
-  #cam-name { font-size: clamp(0.65rem, 2vw, 1rem); }
-  #cam-price { font-size: clamp(0.8rem, 3vw, 1.25rem); }
+  #cam-overlay { padding-top: max(3vh, 16px); }
+  #cam-name { font-size: clamp(1rem, 3.5vw, 1.6rem); }
+  #cam-name.hint { font-size: clamp(0.85rem, 2.5vw, 1.1rem); }
+  #cam-price { font-size: clamp(1.2rem, 5vw, 2rem); }
 
   .discount-card img { max-width: 60px; }
 }
+
+/* ─── Browser Unsupported Modal ─── */
+#scanner-modal {
+  position: fixed; inset: 0; z-index: 9999;
+  display: flex; align-items: center; justify-content: center;
+  padding: var(--space-6);
+}
+#scanner-modal-bg {
+  position: absolute; inset: 0;
+  background: rgba(0,0,0,0.7);
+}
+#scanner-modal-box {
+  position: relative;
+  background: var(--bg-card, #1a1a2e);
+  border-radius: 16px;
+  padding: 32px 24px;
+  max-width: 340px;
+  width: 100%;
+  text-align: center;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.5);
+}
+#scanner-modal-icon {
+  margin-bottom: 16px;
+  color: var(--color-primary, #6366f1);
+}
+#scanner-modal-heading {
+  margin: 0 0 8px;
+  font-size: 1.2rem;
+  font-weight: 700;
+  color: var(--text-primary, #f1f5f9);
+}
+#scanner-modal-message {
+  margin: 0 0 24px;
+  font-size: 0.9rem;
+  line-height: 1.5;
+  color: var(--text-secondary, #94a3b8);
+}
+#scanner-modal-close {
+  display: inline-block;
+  padding: 10px 32px;
+  background: var(--color-primary, #6366f1);
+  color: #fff;
+  border: 0;
+  border-radius: 8px;
+  font-size: 0.95rem;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+
