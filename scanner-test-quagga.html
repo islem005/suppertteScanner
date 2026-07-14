@@ -1,0 +1,232 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0c0c0d">
+<title>Test — Quagga</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{--bg:#0f0f1a;--card:#1a1a2e;--border:#2a2a3e;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6;--orange:#f59e0b}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);height:100dvh;overflow:hidden;display:flex;flex-direction:column}
+.top-bar{flex:0 0 auto;display:flex;align-items:center;gap:8px;padding:8px 12px;background:var(--card);border-bottom:1px solid var(--border)}
+.top-bar h1{font-size:15px;font-weight:600}
+.top-bar .badge{font-size:10px;padding:2px 8px;border-radius:4px;background:var(--orange);color:#000;font-weight:700}
+.video-wrap{flex:1;position:relative;background:#000;overflow:hidden;display:none}
+.video-wrap video{width:100%;height:100%;object-fit:cover}
+.video-wrap .overlay{position:absolute;top:0;left:0;right:0;bottom:0;display:flex;flex-direction:column;justify-content:center;align-items:center;pointer-events:none}
+.video-wrap .overlay .hint{color:#fff;font-size:14px;font-weight:600;text-shadow:0 2px 8px rgba(0,0,0,.8);background:rgba(0,0,0,.5);padding:6px 16px;border-radius:8px}
+.video-wrap .overlay .result{color:#22c55e;font-size:18px;font-weight:700;text-shadow:0 2px 8px rgba(0,0,0,.8);background:rgba(0,0,0,.6);padding:8px 20px;border-radius:12px;margin-top:8px;display:none}
+#quagga-viewport{flex:1;background:#000;display:none;position:relative}
+#quagga-viewport video,#quagga-viewport canvas{width:100%;height:100%;object-fit:cover;position:absolute;top:0;left:0}
+#quagga-viewport canvas{pointer-events:none}
+.placeholder{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;color:var(--text3);gap:8px;padding:20px}
+.placeholder .icon{font-size:48px;opacity:.3}
+.controls{flex:0 0 auto;display:flex;gap:8px;padding:8px 12px;background:var(--card);border-top:1px solid var(--border);flex-wrap:wrap}
+.btn{padding:10px 20px;border:0;border-radius:8px;font-size:13px;font-weight:600;cursor:pointer;color:#fff;flex:1;min-width:80px;text-align:center}
+.btn:disabled{opacity:.4;cursor:default}
+.btn.green{background:var(--green)}.btn.red{background:var(--red)}.btn.blue{background:var(--blue)}.btn.purple{background:var(--purple)}.btn.orange{background:var(--orange)}
+.btn.outline{background:transparent;border:1px solid var(--border);color:var(--text2)}
+.panel{flex:0 0 auto;background:var(--card);border-top:1px solid var(--border);padding:8px 12px;font-size:12px;font-family:monospace;line-height:1.6;max-height:120px;overflow-y:auto}
+.panel .label{color:var(--text2)}.panel .val{word-break:break-all}
+.error{color:var(--red)}.ok{color:var(--green)}
+#error-box{display:none;padding:6px 10px;background:#3b0000;border:1px solid var(--red);border-radius:4px;color:#ff8a8a;font-size:11px;font-family:monospace;white-space:pre-wrap;margin-bottom:4px;max-height:60px;overflow-y:auto}
+#cv-wrap{display:none;background:#000;border-bottom:1px solid var(--border)}
+#cv-wrap canvas{width:100%;display:block;max-height:120px}
+.back-link{color:var(--text3);text-decoration:none;font-size:12px;margin-right:auto}
+.back-link:hover{color:var(--text)}
+</style>
+</head>
+<body>
+
+<div class="top-bar">
+  <a href="/scanner-test" class="back-link">&larr; Back</a>
+  <h1>Quagga</h1>
+  <span class="badge">decoder</span>
+</div>
+
+<div class="placeholder" id="placeholder">
+  <div class="icon">&#128247;</div>
+  <div>Press Start to begin scanning</div>
+</div>
+
+<div id="quagga-viewport"></div>
+
+<div class="video-wrap" id="video-wrap">
+  <video id="video" autoplay playsinline muted></video>
+  <div class="overlay">
+    <div class="hint" id="hint">Point camera at barcode</div>
+    <div class="result" id="result-text"></div>
+  </div>
+</div>
+
+<div id="cv-wrap">
+  <canvas id="scan-canvas"></canvas>
+</div>
+
+<div class="controls">
+  <button id="btn-start" class="btn green">Start</button>
+  <button id="btn-stop" class="btn red" disabled>Stop</button>
+  <button id="btn-self" class="btn purple">Draw &amp; Detect</button>
+</div>
+
+<div class="panel">
+  <div id="error-box"></div>
+  <div id="r-result">Ready.</div>
+  <div id="d-info"></div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/quagga@0.12.1/dist/quagga.min.js"></script>
+<script type="module">
+const video = document.getElementById('video')
+const btnStart = document.getElementById('btn-start')
+const btnStop = document.getElementById('btn-stop')
+const btnSelf = document.getElementById('btn-self')
+const canvasEl = document.getElementById('scan-canvas')
+const cvWrap = document.getElementById('cv-wrap')
+const rResult = document.getElementById('r-result')
+const dInfo = document.getElementById('d-info')
+const errorBox = document.getElementById('error-box')
+const hint = document.getElementById('hint')
+const resultText = document.getElementById('result-text')
+const videoWrap = document.getElementById('video-wrap')
+const placeholder = document.getElementById('placeholder')
+const quaggaViewport = document.getElementById('quagga-viewport')
+
+let running = false, count = 0
+
+function show(msg) { rResult.innerHTML = msg }
+function info(msg) { dInfo.textContent = msg }
+
+function showError(msg) {
+  errorBox.style.display = 'block'
+  errorBox.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + msg
+  errorBox.scrollTop = errorBox.scrollHeight
+  console.error(msg)
+}
+window.onerror = (_, _2, _3, _4, err) => showError('UNHANDLED: ' + (err?.message || err || 'unknown'))
+window.addEventListener('unhandledrejection', e => showError('UNHANDLED PROMISE: ' + (e.reason?.message || e.reason || 'unknown')))
+
+const qReaders = ['ean_reader']
+const Q = window.Quagga
+
+if (typeof Q === 'undefined') {
+  showError('Quagga not loaded from CDN')
+  show('<span class="error">Quagga failed to load</span>')
+} else {
+  show('<span class="ok">&#10003; Quagga loaded (v' + (Q.version || '?') + ')</span>')
+}
+
+Q.onDetected(function(result) {
+  if (!running) return
+  count++
+  const code = result.codeResult
+  if (!code || !code.code) return
+  const msg = '&#10003; <span class="label">Code:</span> <span class="val">' + esc(code.code) + '</span> <span class="label">Format:</span> ' + esc(code.format) + ' <span class="label">(' + count + ')</span>'
+  show(msg)
+  resultText.textContent = code.code
+  resultText.style.display = 'block'
+  hint.textContent = 'Detected!'
+  setTimeout(() => { hint.textContent = 'Point camera at barcode'; resultText.style.display = 'none' }, 2000)
+})
+
+Q.onProcessed(function(result) {
+  if (!running) return
+  try {
+    const ctx = Q.canvas.ctx.overlay
+    if (ctx) {
+      ctx.clearRect(0, 0, Q.canvas.dom.overlay.width, Q.canvas.dom.overlay.height)
+    }
+  } catch(_) {}
+})
+
+async function startScanning() {
+  if (running) return
+  if (typeof Q === 'undefined') { showError('Quagga not loaded'); return }
+  show('Initializing Quagga...'); info('')
+  Q.init({
+    inputStream: {
+      name: "Live",
+      type: "LiveStream",
+      target: quaggaViewport,
+      constraints: {
+        width: { ideal: 1280 },
+        height: { ideal: 720 },
+        facingMode: { ideal: "environment" }
+      }
+    },
+    locator: { patchSize: "large", halfSample: true },
+    numOfWorkers: 0,
+    decoder: { readers: qReaders },
+    locate: true
+  }, function(err) {
+    if (err) {
+      showError('Quagga init: ' + (err.message || err))
+      show('<span class="error">Init: ' + (err.message || err) + '</span>')
+      return
+    }
+    placeholder.style.display = 'none'
+    quaggaViewport.style.display = 'block'
+    btnStart.disabled = true; btnStop.disabled = false
+    running = true; count = 0
+    Q.start()
+    setTimeout(() => {
+      try {
+        const v = Q.canvas.dom.video
+        if (v) info('Camera: ' + v.videoWidth + 'x' + v.videoHeight + ' | Readers: EAN-13')
+      } catch(_) {}
+    }, 500)
+    show('<span class="ok">Scanning...</span>')
+  })
+}
+
+function stopScanning() {
+  if (!running) return
+  try { Q.stop() } catch(_) {}
+  running = false
+  quaggaViewport.style.display = 'none'
+  placeholder.style.display = 'flex'
+  btnStart.disabled = false; btnStop.disabled = true
+  show('Stopped (' + count + ' detections)')
+}
+
+async function drawAndDetect() {
+  show('Drawing test barcode...'); info('')
+  canvasEl.width = 400; canvasEl.height = 200
+  const ctx = canvasEl.getContext('2d')
+  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 400, 200)
+  try {
+    JsBarcode(canvasEl, '1234567890128', { format: 'EAN13', width: 2, height: 100, displayValue: true, margin: 10 })
+    cvWrap.style.display = 'block'
+    const imageData = ctx.getImageData(0, 0, canvasEl.width, canvasEl.height)
+    const startTime = performance.now()
+    Q.decodeSingle({
+      decoder: { readers: qReaders, multiple: false },
+      locate: true,
+      src: imageData
+    }, function(result) {
+      const elapsed = performance.now() - startTime
+      if (result && result.codeResult && result.codeResult.code) {
+        const code = result.codeResult
+        info('Canvas: 400x200 | Time: ' + elapsed.toFixed(1) + 'ms | Format: ' + code.format)
+        show('&#10003; <span class="label">Code:</span> <span class="val">' + esc(code.code) + '</span><br><span class="label">Format:</span> ' + esc(code.format) + ' <span class="label">(' + elapsed.toFixed(1) + 'ms)</span>')
+      } else {
+        info('Canvas: 400x200 | Time: ' + elapsed.toFixed(1) + 'ms | No result')
+        show('<span class="error">&#10007; Self-test failed! No barcode detected</span>')
+      }
+    })
+  } catch (e) {
+    showError('SELFTEST: ' + (e.message || e))
+    show('<span class="error">Error: ' + e.message + '</span>')
+  }
+}
+
+function esc(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
+
+btnStart.onclick = startScanning
+btnStop.onclick = stopScanning
+btnSelf.onclick = drawAndDetect
+</script>
+</body>
+</html>
