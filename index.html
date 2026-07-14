@@ -3,198 +3,219 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="theme-color" content="#0c0c0d">
-  <meta name="description" content="ivond — SKANER : Scan de code-barres en magasin simplifié. Laissez vos clients scanner les produits avec leur téléphone pour voir les prix instantanément.">
-  <meta property="og:title" content="ivond — SKANER : Scan de code-barres en magasin">
-  <meta property="og:description" content="ivond — SKANER : Scan de code-barres en magasin simplifié. Laissez vos clients scanner les produits avec leur téléphone pour voir les prix instantanément.">
+  <meta name="description" content="SKANER by ivond — vos clients scannent le code-barres, le prix apparaît. Instantly see product names and prices by scanning any barcode.">
+  <meta property="og:title" content="SKANER by ivond">
+  <meta property="og:description" content="Vos clients scannent le code-barres, le prix apparaît. Instantly see product names and prices by scanning any barcode.">
   <meta property="og:url" content="https://ivond.com">
   <meta property="og:type" content="website">
-  <title>ivond — SKANER : Scan de code-barres en magasin</title>
+  <meta name="theme-color" content="#0c0c0d">
+  <title>SKANER by ivond</title>
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link href="https://fonts.googleapis.com/css2?family=Tajawal:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/tokens.css">
-  <link rel="stylesheet" href="home/css/style.css">
-  <link rel="stylesheet" href="css/rtl.css">
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/home/css/test.css">
 </head>
 <body>
-  <div id="app">
 
-    <nav id="nav">
-      <div class="container nav-inner">
-        <a href="/" class="nav-logo">ivond</a>
-        <div class="nav-links" id="nav-links">
-          <a href="#features" class="nav-link" data-i18n="navFeatures">Features</a>
-          <a href="#how-it-works" class="nav-link" data-i18n="navHowItWorks">How It Works</a>
-          <a href="#pricing" class="nav-link" data-i18n="navPricing">Pricing</a>
-          <a href="/auth/" class="nav-link" data-i18n="navSignIn">Sign In</a>
-          <a href="/auth/" class="nav-cta btn primary" data-i18n="navGetStarted">Get Started</a>
-        </div>
-        <div class="nav-lang-selector">
-          <button id="nav-lang-btn" class="lang-btn" aria-label="Language">
-            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
-          </button>
-          <div class="nav-lang-dropdown hidden" id="nav-lang-dropdown">
-            <button class="nav-lang-option" data-lang="en">English</button>
-            <button class="nav-lang-option" data-lang="fr">Fran&ccedil;ais</button>
-            <button class="nav-lang-option" data-lang="ar">العربية</button>
-          </div>
-        </div>
-        <button id="nav-toggle" class="nav-toggle" aria-label="Menu"><i data-feather="menu"></i></button>
+  <div id="splash"></div>
+
+  <div id="scroll-progress"></div>
+
+  <!-- ═══ NAV ═══ -->
+  <nav id="nav">
+    <div class="container nav-inner">
+        <a href="/" class="nav-logo">
+          SKANER
+          <span class="nav-logo-by">by ivond</span>
+        </a>
+      <div class="nav-links" id="nav-links">
+        <a href="#what" class="nav-link" data-i18n="navWhat">Fonctionnalités</a>
+        <a href="#steps" class="nav-link" data-i18n="navSteps">Étapes</a>
+        <a href="#why" class="nav-link" data-i18n="navWhy">Pourquoi</a>
+        <a href="/auth/" class="nav-link" data-i18n="navSignIn">Connexion</a>
+        <a href="/auth/" class="nav-cta btn primary" data-i18n="navCTA">Commencer</a>
       </div>
-    </nav>
+      <div class="nav-lang">
+        <button class="lang-btn active" data-lang="fr">FR</button>
+        <span class="lang-sep">|</span>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </nav>
 
-    <section id="hero">
-      <div class="container hero-inner">
-        <div class="hero-text">
-          <h1><span data-i18n="heroTitle">Modern </span><span class="highlight" data-i18n="heroTitleHighlight">In-Store</span><span data-i18n="heroTitleEnd"> Barcode Scanning</span></h1>
-          <p class="hero-sub" data-i18n="heroSub">Let customers scan products with their phone to see prices, names, and details — instantly. No app download required.</p>
-          <a href="/auth/" class="btn primary btn-lg" data-i18n="heroCTA">Create Your Free Store</a>
-        </div>
-        <div class="hero-visual">
-          <div class="phone-mockup">
-            <div class="phone-notch"></div>
-            <div class="phone-scan">
-              <img class="phone-logo" src="/assets/icons/icon-192.png" alt="SKANER" width="80" height="80">
-              <div class="phone-frame"></div>
-              <div class="phone-line"></div>
+  <!-- ═══ 01 — HERO ═══ -->
+  <section id="hero">
+    <div class="hero-watermark">SKANER</div>
+    <span class="section-num">01</span>
+    <div class="container hero-inner">
+      <div class="hero-text" data-animate="fade-up" data-delay="100">
+        <h1 data-i18n="heroTitle">'C'est combien ?'</h1>
+        <p class="hero-sub" data-i18n="heroSub">SKANER : vos clients scannent le code-barres, le prix apparaît. Directement sur leur téléphone, sans rien installer.</p>
+      </div>
+      <div class="hero-visual" data-animate="scale-in" data-delay="300">
+        <div class="phone-mockup">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-carton">
+              <svg viewBox="0 0 40 60" width="40" height="60" fill="none">
+                <rect x="2" y="8" width="36" height="50" rx="1" fill="#f0f0f0"/>
+                <rect x="2" y="8" width="36" height="14" rx="1" fill="#e8e8e8"/>
+                <polygon points="10,8 30,8 34,2 6,2" fill="#e0e0e0"/>
+                <rect x="14" y="12" width="12" height="4" rx="1" fill="#ccc"/>
+                <text x="20" y="40" text-anchor="middle" font-size="6" fill="#999" font-family="sans-serif">LAIT</text>
+                <text x="20" y="48" text-anchor="middle" font-size="4" fill="#bbb" font-family="sans-serif">1L</text>
+              </svg>
             </div>
-            <div class="phone-result">
-              <strong>Organic Honey</strong>
-              <span class="price">8.99 DA</span>
-            </div>
+            <div class="phone-barcode"></div>
+            <div class="phone-line"></div>
+          </div>
+          <div class="phone-result">
+            <strong data-i18n="phoneName">Lait</strong>
+            <span class="phone-price" data-i18n="phonePrice">100 DZD</span>
           </div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
+  <div class="barcode-divider"></div>
 
-    <section id="features" class="section">
-      <div class="container">
-        <h2 class="section-title"><span data-i18n="featuresTitle">Everything you need to </span><span class="highlight" data-i18n="featuresTitleHighlight">modernize</span><span data-i18n="featuresTitleEnd"> your store</span></h2>
-        <div class="features-grid">
-          <div class="feature-card">
-            <div class="feature-icon"><i data-feather="camera"></i></div>
-            <h3 data-i18n="featureScanningTitle">Instant Scanning</h3>
-            <p data-i18n="featureScanningDesc">Customers point their camera at any barcode — name and price appear instantly using their phone browser.</p>
+  <!-- ═══ 02 — WHAT ═══ -->
+  <section id="what" class="section-alt">
+    <span class="section-num">02</span>
+    <div class="container">
+      <h2 class="section-title" data-i18n="whatTitle" data-animate="fade-up">Comment ça marche</h2>
+      <p class="section-sub" data-i18n="whatSub" data-animate="fade-up" data-delay="100">Deux expériences, une plateforme.</p>
+      <div class="what-grid" data-animate="stagger">
+        <div class="what-card">
+          <div class="what-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
           </div>
-          <div class="feature-card">
-            <div class="feature-icon"><i data-feather="palette"></i></div>
-            <h3 data-i18n="featureBrandingTitle">Your Brand, Your Colors</h3>
-            <p data-i18n="featureBrandingDesc">Customize the scanner with your store logo, brand colors, and contact info. A white-label experience.</p>
+          <h3 data-i18n="whatCustTitle">Pour vos clients</h3>
+          <p data-i18n="whatCustDesc">Ils ouvrent votre lien, pointent l'appareil photo sur un code-barres — le prix et le nom apparaissent. Rien à installer, rien à apprendre.</p>
+          <div class="what-action" data-i18n="whatCustAction">Partagez simplement le lien.</div>
+        </div>
+        <div class="what-card">
+          <div class="what-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
           </div>
-          <div class="feature-card">
-            <div class="feature-icon"><i data-feather="bar-chart-2"></i></div>
-            <h3 data-i18n="featureAnalyticsTitle">Analytics Dashboard</h3>
-            <p data-i18n="featureAnalyticsDesc">See what products get scanned most, track daily activity, and understand what customers are looking at.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon"><i data-feather="file-text"></i></div>
-            <h3 data-i18n="featureCSVTitle">CSV Import</h3>
-            <p data-i18n="featureCSVDesc">Upload your product catalog as a CSV file. Barcodes, names, prices, categories — we handle the rest.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon"><i data-feather="home"></i></div>
-            <h3 data-i18n="featureMultiStoreTitle">Multi-Store Support</h3>
-            <p data-i18n="featureMultiStoreDesc">Manage multiple locations from one platform. Each store gets its own scanner URL and branding.</p>
-          </div>
-          <div class="feature-card">
-            <div class="feature-icon"><i data-feather="smartphone"></i></div>
-            <h3 data-i18n="featureNoAppTitle">No App Required</h3>
-            <p data-i18n="featureNoAppDesc">Works in any modern mobile browser. No installation, no updates, no app store friction.</p>
-          </div>
+          <h3 data-i18n="whatOwnerTitle">Pour vous, le gérant</h3>
+          <p data-i18n="whatOwnerDesc">Connectez-vous à votre tableau de bord. Ajoutez des produits, modifiez les prix, suivez les statistiques de scan. Depuis votre téléphone ou votre PC.</p>
+          <div class="what-action" data-i18n="whatOwnerAction">Gérez depuis votre tableau de bord.</div>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section id="how-it-works" class="section alt">
-      <div class="container">
-        <h2 class="section-title"><span data-i18n="stepsTitle">Set up in </span><span class="highlight" data-i18n="stepsTitleHighlight">5 minutes</span></h2>
-        <div class="steps">
-          <div class="step">
-            <div class="step-num">1</div>
-            <h3 data-i18n="step1Title">Create Your Store</h3>
-            <p data-i18n="step1Desc">Sign up with your email and store name. We'll create your dedicated scanner URL instantly.</p>
+  <div class="barcode-divider"></div>
+
+  <!-- ═══ 03 — STEPS ═══ -->
+  <section id="steps">
+    <span class="section-num">03</span>
+    <div class="container">
+      <h2 class="section-title" data-i18n="stepsTitle" data-animate="fade-up">Trois choses à faire</h2>
+      <div class="steps-grid" data-animate="stagger">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
           </div>
-          <div class="step-arrow">→</div>
-          <div class="step">
-            <div class="step-num">2</div>
-            <h3 data-i18n="step2Title">Upload Products</h3>
-            <p data-i18n="step2Desc">Import your catalog via CSV or add products one by one. Barcodes, names, and prices.</p>
+          <h3 data-i18n="step1Title">Créez votre magasin</h3>
+          <p data-i18n="step1Desc">Entrez votre nom et votre email. Votre lien scanner est prêt en 30 secondes.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
           </div>
-          <div class="step-arrow">→</div>
-          <div class="step">
-            <div class="step-num">3</div>
-            <h3 data-i18n="step3Title">Go Live</h3>
-            <p data-i18n="step3Desc">Share your store link with customers. They scan barcodes with their phone camera — that's it.</p>
+          <h3 data-i18n="step2Title">Importez vos produits</h3>
+          <p data-i18n="step2Desc">CSV, Excel, ou un par un. Vos produits, vos prix, votre catalogue.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
           </div>
+          <h3 data-i18n="step3Title">Partagez le lien</h3>
+          <p data-i18n="step3Desc">Sur les étagères, les tickets de caisse, les réseaux sociaux. Vos clients scannent — c'est tout.</p>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section id="pricing" class="section">
-      <div class="container">
-        <h2 class="section-title"><span data-i18n="pricingTitle">Simple </span><span class="highlight" data-i18n="pricingTitleHighlight">pricing</span><span data-i18n="pricingTitleEnd"> for every store</span></h2>
-        <div class="pricing-grid">
-          <div class="pricing-card">
-            <div class="pricing-name" data-i18n="planFree">Free</div>
-            <div class="pricing-price"><span class="amount" data-i18n="planFreePrice">0 DA</span><span class="period" data-i18n="planPeriod">/month</span></div>
-            <ul class="pricing-features">
-              <li>1 store</li>
-              <li>Unlimited scans</li>
-              <li>CSV product import</li>
-              <li>Basic branding</li>
-              <li>Scan analytics</li>
-              <li>Scanner ads</li>
-            </ul>
-            <a href="/auth/" class="btn secondary btn-block" data-i18n="getStarted">Get Started</a>
+  <div class="barcode-divider"></div>
+
+  <!-- ═══ 04 — WHY ═══ -->
+  <section id="why" class="section-alt">
+    <span class="section-num">04</span>
+    <div class="container">
+      <h2 class="section-title" data-i18n="whyTitle" data-animate="fade-up">Pourquoi les gérants nous font confiance</h2>
+      <div class="why-grid" data-animate="stagger">
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
           </div>
-
-          <div class="pricing-card">
-            <div class="pricing-name" data-i18n="planEnterprise">Enterprise</div>
-            <div class="pricing-price"><span class="amount" data-i18n="planEnterprisePrice">Custom</span></div>
-            <ul class="pricing-features">
-              <li>1 store</li>
-              <li>Unlimited scans</li>
-              <li>No ads</li>
-              <li>Custom integration</li>
-              <li>White-label scanner</li>
-              <li>Dedicated support</li>
-              <li>SLA guarantee</li>
-            </ul>
-            <a href="/auth/" class="btn secondary btn-block" data-i18n="contactUs">Contact Us</a>
+          <h3 data-i18n="why1Title">Fini de répéter les prix</h3>
+          <p data-i18n="why1Desc">Chaque étagère devient un affichage de prix. Les clients scannent et voient le prix eux-mêmes.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
           </div>
+          <h3 data-i18n="why2Title">Un changement, partout à jour</h3>
+          <p data-i18n="why2Desc">Modifiez un prix dans le tableau de bord — c'est instantané sur tous les téléphones.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          </div>
+          <h3 data-i18n="why3Title">Fonctionne sur tous les téléphones</h3>
+          <p data-i18n="why3Desc">Pas d'appli à installer. Navigateur + appareil photo = magasin intelligent.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <h3 data-i18n="why4Title">Votre marque, vos couleurs</h3>
+          <p data-i18n="why4Desc">Le scanner affiche votre logo, vos couleurs et vos coordonnées. Une expérience personnalisée.</p>
         </div>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <section id="signup" class="section alt">
-      <div class="container" style="text-align:center">
-        <h2 class="section-title"><span data-i18n="ctaTitle">Create your store — </span><span class="highlight" data-i18n="ctaTitleHighlight">free</span></h2>
-        <p class="section-sub" data-i18n="ctaSub">No credit card required. Your scanner URL is ready in seconds.</p>
-        <a href="/auth/" class="btn primary btn-lg" style="margin-top:var(--space-4)" data-i18n="ctaCTA">Get Started</a>
+  <div class="barcode-divider"></div>
+
+  <!-- ═══ 05 — CTA ═══ -->
+  <section id="cta">
+    <span class="section-num">05</span>
+    <div class="container cta-inner">
+      <h2 class="section-title" data-i18n="ctaTitle" data-animate="fade-up">Prêt à transformer votre magasin ?</h2>
+      <p class="section-sub" data-i18n="ctaSub" data-animate="fade-up" data-delay="100">Gratuit. Prêt en 30 secondes. Sans carte bancaire.</p>
+      <div data-animate="scale-in" data-delay="200">
+        <a href="/auth/" class="btn primary btn-lg" data-i18n="ctaCTA">Créer mon magasin →</a>
       </div>
-    </section>
+    </div>
+  </section>
 
-    <footer id="footer">
-      <div class="container footer-inner">
-        <div class="footer-brand">
-          <strong>ivond</strong>
-          <span class="meta">SKANER — In-store barcode scanning made simple</span>
-        </div>
-        <div class="footer-links">
-          <a href="#features" data-i18n="navFeatures">Features</a>
-          <a href="#pricing" data-i18n="navPricing">Pricing</a>
-          <a href="/auth/" data-i18n="navGetStarted">Get Started</a>
-        </div>
-        <div class="footer-copy">© 2026 ivond</div>
+  <!-- ═══ FOOTER ═══ -->
+  <footer id="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <strong>ivond</strong>
+        <span class="meta" data-i18n="footerTagline">SKANER — Le scan de code-barres en magasin, simplifié.</span>
       </div>
-    </footer>
+      <div class="footer-links">
+        <a href="#what" data-i18n="navWhat">Fonctionnalités</a>
+        <a href="#steps" data-i18n="navSteps">Étapes</a>
+        <a href="#why" data-i18n="navWhy">Pourquoi</a>
+        <a href="/auth/" data-i18n="navCTA">Commencer</a>
+      </div>
+      <div class="footer-copy" data-i18n="footerCopy">© 2026 ivond</div>
+    </div>
+  </footer>
 
-  </div>
-
-  <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
-  <script src="js/i18n.js"></script>
-  <script src="home/js/app.js"></script>
+  <script src="/home/js/test.js"></script>
 </body>
 </html>
