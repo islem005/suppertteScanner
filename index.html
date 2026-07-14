@@ -19,37 +19,45 @@
 
   <div id="canvas-container"></div>
 
-  <section id="hero">
-    <div class="hero-brand">
+  <section id="hero" data-animate>
+    <div class="hero-brand" data-animate-child>
       ivond<span>.</span>
     </div>
-    <p class="hero-tagline">Building digital products</p>
+    <p class="hero-tagline" data-animate-child>Building digital products</p>
   </section>
 
-  <section id="products">
-    <p class="products-title">Products</p>
+  <section id="products" data-animate>
+    <p class="products-title" data-animate-child>Products</p>
     <div class="product-grid">
-      <a href="https://skanner.ivond.com" class="product-card">
-        <div class="product-card-icon">
-          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M3 7V5a2 2 0 0 1 2-2h2"/><path d="M17 3h2a2 2 0 0 1 2 2v2"/>
-            <path d="M21 17v2a2 2 0 0 1-2 2h-2"/><path d="M7 21H5a2 2 0 0 1-2-2v-2"/>
-            <line x1="7" y1="12" x2="17" y2="12"/><line x1="12" y1="7" x2="12" y2="17"/>
-          </svg>
+      <a href="https://skanner.ivond.com" class="product-card" data-animate-child>
+        <div class="product-card-mockup">
+          <div class="mockup-body">
+            <div class="mockup-notch"></div>
+            <div class="mockup-screen">
+              <div class="mockup-barcode"></div>
+              <div class="mockup-line"></div>
+              <div class="mockup-result">
+                <span class="mockup-name">Lait</span>
+                <span class="mockup-price">100 DZD</span>
+              </div>
+            </div>
+          </div>
         </div>
-        <div class="product-card-name">SKANER</div>
-        <div class="product-card-desc">Barcode scanning for stores. Customers scan with their phone — prices appear instantly. No app required.</div>
-        <div class="product-card-arrow">
-          Visit SKANER
-          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
-          </svg>
+        <div class="product-card-info">
+          <div class="product-card-name">SKANER</div>
+          <div class="product-card-desc">Barcode scanning for stores. Customers scan with their phone — prices appear instantly.</div>
+          <div class="product-card-arrow">
+            Visit SKANER
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/>
+            </svg>
+          </div>
         </div>
       </a>
     </div>
   </section>
 
-  <footer id="footer">
+  <footer id="footer" data-animate>
     <div class="container footer-inner">
       <div class="footer-brand">ivond</div>
       <div class="footer-copy">&copy; 2026 ivond</div>

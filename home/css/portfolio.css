@@ -103,7 +103,7 @@ body {
   display: grid;
   grid-template-columns: 1fr;
   gap: var(--space-4);
-  max-width: 400px;
+  max-width: 420px;
   margin: 0 auto;
 }
 
@@ -112,31 +112,134 @@ body {
   background: var(--bg-elevated);
   border: 1px solid rgba(255,255,255,0.06);
   border-radius: var(--radius-xl);
-  padding: var(--space-8) var(--space-6);
+  overflow: hidden;
   text-decoration: none;
   color: var(--text-primary);
-  transition: transform 0.2s ease, border-color 0.2s ease;
+  transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
   transform-style: preserve-3d;
   perspective: 800px;
-  display: flex;
-  flex-direction: column;
-  gap: var(--space-3);
   cursor: pointer;
 }
 
 .product-card:hover {
   border-color: rgba(99,102,241,0.3);
+  box-shadow: 0 0 40px rgba(99,102,241,0.08), 0 0 80px rgba(99,102,241,0.04);
 }
 
-.product-card-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-lg);
-  background: rgba(99,102,241,0.1);
+/* ── Phone Mockup ── */
+.product-card-mockup {
+  background: radial-gradient(ellipse at 50% 120%, rgba(99,102,241,0.06) 0%, transparent 70%);
+  padding: var(--space-8) var(--space-6) var(--space-4);
   display: flex;
+  justify-content: center;
+  border-bottom: 1px solid rgba(255,255,255,0.04);
+}
+
+.mockup-body {
+  width: 140px;
+  background: #18181b;
+  border-radius: 24px;
+  border: 1px solid rgba(255,255,255,0.06);
+  padding: 10px 6px;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.4);
+}
+
+.mockup-notch {
+  width: 50px;
+  height: 4px;
+  background: #27272a;
+  border-radius: 2px;
+  margin: 0 auto 8px;
+}
+
+.mockup-screen {
+  background: #000;
+  border-radius: 8px;
+  aspect-ratio: 9 / 16;
+  display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
-  color: var(--brand-blue);
+  gap: 8px;
+  padding: 6px;
+  position: relative;
+  overflow: hidden;
+}
+
+.mockup-barcode {
+  width: 80%;
+  height: 28px;
+  background: repeating-linear-gradient(
+    90deg,
+    #fff 0px, #fff 2px,
+    transparent 2px, transparent 3px,
+    #fff 3px, #fff 5px,
+    transparent 5px, transparent 6px,
+    #fff 6px, #fff 9px,
+    transparent 9px, transparent 10px,
+    #fff 10px, #fff 11px,
+    transparent 11px, transparent 12px,
+    #fff 12px, #fff 15px,
+    transparent 15px, transparent 16px,
+    #fff 16px, #fff 17px,
+    transparent 17px, transparent 18px,
+    #fff 18px, #fff 20px,
+    transparent 20px, transparent 21px,
+    #fff 21px, #fff 22px,
+    transparent 22px, transparent 23px,
+    #fff 23px, #fff 25px
+  );
+  border-radius: 2px;
+  opacity: 0.5;
+  z-index: 1;
+}
+
+.mockup-line {
+  position: absolute;
+  left: 8%;
+  right: 8%;
+  height: 1.5px;
+  background: var(--brand-gold);
+  box-shadow: 0 0 6px var(--brand-gold), 0 0 12px var(--brand-gold);
+  z-index: 2;
+  animation: mockScan 2s ease-in-out infinite;
+}
+
+@keyframes mockScan {
+  0%, 100% { top: 20%; opacity: 0.8; }
+  50% { top: 65%; opacity: 1; }
+}
+
+.mockup-result {
+  background: #1f1f23;
+  border: 1px solid rgba(99,102,241,0.15);
+  border-radius: 4px;
+  padding: 3px 8px;
+  text-align: center;
+  z-index: 1;
+}
+
+.mockup-name {
+  display: block;
+  font-size: 0.625rem;
+  color: #fafafa;
+  font-weight: 500;
+}
+
+.mockup-price {
+  font-size: 0.75rem;
+  font-weight: 700;
+  color: var(--brand-gold);
+}
+
+/* ── Card Info ── */
+.product-card-info {
+  padding: var(--space-4) var(--space-6) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
 }
 
 .product-card-name {
@@ -145,7 +248,7 @@ body {
 }
 
 .product-card-desc {
-  font-size: 0.875rem;
+  font-size: 0.8125rem;
   color: var(--text-secondary);
   line-height: 1.6;
 }
@@ -157,7 +260,7 @@ body {
   font-size: 0.8125rem;
   font-weight: 600;
   color: var(--brand-blue);
-  margin-top: var(--space-2);
+  margin-top: var(--space-1);
 }
 
 .product-card-arrow svg {
@@ -194,11 +297,35 @@ body {
   color: var(--text-tertiary);
 }
 
+/* ── Scroll Animations ── */
+#hero, #products, #footer { opacity: 0; }
+
+#hero.is-visible, #products.is-visible, #footer.is-visible { opacity: 1; }
+
+[data-animate] {
+  transition: opacity 0.8s ease, transform 0.8s ease;
+}
+
+[data-animate]:not(.is-visible) {
+  opacity: 0;
+}
+
+#hero:not(.is-visible) { transform: translateY(20px); }
+#products:not(.is-visible) { transform: translateY(30px); }
+#footer:not(.is-visible) { transform: translateY(20px); }
+
+[data-animate-child] {
+  transition: opacity 0.6s ease, transform 0.6s ease;
+}
+
+#products:not(.is-visible) .product-card { transform: translateY(20px); }
+
 /* ── Responsive ── */
 @media (min-width: 640px) {
   .hero-brand { font-size: 5rem; }
   .hero-tagline { font-size: 1.25rem; }
   .product-grid { max-width: 480px; }
+  .mockup-body { width: 160px; }
 }
 
 @media (min-width: 768px) {
@@ -210,5 +337,10 @@ body {
   .product-card { transition: none; }
   .product-card-arrow svg { transition: none; }
   .product-card:hover .product-card-arrow svg { transform: none; }
+  .mockup-line { animation: none; display: none; }
+  .mockup-barcode { opacity: 0.3; }
   #canvas-container { display: none; }
+  #hero, #products, #footer { opacity: 1; transform: none; }
+  [data-animate]:not(.is-visible) { opacity: 1; transform: none; }
+  [data-animate-child] { transition: none; }
 }
