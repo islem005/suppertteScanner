@@ -1,0 +1,129 @@
+html[dir="rtl"] body {
+  font-family: var(--font-sans);
+}
+
+html[lang="ar"] body {
+  font-family: var(--font-arabic), var(--font-sans);
+}
+
+html[dir="rtl"] .nav-links {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+html[dir="rtl"] .nav-toggle {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+html[dir="rtl"] .nav-cta {
+  margin-left: 0;
+  margin-right: var(--space-2);
+}
+
+html[dir="rtl"] .step-arrow {
+  transform: scaleX(-1);
+}
+
+html[dir="rtl"] #sidebar {
+  border-right: none;
+  border-left: 1px solid var(--border-default);
+}
+
+html[dir="rtl"] .nav-item {
+  text-align: right;
+}
+
+html[dir="rtl"] .nav-item.active::before {
+  left: auto;
+  right: 0;
+  border-radius: var(--radius-full) 0 0 var(--radius-full);
+}
+
+html[dir="rtl"] th,
+html[dir="rtl"] .view-header h2 {
+  text-align: start;
+}
+
+html[dir="rtl"] .modal-actions {
+  justify-content: flex-start;
+}
+
+html[dir="rtl"] .view-header {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .profile-card .form-row {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .activity-item .act-time {
+  margin-left: 0;
+  margin-right: auto;
+}
+
+html[dir="rtl"] .slug-prefix {
+  padding: var(--space-3) var(--space-4) var(--space-3) 0;
+}
+
+html[dir="rtl"] .slug-input-wrap input {
+  padding-left: 0;
+  padding-right: var(--space-1);
+}
+
+html[dir="rtl"] .hero-inner {
+  direction: rtl;
+}
+
+html[dir="rtl"] .pricing-badge {
+  left: auto;
+  right: 50%;
+  transform: translateX(50%);
+}
+
+html[dir="rtl"] .step-arrow {
+  transform: scaleX(-1);
+}
+
+@media (max-width: 768px) {
+  html[dir="rtl"] .nav-links.open {
+    left: 0;
+    right: 0;
+  }
+
+  html[dir="rtl"] #sidebar {
+    left: auto;
+    right: 0;
+    transform: translateX(100%);
+  }
+
+  html[dir="rtl"] #sidebar.open {
+    transform: translateX(0);
+  }
+}
+
+html[dir="rtl"] .lang-selector {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .actions-cell {
+  flex-direction: row-reverse;
+}
+
+html[dir="rtl"] .branding-form .btn {
+  align-self: flex-start;
+}
+
+html[dir="rtl"] .phone-mockup {
+  direction: ltr;
+}
+
+html[dir="rtl"] .search-icon {
+  left: auto;
+  right: 10px;
+}
+
+html[dir="rtl"] input[style*="padding-left:30px"] {
+  padding-left: var(--space-4) !important;
+  padding-right: 30px !important;
+}

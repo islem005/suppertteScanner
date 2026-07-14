@@ -17,6 +17,9 @@ function isKnownPath(url) {
     path.startsWith('/dashboard') ||
     path.startsWith('/admin') ||
     path.startsWith('/assets/') ||
+    path.startsWith('/shared/') ||
+    path.startsWith('/skanner/') ||
+    path.startsWith('/admin-skanner/') ||
     path.startsWith('/@vite/') ||
     path.startsWith('/@fs/') ||
     path.startsWith('/node_modules/') ||
@@ -67,9 +70,21 @@ export default defineConfig({
         scanner: resolve(__dirname, 'scanner.html'),
         scannerQr: resolve(__dirname, 'scanner-qr.html'),
         scannerTest: resolve(__dirname, 'scanner-test.html'),
+        scannerTestNative: resolve(__dirname, 'scanner-test-native.html'),
+        scannerTestPolyfill: resolve(__dirname, 'scanner-test-polyfill.html'),
+
+        scannerTestQuagga: resolve(__dirname, 'scanner-test-quagga.html'),
         dashboard: resolve(__dirname, 'dashboard/index.html'),
         admin: resolve(__dirname, 'admin/index.html'),
-        auth: resolve(__dirname, 'auth/index.html')
+        auth: resolve(__dirname, 'auth/index.html'),
+
+        // New multi-project structure
+        skannerIndex: resolve(__dirname, 'skanner/index.html'),
+        skannerPwa: resolve(__dirname, 'skanner/pwa/scanner.html'),
+        skannerPwaQr: resolve(__dirname, 'skanner/pwa/scanner-qr.html'),
+        skannerDashboard: resolve(__dirname, 'skanner/dashboard/index.html'),
+        skannerAuth: resolve(__dirname, 'skanner/auth/index.html'),
+        adminSkanner: resolve(__dirname, 'admin-skanner/index.html')
       }
     }
   }

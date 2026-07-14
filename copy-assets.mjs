@@ -9,7 +9,20 @@ const DIST = resolve(__dirname, 'dist')
 const rootFiles = ['sw.js', 'manifest.json']
 
 // Directory trees to mirror to dist
-const dirs = ['js', 'css', 'dashboard/js', 'dashboard/css', 'admin/js', 'admin/css', 'auth/js', 'auth/css', 'home/css', 'home/js', 'assets/icons']
+const dirs = [
+  'js', 'css',
+  'dashboard/js', 'dashboard/css',
+  'admin/js', 'admin/css',
+  'auth/js', 'auth/css',
+  'home/css', 'home/js',
+  'assets/icons',
+  // New multi-project structure
+  'shared/js', 'shared/css', 'shared/assets/icons',
+  'skanner/pwa/js', 'skanner/pwa/css',
+  'skanner/dashboard/js', 'skanner/dashboard/css',
+  'skanner/auth/js', 'skanner/auth/css',
+  'admin-skanner/js', 'admin-skanner/css'
+]
 
 // Copy root-level files
 for (const f of rootFiles) {

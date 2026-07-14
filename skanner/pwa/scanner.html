@@ -1,0 +1,116 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover, orientation=portrait">
+  <meta name="theme-color" content="#0c0c0d">
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="description" content="SKANER by ivond — instant barcode scanning. Point your camera at any barcode to see product names and prices.">
+  <meta property="og:title" content="SKANER by ivond">
+  <meta property="og:description" content="SKANER by ivond — instant barcode scanning. Point your camera at any barcode to see product names and prices.">
+  <meta property="og:url" content="https://ivond.com">
+  <meta property="og:type" content="website">
+  <title>SKANER</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link id="manifest-link" rel="manifest" href="/manifest.json">
+  <link rel="stylesheet" href="../../shared/css/tokens.css">
+  <link rel="stylesheet" href="css/style.css">
+</head>
+<body>
+  <a href="#app" class="skip-link" style="position:absolute;top:-999px;left:0;padding:8px 16px;background:#6366f1;color:#fff;z-index:99999;text-decoration:none">Skip to content</a>
+  <div id="app">
+
+    <!-- Profile bar -->
+    <div id="profile-bar">
+      <div id="profile-avatar" class="avatar-ring hidden">
+        <div class="avatar-inner"><img id="profile-avatar-img" src="" alt="Avatar" /></div>
+      </div>
+      <div id="profile-info">
+        <div id="profile-name"></div>
+        <div id="profile-links"></div>
+      </div>
+      <button id="btn-install" class="install-btn hidden" title="Install app" aria-label="Install app">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+      </button>
+      <a id="profile-store-link" href="#" target="_blank" rel="noopener" class="install-btn" title="Open store" aria-label="Open store" style="text-decoration:none">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M18 13v6a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h6"/><polyline points="15 3 21 3 21 9"/><line x1="10" y1="14" x2="21" y2="3"/></svg>
+      </a>
+    </div>
+
+    <!-- Banner carousel -->
+    <div id="banner-area">
+      <div id="banner-carousel" class="hidden swiper">
+        <div class="swiper-wrapper" id="banner-track"></div>
+        <div class="swiper-pagination" id="banner-dots"></div>
+      </div>
+      <div id="banner-fallback">
+        <div id="banner-text"></div>
+      </div>
+    </div>
+
+    <!-- Camera feed -->
+    <div id="camera-feed">
+      <video id="scanner" autoplay playsinline muted></video>
+      <div id="cam-overlay">
+        <div id="cam-name" class="hint">Point your camera at a barcode</div>
+        <div id="cam-price"></div>
+      </div>
+      <button id="btn-refresh" class="cam-refresh-btn" title="Refresh scanner" aria-label="Refresh scanner" style="display:none">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+      </button>
+    </div>
+
+    <!-- Promo carousel -->
+    <div id="promo-card">
+      <div id="promo-carousel" class="hidden swiper">
+        <div class="swiper-wrapper" id="promo-track"></div>
+        <div class="swiper-pagination" id="promo-dots"></div>
+      </div>
+    </div>
+
+    <!-- Discount carousel -->
+    <div id="discount-area" class="hidden">
+      <div id="discount-track" class="swiper">
+        <div class="swiper-wrapper"></div>
+        <div class="swiper-pagination" id="discount-dots"></div>
+      </div>
+    </div>
+
+  </div>
+
+  <div id="toast" role="status" aria-live="polite"></div>
+
+  <script src="https://unpkg.com/feather-icons@4.29.2/dist/feather.min.js"></script>
+  <script>
+    if ('serviceWorker' in navigator) {
+      navigator.serviceWorker.register('/sw.js').then(reg => {
+        window.__swReg = reg;
+        reg.update();
+        reg.addEventListener('updatefound', () => {
+          const sw = reg.installing;
+          if (sw) {
+            sw.addEventListener('statechange', () => {
+              if (sw.state === 'installed' && navigator.serviceWorker.controller) {
+                sw.postMessage({ type: 'SKIP_WAITING' });
+              }
+            });
+          }
+        });
+      }).catch(() => {});
+      navigator.serviceWorker.addEventListener('message', e => {
+        if (e.data && e.data.type === 'RELOAD') {
+          window.showToast('App updated');
+          setTimeout(() => window.location.reload(), 500);
+        }
+      });
+    }
+  </script>
+  <script src="../../shared/js/shared.js"></script>
+  <script src="js/scanner-core.js"></script>
+  <script src="js/scanner.js"></script>
+  <script type="module" src="js/app.js"></script>
+</body>
+</html>

@@ -1,0 +1,221 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="description" content="SKANER by ivond — vos clients scannent le code-barres, le prix apparaît. Instantly see product names and prices by scanning any barcode.">
+  <meta property="og:title" content="SKANER by ivond">
+  <meta property="og:description" content="Vos clients scannent le code-barres, le prix apparaît. Instantly see product names and prices by scanning any barcode.">
+  <meta property="og:url" content="https://skanner.ivond.com">
+  <meta property="og:type" content="website">
+  <meta name="theme-color" content="#0c0c0d">
+  <title>SKANER by ivond</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400;1,500&family=Playfair+Display:ital,wght@0,400;0,700;1,400;1,700&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/home/css/test.css">
+</head>
+<body>
+
+  <div id="splash"></div>
+
+  <div id="scroll-progress"></div>
+
+  <!-- ═══ NAV ═══ -->
+  <nav id="nav">
+    <div class="container nav-inner">
+        <a href="/" class="nav-logo">
+          SKANER
+          <span class="nav-logo-by">by ivond</span>
+        </a>
+      <div class="nav-links" id="nav-links">
+        <a href="#what" class="nav-link" data-i18n="navWhat">Fonctionnalités</a>
+        <a href="#steps" class="nav-link" data-i18n="navSteps">Étapes</a>
+        <a href="#why" class="nav-link" data-i18n="navWhy">Pourquoi</a>
+        <a href="/auth/" class="nav-link" data-i18n="navSignIn">Connexion</a>
+        <a href="/auth/" class="nav-cta btn primary" data-i18n="navCTA">Commencer</a>
+      </div>
+      <div class="nav-lang">
+        <button class="lang-btn active" data-lang="fr">FR</button>
+        <span class="lang-sep">|</span>
+        <button class="lang-btn" data-lang="en">EN</button>
+      </div>
+      <button id="nav-toggle" class="nav-toggle" aria-label="Menu">
+        <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+      </button>
+    </div>
+  </nav>
+
+  <!-- ═══ 01 — HERO ═══ -->
+  <section id="hero">
+    <div class="hero-watermark">SKANER</div>
+    <span class="section-num">01</span>
+    <div class="container hero-inner">
+      <div class="hero-text" data-animate="fade-up" data-delay="100">
+        <h1 data-i18n="heroTitle">'C'est combien ?'</h1>
+        <p class="hero-sub" data-i18n="heroSub">SKANER : vos clients scannent le code-barres, le prix apparaît. Directement sur leur téléphone, sans rien installer.</p>
+      </div>
+      <div class="hero-visual" data-animate="scale-in" data-delay="300">
+        <div class="phone-mockup">
+          <div class="phone-notch"></div>
+          <div class="phone-screen">
+            <div class="phone-carton">
+              <svg viewBox="0 0 40 60" width="40" height="60" fill="none">
+                <rect x="2" y="8" width="36" height="50" rx="1" fill="#f0f0f0"/>
+                <rect x="2" y="8" width="36" height="14" rx="1" fill="#e8e8e8"/>
+                <polygon points="10,8 30,8 34,2 6,2" fill="#e0e0e0"/>
+                <rect x="14" y="12" width="12" height="4" rx="1" fill="#ccc"/>
+                <text x="20" y="40" text-anchor="middle" font-size="6" fill="#999" font-family="sans-serif">LAIT</text>
+                <text x="20" y="48" text-anchor="middle" font-size="4" fill="#bbb" font-family="sans-serif">1L</text>
+              </svg>
+            </div>
+            <div class="phone-barcode"></div>
+            <div class="phone-line"></div>
+          </div>
+          <div class="phone-result">
+            <strong data-i18n="phoneName">Lait</strong>
+            <span class="phone-price" data-i18n="phonePrice">100 DZD</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </section>
+  <div class="barcode-divider"></div>
+
+  <!-- ═══ 02 — WHAT ═══ -->
+  <section id="what" class="section-alt">
+    <span class="section-num">02</span>
+    <div class="container">
+      <h2 class="section-title" data-i18n="whatTitle" data-animate="fade-up">Comment ça marche</h2>
+      <p class="section-sub" data-i18n="whatSub" data-animate="fade-up" data-delay="100">Deux expériences, une plateforme.</p>
+      <div class="what-grid" data-animate="stagger">
+        <div class="what-card">
+          <div class="what-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M23 19a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2V8a2 2 0 0 1 2-2h4l2-3h6l2 3h4a2 2 0 0 1 2 2z"/><circle cx="12" cy="13" r="4"/></svg>
+          </div>
+          <h3 data-i18n="whatCustTitle">Pour vos clients</h3>
+          <p data-i18n="whatCustDesc">Ils ouvrent votre lien, pointent l'appareil photo sur un code-barres — le prix et le nom apparaissent. Rien à installer, rien à apprendre.</p>
+          <div class="what-action" data-i18n="whatCustAction">Partagez simplement le lien.</div>
+        </div>
+        <div class="what-card">
+          <div class="what-icon">
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          </div>
+          <h3 data-i18n="whatOwnerTitle">Pour vous, le gérant</h3>
+          <p data-i18n="whatOwnerDesc">Connectez-vous à votre tableau de bord. Ajoutez des produits, modifiez les prix, suivez les statistiques de scan. Depuis votre téléphone ou votre PC.</p>
+          <div class="what-action" data-i18n="whatOwnerAction">Gérez depuis votre tableau de bord.</div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="barcode-divider"></div>
+
+  <!-- ═══ 03 — STEPS ═══ -->
+  <section id="steps">
+    <span class="section-num">03</span>
+    <div class="container">
+      <h2 class="section-title" data-i18n="stepsTitle" data-animate="fade-up">Trois choses à faire</h2>
+      <div class="steps-grid" data-animate="stagger">
+        <div class="step-card">
+          <div class="step-num">1</div>
+          <div class="step-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7" r="4"/><line x1="20" y1="8" x2="20" y2="14"/><line x1="23" y1="11" x2="17" y2="11"/></svg>
+          </div>
+          <h3 data-i18n="step1Title">Créez votre magasin</h3>
+          <p data-i18n="step1Desc">Entrez votre nom et votre email. Votre lien scanner est prêt en 30 secondes.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">2</div>
+          <div class="step-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg>
+          </div>
+          <h3 data-i18n="step2Title">Importez vos produits</h3>
+          <p data-i18n="step2Desc">CSV, Excel, ou un par un. Vos produits, vos prix, votre catalogue.</p>
+        </div>
+        <div class="step-card">
+          <div class="step-num">3</div>
+          <div class="step-icon">
+            <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="18" cy="5" r="3"/><circle cx="6" cy="12" r="3"/><circle cx="18" cy="19" r="3"/><line x1="8.59" y1="13.51" x2="15.42" y2="17.49"/><line x1="15.41" y1="6.51" x2="8.59" y2="10.49"/></svg>
+          </div>
+          <h3 data-i18n="step3Title">Partagez le lien</h3>
+          <p data-i18n="step3Desc">Sur les étagères, les tickets de caisse, les réseaux sociaux. Vos clients scannent — c'est tout.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="barcode-divider"></div>
+
+  <!-- ═══ 04 — WHY ═══ -->
+  <section id="why" class="section-alt">
+    <span class="section-num">04</span>
+    <div class="container">
+      <h2 class="section-title" data-i18n="whyTitle" data-animate="fade-up">Pourquoi les gérants nous font confiance</h2>
+      <div class="why-grid" data-animate="stagger">
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M12 20h9"/><path d="M16.5 3.5a2.121 2.121 0 0 1 3 3L7 19l-4 1 1-4L16.5 3.5z"/></svg>
+          </div>
+          <h3 data-i18n="why1Title">Fini de répéter les prix</h3>
+          <p data-i18n="why1Desc">Chaque étagère devient un affichage de prix. Les clients scannent et voient le prix eux-mêmes.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><polyline points="23 6 13.5 15.5 8.5 10.5 1 18"/><polyline points="17 6 23 6 23 12"/></svg>
+          </div>
+          <h3 data-i18n="why2Title">Un changement, partout à jour</h3>
+          <p data-i18n="why2Desc">Modifiez un prix dans le tableau de bord — c'est instantané sur tous les téléphones.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>
+          </div>
+          <h3 data-i18n="why3Title">Fonctionne sur tous les téléphones</h3>
+          <p data-i18n="why3Desc">Pas d'appli à installer. Navigateur + appareil photo = magasin intelligent.</p>
+        </div>
+        <div class="why-card">
+          <div class="why-icon">
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06A1.65 1.65 0 0 0 4.68 15a1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06A1.65 1.65 0 0 0 9 4.68a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          </div>
+          <h3 data-i18n="why4Title">Votre marque, vos couleurs</h3>
+          <p data-i18n="why4Desc">Le scanner affiche votre logo, vos couleurs et vos coordonnées. Une expérience personnalisée.</p>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <div class="barcode-divider"></div>
+
+  <!-- ═══ 05 — CTA ═══ -->
+  <section id="cta">
+    <span class="section-num">05</span>
+    <div class="container cta-inner">
+      <h2 class="section-title" data-i18n="ctaTitle" data-animate="fade-up">Prêt à transformer votre magasin ?</h2>
+      <p class="section-sub" data-i18n="ctaSub" data-animate="fade-up" data-delay="100">Gratuit. Prêt en 30 secondes. Sans carte bancaire.</p>
+      <div data-animate="scale-in" data-delay="200">
+        <a href="/auth/" class="btn primary btn-lg" data-i18n="ctaCTA">Créer mon magasin →</a>
+      </div>
+    </div>
+  </section>
+
+  <!-- ═══ FOOTER ═══ -->
+  <footer id="footer">
+    <div class="container footer-inner">
+      <div class="footer-brand">
+        <strong>ivond</strong>
+        <span class="meta" data-i18n="footerTagline">SKANER — Le scan de code-barres en magasin, simplifié.</span>
+      </div>
+      <div class="footer-links">
+        <a href="#what" data-i18n="navWhat">Fonctionnalités</a>
+        <a href="#steps" data-i18n="navSteps">Étapes</a>
+        <a href="#why" data-i18n="navWhy">Pourquoi</a>
+        <a href="/auth/" data-i18n="navCTA">Commencer</a>
+      </div>
+      <div class="footer-copy" data-i18n="footerCopy">© 2026 ivond</div>
+    </div>
+  </footer>
+
+  <script src="/home/js/test.js"></script>
+</body>
+</html>

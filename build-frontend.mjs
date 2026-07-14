@@ -3,7 +3,7 @@
 import { copyFile, mkdir, rm, readdir, stat, readFile, writeFile } from 'node:fs/promises'
 import { existsSync } from 'node:fs'
 import { execSync } from 'node:child_process'
-import { join, dirname } from 'node:path'
+import { join, dirname, sep } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const ROOT = dirname(fileURLToPath(import.meta.url))
@@ -13,12 +13,35 @@ const PUBLIC = join(ROOT, 'frontend-worker', 'public')
 console.log('[1/3] Building frontend...')
 execSync('npm run build', { cwd: ROOT, stdio: 'inherit' })
 
-// Inject build timestamp into sw.js for automatic cache busting
-const swPath = join(DIST, 'sw.js')
-let swContent = await readFile(swPath, 'utf-8')
-swContent = swContent.replace('__BUILD_TS__', String(Date.now()))
-await writeFile(swPath, swContent, 'utf-8')
-console.log('  → Injected build timestamp into sw.js')
+// Copy static files not handled by Vite into dist/
+const staticFiles = [
+  // Landing page assets (referenced via /home/ URLs)
+  { src: join(ROOT, 'home/css/test.css'), dest: join(DIST, 'home/css/test.css') },
+  { src: join(ROOT, 'home/js/test.js'), dest: join(DIST, 'home/js/test.js') },
+  // Scanner PWA static files (served for store subdomains)
+  { src: join(ROOT, 'skanner/pwa/sw.js'), dest: join(DIST, 'skanner/pwa/sw.js') },
+  { src: join(ROOT, 'skanner/pwa/manifest.json'), dest: join(DIST, 'skanner/pwa/manifest.json') },
+  { src: join(ROOT, 'skanner/pwa/offline.html'), dest: join(DIST, 'skanner/pwa/offline.html') },
+]
+for (const f of staticFiles) {
+  await mkdir(dirname(f.dest), { recursive: true })
+  await copyFile(f.src, f.dest)
+  console.log(`  → Copied ${f.src.replace(ROOT + sep, '')}`)
+}
+
+// Inject build timestamp into sw.js files for automatic cache busting
+const swPaths = [
+  join(DIST, 'sw.js'),
+  join(DIST, 'skanner', 'pwa', 'sw.js')
+]
+for (const swPath of swPaths) {
+  try {
+    let swContent = await readFile(swPath, 'utf-8')
+    swContent = swContent.replace('__BUILD_TS__', String(Date.now()))
+    await writeFile(swPath, swContent, 'utf-8')
+    console.log(`  → Injected build timestamp into ${swPath.replace(DIST + sep, '')}`)
+  } catch {}
+}
 
 console.log('[2/3] Cleaning public/...')
 if (existsSync(PUBLIC)) await rm(PUBLIC, { recursive: true })
