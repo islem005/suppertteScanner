@@ -7,200 +7,190 @@
 
   // ── Scene setup ──
   var scene = new THREE.Scene()
-  var camera = new THREE.PerspectiveCamera(60, window.innerWidth / window.innerHeight, 0.1, 100)
-  camera.position.z = 14
+  var camera = new THREE.PerspectiveCamera(50, window.innerWidth / window.innerHeight, 0.1, 100)
+  camera.position.z = 15
 
   var renderer = new THREE.WebGLRenderer({ alpha: true, antialias: true })
   renderer.setSize(window.innerWidth, window.innerHeight)
   renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2))
+  renderer.toneMapping = THREE.ACESFilmicToneMapping
+  renderer.toneMappingExposure = 0.8
   container.appendChild(renderer.domElement)
 
-  // ── Objects ──
-  var objects = []
-  var wireframeObjects = []
+  // ── Generate organic blob geometry ──
+  function createBlob(radius, segments, displacement, seed) {
+    var geo = new THREE.SphereGeometry(radius, segments, segments)
+    var pos = geo.attributes.position
+    var count = pos.count
 
-  var wireGeometries = [
-    new THREE.IcosahedronGeometry(1.0, 0),
-    new THREE.OctahedronGeometry(0.9, 0),
-    new THREE.TetrahedronGeometry(1.1, 0),
+    for (var i = 0; i < count; i++) {
+      var x = pos.getX(i), y = pos.getY(i), z = pos.getZ(i)
+      var len = Math.sqrt(x*x + y*y + z*z)
+      var nx = x / len, ny = y / len, nz = z / len
+
+      var theta = Math.acos(ny)
+      var phi = Math.atan2(nz, nx)
+
+      var noise =
+        Math.sin(theta * 3 + seed) * 0.3 +
+        Math.cos(phi * 4 + seed * 2) * 0.2 +
+        Math.sin(theta * 2 + phi * 3 + seed * 1.5) * 0.25 +
+        Math.cos(theta * 5 + phi * 2 + seed * 0.7) * 0.15
+
+      var r = radius + displacement * noise
+      pos.setXYZ(i, nx * r, ny * r, nz * r)
+    }
+
+    pos.needsUpdate = true
+    geo.computeVertexNormals()
+    return geo
+  }
+
+  // ── Blob colors (warm Mediterranean) ──
+  var blobColors = [
+    { base: 0xc86a4e, emissive: 0xc86a4e },  // terracotta
+    { base: 0xd4a843, emissive: 0xd4a843 },  // gold
+    { base: 0x5a7a4a, emissive: 0x5a7a4a },  // olive
+    { base: 0x1a6b8a, emissive: 0x1a6b8a },  // deep blue
   ]
-  var wireColors = [0x6366f1, 0xf59e0b, 0xa855f7]
 
-  // Wireframe objects (existing behavior)
-  for (var i = 0; i < 6; i++) {
-    var geo = wireGeometries[i % wireGeometries.length]
-    var color = wireColors[i % wireColors.length]
+  var blobs = []
+
+  for (var i = 0; i < 5; i++) {
+    var colorSet = blobColors[i % blobColors.length]
+    var radius = 0.8 + Math.random() * 0.6
+    var segments = 28
+    var displacement = 0.4 + Math.random() * 0.5
+    var seed = Math.random() * 10
+
+    var geo = createBlob(radius, segments, displacement, seed)
     var mat = new THREE.MeshPhysicalMaterial({
-      color: color,
-      wireframe: true,
+      color: colorSet.base,
+      emissive: colorSet.emissive,
+      emissiveIntensity: 0.15,
+      metalness: 0.1,
+      roughness: 0.6,
       transparent: true,
-      opacity: 0.12 + Math.random() * 0.12,
-      metalness: 0.8,
-      roughness: 0.2,
+      opacity: 0.7,
+      clearcoat: 0.3,
+      clearcoatRoughness: 0.4,
     })
+
     var mesh = new THREE.Mesh(geo, mat)
 
-    var radius = 5 + Math.random() * 6
-    var theta = Math.random() * Math.PI * 2
-    var phi = Math.random() * Math.PI * 2
+    var dist = 4 + Math.random() * 5
+    var angleH = Math.random() * Math.PI * 2
+    var angleV = (Math.random() - 0.5) * 0.8
 
-    mesh.position.x = Math.sin(theta) * Math.cos(phi) * radius
-    mesh.position.y = Math.sin(theta) * Math.sin(phi) * radius
-    mesh.position.z = Math.cos(theta) * radius * 0.4
+    mesh.position.x = Math.cos(angleH) * dist
+    mesh.position.z = Math.sin(angleH) * dist
+    mesh.position.y = Math.sin(angleV) * dist * 0.5
 
     mesh.rotation.x = Math.random() * Math.PI
     mesh.rotation.y = Math.random() * Math.PI
 
     mesh.userData = {
-      speed: 0.15 + Math.random() * 0.3,
-      rotX: (Math.random() - 0.5) * 0.008,
-      rotY: (Math.random() - 0.5) * 0.008,
-      rotZ: (Math.random() - 0.5) * 0.008,
-      floatSpeed: 0.2 + Math.random() * 0.4,
-      floatAmp: 0.15 + Math.random() * 0.2,
-      baseY: mesh.position.y,
-      phase: Math.random() * Math.PI * 2,
-      orbitSpeed: (Math.random() - 0.5) * 0.05,
-      orbitRadius: radius,
-      baseX: mesh.position.x,
-      baseZ: mesh.position.z,
-      theta: theta
-    }
-
-    scene.add(mesh)
-    wireframeObjects.push(mesh)
-    objects.push(mesh)
-  }
-
-  // ── Glowing solid shapes ──
-  var solidGeometries = [
-    new THREE.SphereGeometry(0.3, 16, 16),
-    new THREE.IcosahedronGeometry(0.25, 0),
-  ]
-
-  for (var i = 0; i < 4; i++) {
-    var geo = solidGeometries[i % solidGeometries.length]
-    var color = wireColors[i % wireColors.length]
-    var mat = new THREE.MeshPhysicalMaterial({
-      color: color,
-      emissive: color,
-      emissiveIntensity: 0.3,
-      transparent: true,
-      opacity: 0.5,
-      metalness: 0.3,
-      roughness: 0.4,
-    })
-    var mesh = new THREE.Mesh(geo, mat)
-    var radius = 3 + Math.random() * 4
-    var angle = Math.random() * Math.PI * 2
-
-    mesh.position.x = Math.cos(angle) * radius
-    mesh.position.y = (Math.random() - 0.5) * 4
-    mesh.position.z = Math.sin(angle) * radius
-
-    mesh.userData = {
-      orbitSpeed: 0.02 + Math.random() * 0.03,
-      orbitRadius: radius,
-      angle: angle,
-      baseY: mesh.position.y,
-      floatSpeed: 0.3 + Math.random() * 0.4,
+      basePos: mesh.position.clone(),
+      rotSpeed: 0.1 + Math.random() * 0.2,
+      rotX: (Math.random() - 0.5) * 0.005,
+      rotY: (Math.random() - 0.5) * 0.005,
+      rotZ: (Math.random() - 0.5) * 0.005,
+      floatSpeed: 0.2 + Math.random() * 0.3,
       floatAmp: 0.2 + Math.random() * 0.3,
-      phase: Math.random() * Math.PI * 2
+      phase: Math.random() * Math.PI * 2,
+      orbitAngle: angleH,
+      orbitSpeed: (Math.random() - 0.5) * 0.02,
+      orbitRadius: dist,
+      seed: seed,
+      displacement: displacement,
+      originalPos: geo.attributes.position.array.slice(),
     }
 
     scene.add(mesh)
-    objects.push(mesh)
+    blobs.push({ mesh: mesh, geo: geo, mat: mat, colorSet: colorSet })
   }
 
-  // ── Large ring ──
-  var ringGeo = new THREE.TorusGeometry(3.5, 0.03, 16, 64)
-  var ringMat = new THREE.MeshBasicMaterial({
-    color: 0x6366f1,
+  // ── Central blob (larger, slower) ──
+  var centerGeo = createBlob(1.2, 32, 0.6, 7.3)
+  var centerMat = new THREE.MeshPhysicalMaterial({
+    color: 0xc86a4e,
+    emissive: 0xc86a4e,
+    emissiveIntensity: 0.1,
+    metalness: 0.1,
+    roughness: 0.5,
     transparent: true,
-    opacity: 0.15
+    opacity: 0.5,
+    clearcoat: 0.4,
+    clearcoatRoughness: 0.3,
   })
-  var ring = new THREE.Mesh(ringGeo, ringMat)
-  ring.rotation.x = Math.PI / 3
-  ring.rotation.z = 0.2
-  scene.add(ring)
-  objects.push(ring)
-
-  var ring2Geo = new THREE.TorusGeometry(4.5, 0.02, 16, 64)
-  var ring2Mat = new THREE.MeshBasicMaterial({
-    color: 0xa855f7,
-    transparent: true,
-    opacity: 0.08
-  })
-  var ring2 = new THREE.Mesh(ring2Geo, ring2Mat)
-  ring2.rotation.x = -Math.PI / 4
-  ring2.rotation.z = 0.5
-  scene.add(ring2)
-  objects.push(ring2)
+  var centerBlob = new THREE.Mesh(centerGeo, centerMat)
+  centerBlob.userData = {
+    rotX: 0.002,
+    rotY: 0.003,
+    rotZ: 0.001,
+    seed: 7.3,
+    displacement: 0.6,
+    originalPos: centerGeo.attributes.position.array.slice(),
+  }
+  scene.add(centerBlob)
 
   // ── Particles ──
-  var particleDensity = window.innerWidth < 480 ? 150 : (window.innerWidth < 768 ? 250 : 400)
-  var particleCount = Math.min(particleDensity, 500)
+  var particleCount = window.innerWidth < 480 ? 100 : (window.innerWidth < 768 ? 180 : 300)
   var particleGeo = new THREE.BufferGeometry()
   var positions = new Float32Array(particleCount * 3)
-  var particleColors = new Float32Array(particleCount * 3)
-  var colorPalette = [
-    new THREE.Color(0x6366f1),
-    new THREE.Color(0xa855f7),
-    new THREE.Color(0xf59e0b),
-    new THREE.Color(0xef4444),
+  var sizes = new Float32Array(particleCount)
+  var pColors = new Float32Array(particleCount * 3)
+
+  var palette = [
+    new THREE.Color(0xc86a4e),
+    new THREE.Color(0xd4a843),
+    new THREE.Color(0x5a7a4a),
+    new THREE.Color(0x1a6b8a),
   ]
 
   for (var i = 0; i < particleCount; i++) {
-    positions[i * 3] = (Math.random() - 0.5) * 50
-    positions[i * 3 + 1] = (Math.random() - 0.5) * 50
-    positions[i * 3 + 2] = (Math.random() - 0.5) * 50
-
-    var c = colorPalette[Math.floor(Math.random() * colorPalette.length)]
-    particleColors[i * 3] = c.r
-    particleColors[i * 3 + 1] = c.g
-    particleColors[i * 3 + 2] = c.b
+    positions[i * 3] = (Math.random() - 0.5) * 40
+    positions[i * 3 + 1] = (Math.random() - 0.5) * 40
+    positions[i * 3 + 2] = (Math.random() - 0.5) * 40
+    sizes[i] = 0.02 + Math.random() * 0.06
+    var c = palette[Math.floor(Math.random() * palette.length)]
+    pColors[i * 3] = c.r * 0.6
+    pColors[i * 3 + 1] = c.g * 0.6
+    pColors[i * 3 + 2] = c.b * 0.6
   }
 
   particleGeo.setAttribute('position', new THREE.BufferAttribute(positions, 3))
-  particleGeo.setAttribute('color', new THREE.BufferAttribute(particleColors, 3))
+  particleGeo.setAttribute('size', new THREE.BufferAttribute(sizes, 1))
+  particleGeo.setAttribute('color', new THREE.BufferAttribute(pColors, 3))
 
   var particleMat = new THREE.PointsMaterial({
-    size: 0.05,
+    size: 0.04,
     transparent: true,
-    opacity: 0.6,
+    opacity: 0.4,
     vertexColors: true,
     blending: THREE.AdditiveBlending,
-    depthWrite: false
+    depthWrite: false,
+    sizeAttenuation: true,
   })
   var particles = new THREE.Points(particleGeo, particleMat)
   scene.add(particles)
 
-  // ── Mouse / touch ──
+  // ── Mouse / touch tracking ──
   var mouseX = 0
   var mouseY = 0
   var targetX = 0
   var targetY = 0
-  var isTouching = false
-
-  function onPointerMove(x, y) {
-    mouseX = (x / window.innerWidth) * 2 - 1
-    mouseY = -(y / window.innerHeight) * 2 + 1
-  }
 
   document.addEventListener('mousemove', function(e) {
-    isTouching = false
-    onPointerMove(e.clientX, e.clientY)
+    mouseX = (e.clientX / window.innerWidth) * 2 - 1
+    mouseY = -(e.clientY / window.innerHeight) * 2 + 1
   })
 
   document.addEventListener('touchmove', function(e) {
-    isTouching = true
     var t = e.touches[0]
-    onPointerMove(t.clientX, t.clientY)
+    mouseX = (t.clientX / window.innerWidth) * 2 - 1
+    mouseY = -(t.clientY / window.innerHeight) * 2 + 1
   }, { passive: true })
-
-  document.addEventListener('touchend', function() {
-    isTouching = false
-  })
 
   // ── Card 3D tilt ──
   var card = document.querySelector('.product-card')
@@ -226,11 +216,10 @@
     requestAnimationFrame(animate)
     var t = clock.getElapsedTime()
 
-    // Smooth mouse lerp (with auto-rotate when idle on touch)
-    if (isTouching || Math.abs(mouseX) < 0.01 && Math.abs(mouseY) < 0.01) {
-      // Gentle idle rotation
-      targetX += (Math.sin(t * 0.1) * 0.3 - targetX) * 0.01
-      targetY += (Math.cos(t * 0.08) * 0.2 - targetY) * 0.01
+    // Smooth camera follow with idle drift
+    if (Math.abs(mouseX) < 0.01 && Math.abs(mouseY) < 0.01) {
+      targetX += (Math.sin(t * 0.08) * 0.2 - targetX) * 0.008
+      targetY += (Math.cos(t * 0.06) * 0.15 - targetY) * 0.008
     } else {
       targetX += (mouseX - targetX) * 0.03
       targetY += (mouseY - targetY) * 0.03
@@ -240,46 +229,36 @@
     camera.position.y = targetY * 2
     camera.lookAt(0, 0, 0)
 
-    // Update wireframe objects
-    for (var i = 0; i < wireframeObjects.length; i++) {
-      var obj = wireframeObjects[i]
-      var ud = obj.userData
-      obj.rotation.x += ud.rotX * ud.speed
-      obj.rotation.y += ud.rotY * ud.speed
-      obj.rotation.z += ud.rotZ * ud.speed
+    // Animate blobs
+    for (var i = 0; i < blobs.length; i++) {
+      var b = blobs[i]
+      var mesh = b.mesh
+      var ud = mesh.userData
 
-      // Orbital motion
-      ud.theta += ud.orbitSpeed * ud.speed
-      obj.position.x = Math.sin(ud.theta) * ud.orbitRadius
-      obj.position.z = Math.cos(ud.theta) * ud.orbitRadius
-      obj.position.y = ud.baseY + Math.sin(t * ud.floatSpeed + ud.phase) * ud.floatAmp
+      mesh.rotation.x += ud.rotX * ud.rotSpeed
+      mesh.rotation.y += ud.rotY * ud.rotSpeed
+      mesh.rotation.z += ud.rotZ * ud.rotSpeed
+
+      ud.orbitAngle += ud.orbitSpeed
+      mesh.position.x = Math.cos(ud.orbitAngle) * ud.orbitRadius
+      mesh.position.z = Math.sin(ud.orbitAngle) * ud.orbitRadius
+      mesh.position.y = ud.basePos.y + Math.sin(t * ud.floatSpeed + ud.phase) * ud.floatAmp
+
+      // Breathe: gently pulse emissive
+      var breathe = 0.1 + Math.sin(t * 0.5 + ud.phase) * 0.08
+      b.mat.emissiveIntensity = breathe
     }
 
-    // Update solid orbiting objects
-    for (var i = wireframeObjects.length; i < objects.length - 2; i++) {
-      var obj = objects[i]
-      var ud = obj.userData
-      ud.angle += ud.orbitSpeed
-      obj.position.x = Math.cos(ud.angle) * ud.orbitRadius
-      obj.position.z = Math.sin(ud.angle) * ud.orbitRadius
-      obj.position.y = ud.baseY + Math.sin(t * ud.floatSpeed + ud.phase) * ud.floatAmp
-      obj.rotation.x += 0.01
-      obj.rotation.y += 0.02
+    // Central blob: slow rotation + gentle pulse
+    centerBlob.rotation.x += centerBlob.userData.rotX
+    centerBlob.rotation.y += centerBlob.userData.rotY
+    centerBlob.rotation.z += centerBlob.userData.rotZ
+    var centerPulse = 0.08 + Math.sin(t * 0.3) * 0.06
+    centerMat.emissiveIntensity = centerPulse
 
-      // Pulse emissive
-      var pulse = 0.3 + Math.sin(t * 0.8 + ud.phase) * 0.2
-      if (obj.material) obj.material.emissiveIntensity = pulse
-    }
-
-    // Rotate rings
-    ring.rotation.z = t * 0.05
-    ring.rotation.y = t * 0.03
-    ring2.rotation.z = -t * 0.04
-    ring2.rotation.x = t * 0.02
-
-    // Rotate particle field
-    particles.rotation.y = t * 0.02
-    particles.rotation.x = Math.sin(t * 0.01) * 0.02
+    // Slow particle drift
+    particles.rotation.y = t * 0.015
+    particles.rotation.x = Math.sin(t * 0.008) * 0.015
 
     renderer.render(scene, camera)
   }
@@ -296,7 +275,7 @@
   }
   window.addEventListener('resize', onResize)
 
-  // ── Scroll animations (Intersection Observer) ──
+  // ── Scroll animations ──
   if ('IntersectionObserver' in window) {
     var observer = new IntersectionObserver(function(entries) {
       entries.forEach(function(entry) {
@@ -311,7 +290,6 @@
       observer.observe(el)
     })
 
-    // Immediate: show hero
     var hero = document.getElementById('hero')
     if (hero) setTimeout(function() { hero.classList.add('is-visible') }, 100)
   } else {
