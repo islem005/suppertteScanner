@@ -70,10 +70,6 @@ export default defineConfig({
         scanner: resolve(__dirname, 'scanner.html'),
         scannerQr: resolve(__dirname, 'scanner-qr.html'),
         scannerTest: resolve(__dirname, 'scanner-test.html'),
-        scannerTestNative: resolve(__dirname, 'scanner-test-native.html'),
-        scannerTestPolyfill: resolve(__dirname, 'scanner-test-polyfill.html'),
-
-        scannerTestQuagga: resolve(__dirname, 'scanner-test-quagga.html'),
         dashboard: resolve(__dirname, 'dashboard/index.html'),
         admin: resolve(__dirname, 'admin/index.html'),
         auth: resolve(__dirname, 'auth/index.html'),

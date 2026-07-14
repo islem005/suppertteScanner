@@ -2289,7 +2289,7 @@
     // ─── Barcode scanner overlay ───
     async function startBarcodeScanner(onDetected) {
       if (!('BarcodeDetector' in window)) {
-        showToast('Barcode scanning not supported on this browser. Use Chrome on Android.')
+        showToast('Barcode scanning not supported on this browser. Try a different browser.')
         return
       }
       const detector = new BarcodeDetector({ formats: ['ean_13','ean_8','code_128','code_39','code_93','codabar','itf','upc_a','upc_e','qr_code','data_matrix','aztec','pdf417'] })

@@ -2,210 +2,70 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Scanner Fallback — Mirroring scanner.js</title>
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="theme-color" content="#0c0c0d">
+<title>SKANER — Fallback Test Hub</title>
 <style>
 *,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
 :root{--bg:#0f0f1a;--card:#1a1a2e;--border:#2a2a3e;--text:#e2e8f0;--text2:#94a3b8;--text3:#64748b;--green:#22c55e;--red:#ef4444;--blue:#3b82f6;--purple:#8b5cf6}
-body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);padding:16px;min-height:100vh}
-h1{font-size:20px;margin-bottom:4px}
-.sub{color:var(--text2);font-size:13px;margin-bottom:16px}
-.controls{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
-.btn{padding:10px 20px;border:0;border-radius:6px;font-size:14px;font-weight:600;cursor:pointer;color:#fff}
-.btn.green{background:var(--green)}.btn.red{background:var(--red)}.btn.blue{background:var(--blue)}.btn.purple{background:var(--purple)}
-.btn:disabled{opacity:.5;cursor:default}
-.video-wrap{background:#000;border-radius:8px;overflow:hidden;margin-bottom:12px;position:relative;aspect-ratio:4/3;max-width:480px;display:none}
-.video-wrap video{width:100%;height:100%;display:block;object-fit:cover}
-.video-wrap .badge{position:absolute;top:8px;left:8px;background:rgba(0,0,0,.75);color:#fff;padding:4px 10px;border-radius:4px;font-size:12px}
-.panel{background:var(--card);border:1px solid var(--border);border-radius:8px;padding:12px;margin-bottom:12px}
-.cv-wrap{width:100%;max-width:480px;margin-bottom:12px;border-radius:8px;overflow:hidden;border:1px solid var(--border);background:#000;display:none}
-.cv-wrap canvas{width:100%;display:block}
-#error-box{display:none;padding:8px;background:#3b0000;border:1px solid var(--red);border-radius:4px;color:#ff8a8a;font-size:12px;font-family:monospace;white-space:pre-wrap;word-break:break-all;max-height:200px;overflow-y:auto;margin-top:8px}
-.result{font-size:13px;line-height:1.6}
-.result .label{color:var(--text2);font-size:11px}
-.result .val{word-break:break-all;font-family:monospace;font-size:13px}
-.info{font-size:12px;color:var(--text2);font-family:monospace;line-height:1.6;margin-top:4px}
+body{font-family:-apple-system,BlinkMacSystemFont,sans-serif;background:var(--bg);color:var(--text);min-height:100dvh;display:flex;flex-direction:column;padding:24px 16px}
+h1{font-size:22px;font-weight:800;margin-bottom:4px;letter-spacing:-.3px}
+.sub{color:var(--text2);font-size:13px;margin-bottom:24px;line-height:1.5}
+.cards{display:flex;flex-direction:column;gap:12px;max-width:400px;width:100%;margin:0 auto;flex:1}
+.card{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:16px;cursor:pointer;transition:border-color .15s,transform .15s;text-decoration:none;color:inherit;display:block}
+.card:hover{border-color:var(--text3);transform:translateY(-1px)}
+.card:active{transform:translateY(0)}
+.card .name{font-size:16px;font-weight:700;margin-bottom:4px}
+.card .desc{font-size:12px;color:var(--text2);line-height:1.5;margin-bottom:8px}
+.card .tag{display:inline-block;font-size:10px;font-weight:700;padding:2px 8px;border-radius:4px;color:#000}
+.tag.android{background:var(--green)}
+.tag.ios{background:var(--purple)}
+.tag.wasm{background:var(--blue)}
+.card .stats{font-size:11px;color:var(--text3);margin-top:8px;font-family:monospace}
+.footer{margin-top:24px;text-align:center;font-size:11px;color:var(--text3)}
 </style>
 </head>
 <body>
 
-<h1>Scanner Fallback Test</h1>
-<p class="sub">Mirrors scanner.js fallback code exactly — same canvas sizing, same reusable canvas, same frame loop.</p>
+<h1>SKANER Scanner Test Hub</h1>
+<p class="sub">Compare barcode detection backends side-by-side. Each page is a clone of the scanner app using only that library.</p>
 
-<div class="controls">
-  <button id="btn-start" class="btn green">Start Scanning</button>
-  <button id="btn-capture" class="btn blue" disabled>Capture &amp; Detect</button>
-  <button id="btn-stop" class="btn red" disabled>Stop</button>
-  <button id="btn-self" class="btn purple">Draw &amp; Detect</button>
+<div class="cards">
+
+  <a class="card" href="/scanner-test-native">
+    <div class="name">Native BarcodeDetector</div>
+    <div class="desc">Browser's built-in API. Works on Android Chrome. Uses the device's native barcode decoder.</div>
+    <span class="tag android">Android</span>
+    <div class="stats" id="stat-native">Check compatibility...</div>
+  </a>
+
+  <a class="card" href="/scanner-test-polyfill">
+    <div class="name">barcode-detector Polyfill</div>
+    <div class="desc">Drop-in WASM polyfill for BarcodeDetector. Replicates the native API exactly on unsupported devices.</div>
+    <span class="tag ios">Any</span>
+    <div class="stats" id="stat-polyfill">WASM-based polyfill</div>
+  </a>
+
+  <a class="card" href="/scanner-test-quagga">
+    <div class="name">Quagga (Production Fallback)</div>
+    <div class="desc">Pure-JS decoder used as the production fallback on iOS and when BarcodeDetector is unavailable. Self-managed camera.</div>
+    <span class="tag" style="background:var(--orange)">Fallback</span>
+    <div class="stats" id="stat-quagga">Production fallback engine</div>
+  </a>
+
 </div>
 
-<div class="video-wrap" id="video-wrap">
-  <video id="video" autoplay playsinline muted></video>
-  <div class="badge" id="cam-badge">Camera off</div>
+<div class="footer">
+  Each page has Start/Stop camera, Draw &amp; Detect self-test, and live timing stats.
 </div>
 
-<div class="cv-wrap" id="cv-wrap">
-  <canvas id="scan-canvas"></canvas>
-</div>
-
-<div class="panel">
-  <div id="error-box"></div>
-  <div class="result" id="r-result">Press Start Scanning to begin live detection.</div>
-  <div class="info" id="d-info"></div>
-</div>
-
-<script src="https://cdn.jsdelivr.net/npm/jsbarcode@3/dist/JsBarcode.all.min.js"></script>
-<script type="module">
-import { detectFromCanvas } from './js/zxing-module.js'
-
-const video = document.getElementById('video')
-const btnStart = document.getElementById('btn-start')
-const btnCapture = document.getElementById('btn-capture')
-const btnStop = document.getElementById('btn-stop')
-const btnSelf = document.getElementById('btn-self')
-const camBadge = document.getElementById('cam-badge')
-const canvasEl = document.getElementById('scan-canvas')
-const cvWrap = document.getElementById('cv-wrap')
-const rResult = document.getElementById('r-result')
-const dInfo = document.getElementById('d-info')
-const errorBox = document.getElementById('error-box')
-
-let stream = null, running = false, loopId = null, count = 0
-const TARGET_FPS = 3
-const FRAME_INTERVAL = 1000 / TARGET_FPS
-
-function show(msg) { rResult.innerHTML = msg }
-function info(msg) { dInfo.textContent = msg }
-
-function showError(msg) {
-  errorBox.style.display = 'block'
-  errorBox.textContent += '\n[' + new Date().toLocaleTimeString() + '] ' + msg
-  errorBox.scrollTop = errorBox.scrollHeight
-  console.error(msg)
+<script>
+if ('BarcodeDetector' in window) {
+  document.getElementById('stat-native').textContent = 'Supported on this device'
+} else {
+  document.getElementById('stat-native').textContent = 'NOT supported on this device'
+  document.getElementById('stat-native').style.color = 'var(--red)'
 }
-window.onerror = (_, _2, _3, _4, err) => showError('UNHANDLED: ' + (err?.message || err || 'unknown'))
-window.addEventListener('unhandledrejection', e => showError('UNHANDLED PROMISE: ' + (e.reason?.message || e.reason || 'unknown')))
-
-// ── scanner.js's exact fallback pattern ──
-async function fallbackDetect(video) {
-  const scale = Math.min(640 / video.videoWidth, 480 / video.videoHeight, 1);
-  canvasEl.width = Math.round(video.videoWidth * scale) || 1;
-  canvasEl.height = Math.round(video.videoHeight * scale) || 1;
-  const ctx = canvasEl.getContext('2d');
-  if (!ctx) return [];
-  ctx.drawImage(video, 0, 0, canvasEl.width, canvasEl.height);
-  return detectFromCanvas(canvasEl);
-}
-
-async function scheduleDetect() {
-  if (!running) return
-  const startTime = performance.now()
-  try {
-    if (video.readyState >= 2) {
-      cvWrap.style.display = 'block'
-      const codes = await fallbackDetect(video)
-      const elapsed = performance.now() - startTime
-      info('Canvas: ' + canvasEl.width + 'x' + canvasEl.height + ' | Time: ' + elapsed.toFixed(1) + 'ms | Results: ' + codes.length)
-      if (codes.length > 0) {
-        count++
-        const r = codes[0]
-        show('&#10003; <span class="label">Code:</span> <span class="val">' + esc(r.rawValue) + '</span><br><span class="label">Format:</span> ' + esc(r.format) + ' <span class="label">(' + count + ' detections)</span>')
-      } else {
-        show('<span style="color:var(--text3)">Scanning (frame ' + count + ' scans)...</span>')
-      }
-    }
-  } catch (e) {
-    showError('SCAN: ' + (e.message || e))
-  }
-  if (!running) return
-  const elapsed = performance.now() - startTime
-  loopId = setTimeout(scheduleDetect, Math.max(0, FRAME_INTERVAL - elapsed))
-}
-
-async function startScanning() {
-  if (stream) return
-  try {
-    stream = await navigator.mediaDevices.getUserMedia({
-      video: { facingMode: 'environment' }, audio: false
-    })
-    video.srcObject = stream
-    await video.play()
-    camBadge.textContent = 'Camera active'
-    btnStart.disabled = true; btnCapture.disabled = false; btnStop.disabled = false
-    running = true; count = 0
-    show('Scanning...')
-    scheduleDetect()
-  } catch (e) {
-    showError('CAMERA: ' + e.message)
-    show('Camera failed: ' + e.message)
-  }
-}
-
-async function captureOnce() {
-  if (!stream) return
-  show('Detecting...'); info('')
-  const w = video.videoWidth, h = video.videoHeight
-  if (!w || !h) { showError('No video dimensions'); return }
-  canvasEl.width = Math.round(Math.min(640, w)) || 1
-  canvasEl.height = Math.round(Math.min(480, h)) || 1
-  const ctx = canvasEl.getContext('2d')
-  ctx.drawImage(video, 0, 0, canvasEl.width, canvasEl.height)
-  cvWrap.style.display = 'block'
-  try {
-    const codes = await detectFromCanvas(canvasEl)
-    info('Canvas: ' + canvasEl.width + 'x' + canvasEl.height + ' | Results: ' + codes.length)
-    if (codes.length > 0) {
-      const r = codes[0]
-      show('&#10003; <span class="label">Code:</span> <span class="val">' + esc(r.rawValue) + '</span><br><span class="label">Format:</span> ' + esc(r.format))
-    } else {
-      show('&#10007; No barcode found')
-    }
-  } catch (e) {
-    showError('CAPTURE: ' + (e.message || e))
-    show('Error: ' + e.message)
-  }
-}
-
-function stopScanning() {
-  running = false
-  if (loopId) { clearTimeout(loopId); loopId = null }
-  if (stream) { stream.getTracks().forEach(t => t.stop()); stream = null }
-  video.srcObject = null
-  camBadge.textContent = 'Camera off'
-  btnStart.disabled = false; btnCapture.disabled = true; btnStop.disabled = true
-  show('Stopped')
-}
-
-async function drawAndDetect() {
-  show('Drawing test barcode...'); info('')
-  canvasEl.width = 400; canvasEl.height = 200
-  const ctx = canvasEl.getContext('2d')
-  ctx.fillStyle = '#fff'; ctx.fillRect(0, 0, 400, 200)
-  try {
-    JsBarcode(canvasEl, '1234567890128', {
-      format: 'EAN13', width: 2, height: 100, displayValue: true, margin: 10
-    })
-    cvWrap.style.display = 'block'
-    const codes = await detectFromCanvas(canvasEl)
-    info('Canvas: 400x200 | Results: ' + codes.length)
-    if (codes.length > 0) {
-      const r = codes[0]
-      show('&#10003; <span class="label">Code:</span> <span class="val">' + esc(r.rawValue) + '</span><br><span class="label">Format:</span> ' + esc(r.format))
-    } else {
-      show('&#10007; Self-test failed!')
-    }
-  } catch (e) {
-    showError('SELFTEST: ' + (e.message || e))
-    show('Error: ' + e.message)
-  }
-}
-
-function esc(s) { return String(s).replace(/[&<>"']/g, m => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m])) }
-
-btnStart.onclick = startScanning
-btnCapture.onclick = captureOnce
-btnStop.onclick = stopScanning
-btnSelf.onclick = drawAndDetect
 </script>
 </body>
 </html>

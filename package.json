@@ -39,7 +39,8 @@
     "wrangler": "^4.99.0"
   },
   "dependencies": {
-    "swiper": "^12.2.0",
-    "zxing-wasm": "^3.1.0"
+    "barcode-detector": "^3.2.0",
+    "quagga": "^0.12.1",
+    "swiper": "^12.2.0"
   }
 }

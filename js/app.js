@@ -175,13 +175,11 @@ import 'swiper/css/pagination';
 
     const result = await Scanner.init();
     if (result.ok) {
-      if (!result.hasDecoder) {
-        showUnsupportedModal();
-      }
       Scanner.start(video, onBarcode);
 
       camFeed.addEventListener('click', async () => {
         camName.textContent = 'Restarting camera…';
+        camName.style.color = '';
         const r = await Scanner.restart(video, onBarcode);
         camName.textContent = r.ok ? 'Camera ready' : r.error;
         if (r.ok) showToast('Camera refreshed');
@@ -191,6 +189,7 @@ import 'swiper/css/pagination';
         btnRefresh.addEventListener('click', async e => {
           e.stopPropagation();
           camName.textContent = 'Restarting camera…';
+          camName.style.color = '';
           const r = await Scanner.restart(video, onBarcode);
           camName.textContent = r.ok ? 'Camera ready' : r.error;
           if (r.ok) showToast('Camera refreshed');
@@ -200,7 +199,6 @@ import 'swiper/css/pagination';
       camFeed.classList.add('hidden');
       camName.textContent = result.error;
       camName.classList.add('hint');
-      showUnsupportedModal();
     }
   }
 
@@ -235,16 +233,17 @@ import 'swiper/css/pagination';
     }).catch(() => {});
 
     if (!scanData || !scanData.product) {
-      camName.textContent = 'Unknown product';
-      camName.classList.add('hint');
-      camPrice.textContent = code;
-      camPrice.classList.add('error');
+      camName.textContent = 'Unknown';
+      camName.style.color = 'var(--color-danger)';
+      camPrice.textContent = '—';
+      camPrice.classList.remove('error');
       return;
     }
 
     const product = scanData.product;
     camName.textContent = product.name;
     camName.classList.remove('hint');
+    camName.style.color = '';
 
     if (Array.isArray(scanData.offers)) {
       const triggeredOffers = scanData.offers.filter(o => o.trigger_type && o.trigger_value);
@@ -429,44 +428,7 @@ import 'swiper/css/pagination';
     });
   }
 
-  function showUnsupportedModal() {
-    if (document.getElementById('scanner-modal')) return;
-    const ua = navigator.userAgent.toLowerCase();
-    const isIOS = /iphone|ipad|ipod/i.test(ua);
-    const isAndroid = /android/i.test(ua);
-    const isMobile = isIOS || isAndroid || /mobile/i.test(ua);
 
-    let heading, message, icon;
-    if (!isMobile) {
-      heading = 'Mobile device required';
-      message = 'Open this page on your phone to use the barcode scanner.';
-      icon = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><rect x="5" y="2" width="14" height="20" rx="2" ry="2"/><line x1="12" y1="18" x2="12.01" y2="18"/></svg>';
-    } else if (isAndroid && !/chrome/i.test(ua)) {
-      heading = 'Chrome required';
-      message = 'The scanner requires Chrome on Android. Please open this page in the Chrome browser.';
-      icon = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 48 48" fill="none"><rect width="48" height="48" rx="8" fill="#4285f4"/><path d="M14 20l10-8 10 8v12a2 2 0 01-2 2H16a2 2 0 01-2-2V20z" fill="#fff" opacity=".9"/><circle cx="24" cy="24" r="4" fill="#4285f4"/></svg>';
-    } else if (isIOS && !/safari/i.test(ua) && !/iphone|ipad|ipod/i.test(ua)) {
-      heading = 'Safari recommended';
-      message = 'For best scanning performance, open this page in Safari.';
-      icon = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="4"/><line x1="21.17" y1="8" x2="12" y2="8"/><line x1="3.95" y1="6.06" x2="8.54" y2="14"/><line x1="10.88" y1="21.94" x2="15.46" y2="14"/></svg>';
-    } else {
-      heading = 'Browser update needed';
-      message = 'Your browser does not support barcode scanning. Please update to the latest version of Chrome or Safari.';
-      icon = '<svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>';
-    }
-
-    const overlay = document.createElement('div');
-    overlay.id = 'scanner-modal';
-    overlay.innerHTML = '<div id="scanner-modal-bg"></div><div id="scanner-modal-box"><div id="scanner-modal-icon">' + icon + '</div><h2 id="scanner-modal-heading">' + heading + '</h2><p id="scanner-modal-message">' + message + '</p><button id="scanner-modal-close">OK</button></div>';
-    document.body.appendChild(overlay);
-
-    document.getElementById('scanner-modal-close').addEventListener('click', function() {
-      overlay.remove();
-    });
-    document.getElementById('scanner-modal-bg').addEventListener('click', function() {
-      overlay.remove();
-    });
-  }
 
   window.addEventListener('unhandledrejection', e => {
     console.warn('Unhandled:', e.reason);
